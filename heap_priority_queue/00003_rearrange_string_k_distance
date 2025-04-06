@@ -1,5 +1,7 @@
 https://www.geeksforgeeks.org/rearrange-a-string-so-that-all-same-characters-become-at-least-d-distance-away/
 
+https://leetcode.ca/2016-11-22-358-Rearrange-String-k-Distance-Apart/#all-problems
+
 Given a string s and an integer k, rearrange s such that the same characters are at least distance k from each other.
 If it is not possible to rearrange the string, return an empty string "".
 
