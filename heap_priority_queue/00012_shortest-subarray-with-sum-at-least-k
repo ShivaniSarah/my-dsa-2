@@ -1,0 +1,190 @@
+https://leetcode.com/problems/shortest-subarray-with-sum-at-least-k/
+
+Given an integer array nums and an integer k, return the length of the shortest non-empty subarray of nums with a sum of at least k. If there is no such subarray, return -1.
+
+A subarray is a contiguous part of an array.
+
+ 
+
+Example 1:
+
+Input: nums = [1], k = 1
+Output: 1
+Example 2:
+
+Input: nums = [1,2], k = 4
+Output: -1
+Example 3:
+
+Input: nums = [2,-1,2], k = 3
+Output: 3
+
+# java
+
+class Solution {
+    public int shortestSubarray(int[] nums, int k) {
+        int n = nums.length;
+        long[] sum = new long[n + 1];
+        
+        for (int i = 0; i < n; i++) {
+            sum[i + 1] = sum[i] + nums[i];
+        }
+        
+        int[] q = new int[n + 1]; 
+        int l = 0, r = 0; 
+        int minLength = n + 1;
+        
+        for (int i = 0; i < sum.length; i++) {
+            while (r > l && sum[i] >= sum[q[l]] + k) {
+                minLength = Math.min(minLength, i - q[l++]);
+            }
+            
+            while (r > l && sum[i] <= sum[q[r - 1]]) {
+                r--;
+            }
+            
+            q[r++] = i;
+        }
+        
+        return minLength <= n ? minLength : -1;
+    }
+}
+
+or
+
+class Solution {
+    public int shortestSubarray(int[] nums, int k) {
+        int shortest = Integer.MAX_VALUE;  // Track shortest valid subarray length
+        Deque<Pair<Long, Integer>> queue = new ArrayDeque<>();  // Store (sum, length) pairs
+        long total = 0;  // Track current sum
+        int currLen = 0; // Track current length
+        
+        for (int i = 0; i < nums.length; i++) {
+            int n = nums[i];
+            if (n < 0) {
+                if (total + n <= 0) { // Handle neg. numbers
+                    queue = new ArrayDeque<>();
+                    total = 0;
+                    currLen = 0;
+                    continue;
+                } else {
+                    Pair<Long, Integer> removed = queue.removeLast(); // Merge neg. numb
+                    long curr = n + removed.getKey();
+                    int stackLength = 1 + removed.getValue();
+                    
+                    while (!queue.isEmpty() && curr < 0) { // Keep merging non-neg. sum
+                        removed = queue.removeLast();
+                        curr += removed.getKey();
+                        stackLength += removed.getValue();
+                    }
+                    
+                    total += n;
+                    queue.addLast(new Pair<>(curr, stackLength));
+                    currLen += 1;
+                }
+            } else {
+                queue.addLast(new Pair<>((long)n, 1)); // Handle pos. numb
+                total += n;
+                currLen += 1;
+            }
+            
+            while (!queue.isEmpty() && total >= k) { // Check if cur. window sum exceeds k
+                shortest = Math.min(shortest, currLen);
+                Pair<Long, Integer> removed = queue.removeFirst();
+                total -= removed.getKey();
+                currLen -= removed.getValue();
+            }
+        }
+        
+        return shortest <= nums.length ? shortest : -1;
+    }
+    
+    private static class Pair<K, V> { // Helper class store pairs values
+        private final K key;
+        private final V value;
+        
+        public Pair(K key, V value) {
+            this.key = key;
+            this.value = value;
+        }
+        
+        public K getKey() {
+            return key;
+        }
+        
+        public V getValue() {
+            return value;
+        }
+    }
+}
+
+or
+
+class Solution {
+    public int shortestSubarray(int[] nums, int k) {
+        int res = Integer.MAX_VALUE;
+        long curSum = 0;
+        Deque<Pair<Long, Integer>> q = new ArrayDeque<>();  // (prefix_sum, end_idx)
+        
+        for (int r = 0; r < nums.length; r++) {
+            curSum += nums[r];
+            
+            if (curSum >= k) {
+                res = Math.min(res, r + 1);
+            }
+            
+            // Find the minimum valid window ending at r
+            while (!q.isEmpty() && curSum - q.peekFirst().getKey() >= k) {
+                Pair<Long, Integer> front = q.pollFirst();
+                res = Math.min(res, r - front.getValue());
+            }
+            
+            // Validate the monotonic deque
+            while (!q.isEmpty() && q.peekLast().getKey() > curSum) {
+                q.pollLast();
+            }
+            q.offerLast(new Pair<>(curSum, r));
+        }
+        
+        return res == Integer.MAX_VALUE ? -1 : res;
+    }
+    
+    // Helper class to store pairs
+    static class Pair<K, V> {
+        private K key;
+        private V value;
+        
+        public Pair(K key, V value) {
+            this.key = key;
+            this.value = value;
+        }
+        
+        public K getKey() {
+            return key;
+        }
+        
+        public V getValue() {
+            return value;
+        }
+    }
+}
+
+or
+
+
+class Solution {
+        public int shortestSubarray(int[] A, int K) {
+        int N = A.length, res = N + 1;
+        long[] B = new long[N + 1];
+        for (int i = 0; i < N; i++) B[i + 1] = B[i] + A[i];
+        Deque<Integer> d = new ArrayDeque<>();
+        for (int i = 0; i < N + 1; i++) {
+            while (d.size() > 0 && B[i] - B[d.getFirst()] >=  K)
+                res = Math.min(res, i - d.pollFirst());
+            while (d.size() > 0 && B[i] <= B[d.getLast()])
+                d.pollLast();
+            d.addLast(i);
+        }
+        return res <= N ? res : -1;
+    }
+}
