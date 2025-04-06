@@ -1,0 +1,157 @@
+https://www.geeksforgeeks.org/find-the-closest-binary-search-tree-value-ii/
+
+Given the root node of a binary search tree (BST) and a target value. 
+The task is to find the k values in the BST that are closest to the target value. 
+The answer can be returned in any order. 
+It is guaranteed that there is only one unique set of k values in the BST that are closest to the target.
+
+Input: root = [5,3,6,2,4], target = 3.714286, k = 2
+
+
+Example1
+Input BST
+Output: [4,3]
+
+
+Input: root = [1], target = 0.000000, k = 1
+Output: [1]
+
+
+The idea is to perform an any traversal on the BST, 
+during which the absolute difference between each node's value and the target is calculated. 
+These differences are stored in a max heap along with their corresponding node values. 
+The heap is structured such that it retains only the k smallest differences (closest values) 
+by discarding the largest difference whenever the heap's size exceeds k. This ensures that, at the end of the traversal, 
+the heap contains the k values with the smallest distances to the target. The values are then extracted from the heap to form 
+the final result. This method efficiently narrows down the closest values in a single traversal, making good use of the properties of 
+BST and max heap.
+
+# java
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.PriorityQueue;
+
+class TreeNode {
+    int val;
+    TreeNode left;
+    TreeNode right;
+
+    TreeNode() {}
+
+    TreeNode(int val) { this.val = val; }
+
+    TreeNode(int val, TreeNode left, TreeNode right)
+    {
+        this.val = val;
+        this.left = left;
+        this.right = right;
+    }
+}
+
+public class ClosestKValuesBST {
+    // Max heap to store the k closest values and their
+    // distances from the target.
+    static PriorityQueue<Pair<Double, Integer> > maxH;
+
+    // Recursive helper function to traverse the tree and
+    // find the closest values.
+    static void solve(TreeNode root, double target, int k)
+    {
+        if (root == null) {
+            return;
+        }
+
+        // Calculate the distance from the current node's
+        // value to the target.
+        double distanceFromTarget
+            = Math.abs((double)root.val - target);
+
+        // Push the node's value and distance onto the max
+        // heap.
+        maxH.offer(
+            new Pair<>(distanceFromTarget, root.val));
+
+        // If the heap size exceeds k, remove the element
+        // with the largest distance.
+        if (maxH.size() > k) {
+            maxH.poll();
+        }
+
+        // Recursively explore the left and right subtrees.
+        solve(root.left, target, k);
+        solve(root.right, target, k);
+    }
+
+    // Function to find the k closest values in a binary
+    // search tree to a given target.
+    static List<Integer>
+    closestKValues(TreeNode root, double target, int k)
+    {
+        // Initialize the max heap.
+        maxH = new PriorityQueue<>(
+            (a,
+             b) -> Double.compare(b.getKey(), a.getKey()));
+
+        // Traverse the tree and find the closest values.
+        solve(root, target, k);
+
+        // Extract the k closest values from the max heap
+        // and store them in a list.
+        List<Integer> result = new ArrayList<>();
+        while (!maxH.isEmpty()) {
+            result.add(maxH.poll().getValue());
+        }
+
+        // Return the list of k closest values.
+        return result;
+    }
+
+    public static void main(String[] args)
+    {
+        /*
+            Let's create the following BST:
+
+                  5
+               /     \
+              3      6
+             /  \
+           2   4
+
+        */
+        TreeNode root = new TreeNode(5);
+        root.left = new TreeNode(3);
+        root.right = new TreeNode(6);
+        root.left.left = new TreeNode(2);
+        root.left.right = new TreeNode(4);
+
+        double target = 3.714286;
+        int k = 2;
+
+        List<Integer> result
+            = closestKValues(root, target, k);
+
+        System.out.print("The closest " + k + " values to "
+                         + target + " are: ");
+        for (int val : result) {
+            System.out.print(val + " ");
+        }
+        System.out.println();
+    }
+
+    // Pair class for storing distance and value
+    static class Pair<K, V> {
+        private final K key;
+        private final V value;
+
+        public Pair(K key, V value)
+        {
+            this.key = key;
+            this.value = value;
+        }
+
+        public K getKey() { return key; }
+
+        public V getValue() { return value; }
+    }
+}
