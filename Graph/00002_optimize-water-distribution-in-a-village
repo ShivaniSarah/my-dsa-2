@@ -9,7 +9,12 @@ Connections are bidirectional, and there could be multiple valid connections bet
 
 Return the minimum total cost to supply water to all houses.
 
- 
+ Solution 1: Kruskal’s Algorithm (Minimum Spanning Tree)
+
+We assume that there is a well with the number $0$. Then we can consider the connectivity between each house and the well $0$ as an edge, and the weight of each edge is the cost of building a well for that house. At the same time, we consider the connectivity between each house as an edge, and the weight of each edge is the cost of laying a pipe. In this way, we can transform this problem into finding the minimum spanning tree of an undirected graph.
+
+
+
 
 Example 1:
 
