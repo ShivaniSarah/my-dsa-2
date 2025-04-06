@@ -171,3 +171,103 @@ class Solution {
 }
 
 TC: O(n * k + k log k)
+
+or
+
+class Solution {
+    public List<List<Integer>> getSkyline(int[][] buildings) {
+        TreeMap<Integer, List<int[]>> coor=new TreeMap<>(); //treeset for maintaing sorted coordinates
+        for(int[] b: buildings) {
+            //add left coordinate
+            int arr[]=new int[2];
+            List<int[]> l=coor.getOrDefault(b[0], new ArrayList<>());
+            arr[0]=b[1]; //right coordinate
+            arr[1]=b[2]; //height
+            l.add(arr);
+            coor.put(b[0], l);
+            //add right coordinate
+            arr=new int[2];
+            l=coor.getOrDefault(b[1], new ArrayList<>());
+            arr[0]=b[1]; //right coordinate
+            arr[1]=b[2];//height
+            l.add(arr);
+            coor.put(b[1], l);
+        }
+        Queue<int[]> pq=new PriorityQueue<>((i, j)->(j[1]-i[1])); //max heap
+        List<List<Integer>> ret=new ArrayList<>(); //answer list
+        int lastLineHeight=-1; //last height 
+        for(Map.Entry<Integer, List<int[]>> e: coor.entrySet()) {
+            int x=e.getKey();
+            List<int[]> val=e.getValue();
+			//adding values in priority queue
+            for(int[] a: val) {
+                pq.add(a);
+            }
+            //removing those buildings whose right coordinate is already passed x
+            while(!pq.isEmpty() && (pq.peek())[0]<=x) 
+                pq.poll();
+            
+            int cur[]=new int[2];
+            if(!pq.isEmpty()) {
+                cur=pq.peek(); 
+            } else {
+			//priority queue is empty so adding 0
+                cur[0]=x;
+                cur[1]=0;
+            }
+            List<Integer> ans=new ArrayList<>();
+            
+            if(lastLineHeight!=cur[1]) { //last line should not be equal to current largest height building
+                ans.add(x);
+                ans.add(cur[1]);
+                lastLineHeight=cur[1];
+            }
+            if(!ans.isEmpty())
+            ret.add(ans);
+        }
+        return ret; //returning answer
+    }
+}
+
+or
+
+class Solution {
+
+public List<List<Integer>> getSkyline(int[][] buildings) {
+        List<List<Integer>> ans = new ArrayList<List<Integer>>();
+        int numOfBuildings = buildings.length;
+        // Decreasing order of priority queue
+        PriorityQueue<int[]> pq = new PriorityQueue<>(new Comparator<int[]>(){
+            public int compare(int[] a, int[] b){
+                return b[2]-a[2];
+            }
+        });
+        
+        int x = numOfBuildings==0?Integer.MAX_VALUE:buildings[0][0],next=0;
+        pq.offer(new int[]{Integer.MIN_VALUE,Integer.MAX_VALUE,0});
+        
+        // till atleast one buildings need to be seen
+        // or the pq has atleast 1 building
+        while(x!=Integer.MAX_VALUE || next<numOfBuildings || pq.size()>1){
+            // remove all the peaks out of bounds
+            while(pq.size()>1 && pq.peek()[1]<=x){
+                // the peak building has become out of bounds, remove it
+                pq.poll();
+            }
+            
+            // Add the next building if in bound
+            while(next<numOfBuildings && x==buildings[next][0]) pq.offer(buildings[next++]);
+            
+            // Add current peak building if not equal to last added peak building height
+            if(ans.size()==0 || pq.peek()[2]!=ans.get(ans.size()-1).get(1)) ans.add(
+                Arrays.asList(new Integer[]{x,pq.peek()[2]})
+            );
+            
+            // The next x position is either when the prev peak goes out of bound
+            // or the next building comes into picture(that may or may not change the skyline)
+            x = Math.min(pq.peek()[1],next>=numOfBuildings?Integer.MAX_VALUE:buildings[next][0]);
+        }
+        
+        return ans;
+    }
+}
