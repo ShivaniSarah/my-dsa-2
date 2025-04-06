@@ -1,0 +1,133 @@
+https://www.geeksforgeeks.org/rearrange-a-string-so-that-all-same-characters-become-at-least-d-distance-away/
+
+Given a string s and an integer k, rearrange s such that the same characters are at least distance k from each other.
+If it is not possible to rearrange the string, return an empty string "".
+
+Example 1:
+
+Input: s = "aabbcc", k = 3
+Output: "abcabc"
+Explanation: The same letters are at least a distance of 3 from each other.
+Example 2:
+
+Input: s = "aaabc", k = 3
+Output: ""
+Explanation: It is not possible to rearrange the string.
+Example 3:
+
+Input: s = "aaadbbcc", k = 2
+Output: "abacabcd"
+Explanation: The same letters are at least a distance of 2 from each other.
+
+
+# java
+
+class Solution {
+    public String rearrangeString(String s, int k) {
+        int n = s.length();
+        int[] cnt = new int[26];
+        for (char c : s.toCharArray()) {
+            ++cnt[c - 'a'];
+        }
+        PriorityQueue<int[]> pq = new PriorityQueue<>((a, b) -> b[0] - a[0]);
+        for (int i = 0; i < 26; ++i) {
+            if (cnt[i] > 0) {
+                pq.offer(new int[] {cnt[i], i});
+            }
+        }
+        Deque<int[]> q = new ArrayDeque<>();
+        StringBuilder ans = new StringBuilder();
+        while (!pq.isEmpty()) {
+            var p = pq.poll();
+            int v = p[0], c = p[1];
+            ans.append((char) ('a' + c));
+            q.offer(new int[] {v - 1, c});
+            if (q.size() >= k) {
+                p = q.pollFirst();
+                if (p[0] > 0) {
+                    pq.offer(p);
+                }
+            }
+        }
+        return ans.length() == n ? ans.toString() : "";
+    }
+}
+
+
+or
+
+
+import java.util.*;
+
+public class Rearrange {
+    public static void rearrange(String s, int d) {
+        int n = s.length();
+
+        // Frequency map for characters
+        Map<Character, Integer> freq = new HashMap<>();
+        for (char ch : s.toCharArray()) {
+            freq.put(ch, freq.getOrDefault(ch, 0) + 1);
+        }
+
+        // Max heap (sorting by frequency in descending order)
+        PriorityQueue<Map.Entry<Character, Integer>> pq = 
+            new PriorityQueue<>((a, b) -> b.getValue() - a.getValue());
+
+        pq.addAll(freq.entrySet());
+
+        // Result array
+        char[] result = new char[n];
+        Arrays.fill(result, '\u0000');
+
+        // Queue to store delayed elements
+        Queue<Map.Entry<Character, Integer>> waitQueue = new LinkedList<>();
+
+        int index = 0;
+
+        while (!pq.isEmpty()) {
+            Map.Entry<Character, Integer> current = pq.poll();
+            char ch = current.getKey();
+            int count = current.getValue();
+
+            for (int i = 0; i < count; i++) {
+                // Find the next available position
+                while (index < n && result[index] != '\u0000') {
+                    index++;
+                }
+
+                if (index >= n) {
+                    System.out.println("Cannot be rearranged");
+                    return;
+                }
+
+                result[index] = ch;
+                index += d;  // Place next occurrence `d` positions apart
+
+                // If index exceeds n, reset it to the
+                // first available position
+                if (index >= n) {
+                    index = 0;
+                    while (index < n && result[index] != '\u0000') {
+                        index++;
+                    }
+                }
+            }
+
+            if (count > 1) {
+                waitQueue.add(new AbstractMap.SimpleEntry<>(ch, count - 1));
+            }
+
+            // After `d` iterations, reinsert from the waitQueue
+            if (waitQueue.size() >= d) {
+                pq.offer(waitQueue.poll());
+            }
+        }
+
+        System.out.println(new String(result));
+    }
+
+    public static void main(String[] args) {
+        String s = "aabbcc";
+        rearrange(s, 3);
+    }
+}
