@@ -1,0 +1,187 @@
+https://leetcode.com/problems/delivering-boxes-from-storage-to-ports/description/
+
+You have the task of delivering some boxes from storage to their ports using only one ship. However, this ship has a limit on the number of boxes and the total weight that it can carry.
+
+You are given an array boxes, where boxes[i] = [ports​​i​, weighti], and three integers portsCount, maxBoxes, and maxWeight.
+
+ports​​i is the port where you need to deliver the ith box and weightsi is the weight of the ith box.
+portsCount is the number of ports.
+maxBoxes and maxWeight are the respective box and weight limits of the ship.
+The boxes need to be delivered in the order they are given. The ship will follow these steps:
+
+The ship will take some number of boxes from the boxes queue, not violating the maxBoxes and maxWeight constraints.
+For each loaded box in order, the ship will make a trip to the port the box needs to be delivered to and deliver it. If the ship is already at the correct port, no trip is needed, and the box can immediately be delivered.
+The ship then makes a return trip to storage to take more boxes from the queue.
+The ship must end at storage after all the boxes have been delivered.
+
+Return the minimum number of trips the ship needs to make to deliver all boxes to their respective ports.
+
+ 
+
+Example 1:
+
+Input: boxes = [[1,1],[2,1],[1,1]], portsCount = 2, maxBoxes = 3, maxWeight = 3
+Output: 4
+Explanation: The optimal strategy is as follows: 
+- The ship takes all the boxes in the queue, goes to port 1, then port 2, then port 1 again, then returns to storage. 4 trips.
+So the total number of trips is 4.
+Note that the first and third boxes cannot be delivered together because the boxes need to be delivered in order (i.e. the second box needs to be delivered at port 2 before the third box).
+Example 2:
+
+Input: boxes = [[1,2],[3,3],[3,1],[3,1],[2,4]], portsCount = 3, maxBoxes = 3, maxWeight = 6
+Output: 6
+Explanation: The optimal strategy is as follows: 
+- The ship takes the first box, goes to port 1, then returns to storage. 2 trips.
+- The ship takes the second, third and fourth boxes, goes to port 3, then returns to storage. 2 trips.
+- The ship takes the fifth box, goes to port 2, then returns to storage. 2 trips.
+So the total number of trips is 2 + 2 + 2 = 6.
+Example 3:
+
+Input: boxes = [[1,4],[1,2],[2,1],[2,1],[3,2],[3,4]], portsCount = 3, maxBoxes = 6, maxWeight = 7
+Output: 6
+Explanation: The optimal strategy is as follows:
+- The ship takes the first and second boxes, goes to port 1, then returns to storage. 2 trips.
+- The ship takes the third and fourth boxes, goes to port 2, then returns to storage. 2 trips.
+- The ship takes the fifth and sixth boxes, goes to port 3, then returns to storage. 2 trips.
+So the total number of trips is 2 + 2 + 2 = 6.
+ 
+
+Constraints:
+
+1 <= boxes.length <= 105
+1 <= portsCount, maxBoxes, maxWeight <= 105
+1 <= ports​​i <= portsCount
+1 <= weightsi <= maxWeight
+
+# java
+
+
+class Solution {
+  
+    // Function to calculate the minimum number of trips to deliver all the boxes.
+    public int boxDelivering(int[][] boxes, int portsCount, int maxBoxes, int maxWeight) {
+        int numberOfBoxes = boxes.length; // Total number of boxes to deliver.
+      
+        // Initialize array for prefix sums of weights.
+        long[] weightPrefixSums = new long[numberOfBoxes + 1];
+      
+        // Initialize array to count distinct contiguous ports.
+        int[] distinctPorts = new int[numberOfBoxes];
+      
+        // Calculate prefix sums of weights and distinct contiguous ports counts.
+        for (int i = 0; i < numberOfBoxes; ++i) {
+            int port = boxes[i][0]; // Current box's port.
+            int weight = boxes[i][1]; // Current box's weight.
+            weightPrefixSums[i + 1] = weightPrefixSums[i] + weight; // Maintain prefix sum of weights.
+            if (i < numberOfBoxes - 1) {
+                // Count distinct ports by comparing adjacent boxes.
+                distinctPorts[i + 1] = distinctPorts[i] + (port != boxes[i + 1][0] ? 1 : 0);
+            }
+        }
+      
+        // Initialize the dynamic programming array for the minimum number of trips.
+        int[] minTrips = new int[numberOfBoxes + 1];
+      
+        // Use a deque to optimize the dynamic programming approach.
+        Deque<Integer> deque = new ArrayDeque<>();
+        deque.offer(0);
+      
+        // Dynamic programming to calculate minimum number of trips to deliver all boxes.
+        for (int i = 1; i <= numberOfBoxes; ++i) {
+            // While any box violates the maxBoxes or maxWeight constraint, remove from deque.
+            while (!deque.isEmpty() &&
+                (i - deque.peekFirst() > maxBoxes || weightPrefixSums[i] - weightPrefixSums[deque.peekFirst()] > maxWeight)) {
+                deque.pollFirst();
+            }
+          
+            // If deque is not empty, calculate the minimum trips needed.
+            if (!deque.isEmpty()) {
+                minTrips[i] = distinctPorts[i - 1] + minTrips[deque.peekFirst()] - distinctPorts[deque.peekFirst()] + 2;
+            }
+          
+            // Optimize deque to maintain the candidate indexes for dynamic programming.
+            if (i < numberOfBoxes) {
+                while (!deque.isEmpty() && minTrips[deque.peekLast()] - distinctPorts[deque.peekLast()] >= minTrips[i] - distinctPorts[i]) {
+                    deque.pollLast();
+                }
+                deque.offer(i);
+            }
+        }
+        // Result is the minimum number of trips to deliver all boxes.
+        return minTrips[numberOfBoxes];
+    }
+}
+
+
+or
+
+class Solution {
+    public int boxDelivering(int[][] boxes, int portsCount, int maxBoxes, int maxWeight) {
+        int length = boxes.length;
+        int[] ports = new int[length + 1];
+        int[] weights = new int[length + 1];
+        int[] differences = new int[length + 1];
+        long[] prefixWeights = new long[length + 1];
+        for (int i = 1; i <= length; i++) {
+            ports[i] = boxes[i - 1][0];
+            weights[i] = boxes[i - 1][1];
+            if (i > 1)
+                differences[i] = differences[i - 1] + (ports[i - 1] != ports[i] ? 1 : 0);
+            prefixWeights[i] = prefixWeights[i - 1] + weights[i];
+        }
+        Deque<Integer> deque = new LinkedList<Integer>();
+        deque.offerLast(0);
+        int[] dp = new int[length + 1];
+        int[] remain = new int[length + 1];
+        for (int i = 1; i <= length; i++) {
+            while (!deque.isEmpty() && (i - deque.peekFirst() > maxBoxes || prefixWeights[i] - prefixWeights[deque.peekFirst()] > maxWeight))
+                deque.pollFirst();
+            dp[i] = remain[deque.peekFirst()] + differences[i] + 2;
+            if (i != length) {
+                remain[i] = dp[i] - differences[i + 1];
+                while (!deque.isEmpty() && remain[i] <= remain[deque.peekLast()])
+                    deque.pollLast();
+                deque.offerLast(i);
+            }
+        }
+        return dp[length];
+    }
+}
+
+
+or
+
+
+class Solution {
+    public int boxDelivering(int[][] boxes, int portsCount, int maxBoxes, int maxWeight) {
+        int n = boxes.length;
+        long[] ws = new long[n + 1];
+        int[] cs = new int[n];
+        for (int i = 0; i < n; ++i) {
+            int p = boxes[i][0], w = boxes[i][1];
+            ws[i + 1] = ws[i] + w;
+            if (i < n - 1) {
+                cs[i + 1] = cs[i] + (p != boxes[i + 1][0] ? 1 : 0);
+            }
+        }
+        int[] f = new int[n + 1];
+        Deque<Integer> q = new ArrayDeque<>();
+        q.offer(0);
+        for (int i = 1; i <= n; ++i) {
+            while (!q.isEmpty()
+                && (i - q.peekFirst() > maxBoxes || ws[i] - ws[q.peekFirst()] > maxWeight)) {
+                q.pollFirst();
+            }
+            if (!q.isEmpty()) {
+                f[i] = cs[i - 1] + f[q.peekFirst()] - cs[q.peekFirst()] + 2;
+            }
+            if (i < n) {
+                while (!q.isEmpty() && f[q.peekLast()] - cs[q.peekLast()] >= f[i] - cs[i]) {
+                    q.pollLast();
+                }
+                q.offer(i);
+            }
+        }
+        return f[n];
+    }
+}
