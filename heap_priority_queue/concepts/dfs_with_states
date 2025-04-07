@@ -1,0 +1,26 @@
+https://algo.monster/problems/dfs_with_states
+
+Given a ternary tree (each node of the tree can have up to three children), find all the root-to-leaf paths.
+
+private static void dfs(Node<Integer> root, ArrayList<String> path, ArrayList<String> res) {
+    // exit condition: when a leaf node is reached, append the path to the results
+    if (root.children.size() == 0) {
+        path.add(Integer.toString(root.val));
+        res.add(String.join("->", path));
+        return;
+    }
+    // DFS on each non-null child
+    for (Node<Integer> child : root.children) {
+        if (child != null) {
+            ArrayList<String> pathCopy = new ArrayList<>(path);
+            pathCopy.add(Integer.toString(root.val));
+            dfs(child, pathCopy, res);
+        }
+    }
+}
+
+public static List<String> ternaryTreePaths(Node<Integer> root) {
+    ArrayList<String> res = new ArrayList<>();
+    if (root != null) dfs(root, new ArrayList<String>(), res);
+    return res;
+}
