@@ -152,3 +152,156 @@ class Solution {
 }
 
 
+or
+
+
+class Solution {
+    public int[] maxPoints(int[][] grid, int[] queries) {
+        int rows = grid.length, cols = grid[0].length;
+        int[][] directions = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
+
+        int n = queries.length;
+        int[] result = new int[n];
+        int[][] visited = new int[rows][cols];
+
+        PriorityQueue<int[]> minHeap = new PriorityQueue<>(Comparator.comparingInt(a -> a[0]));
+        List<int[]> sortedQueries = new ArrayList<>();
+
+        for (int i = 0; i < n; i++) {
+            sortedQueries.add(new int[]{queries[i], i});
+        }
+        sortedQueries.sort(Comparator.comparingInt(a -> a[0]));
+
+        minHeap.offer(new int[]{grid[0][0], 0, 0});
+        visited[0][0] = 1;
+        int points = 0;
+
+        for (int[] q : sortedQueries) {
+            int queryVal = q[0], queryIdx = q[1];
+
+            while (!minHeap.isEmpty() && minHeap.peek()[0] < queryVal) {
+                int[] top = minHeap.poll();
+                int row = top[1], col = top[2];
+                points++;
+
+                for (int[] dir : directions) {
+                    int nr = row + dir[0], nc = col + dir[1];
+                    if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && visited[nr][nc] == 0) {
+                        minHeap.offer(new int[]{grid[nr][nc], nr, nc});
+                        visited[nr][nc] = 1;
+                    }
+                }
+            }
+            result[queryIdx] = points;
+        }
+        return result;
+    }
+}
+
+
+or
+
+
+import java.util.*;
+
+class Solution {
+    public int[] maxPoints(int[][] grid, int[] queries) {
+        int m = grid.length, n = grid[0].length;
+        int[] sortedQueries = queries.clone();
+        Arrays.sort(sortedQueries);
+        Map<Integer, Integer> queryResult = new HashMap<>();
+        int[] answer = new int[queries.length];
+
+        int[][] directions = {{0,1}, {0,-1}, {1,0}, {-1,0}};
+        PriorityQueue<int[]> minHeap = new PriorityQueue<>(Comparator.comparingInt(a -> a[0]));
+        Set<String> visited = new HashSet<>();
+
+        minHeap.offer(new int[]{grid[0][0], 0, 0});
+        visited.add("0,0");
+
+        int points = 0;
+
+        for (int query : sortedQueries) {
+            while (!minHeap.isEmpty() && minHeap.peek()[0] < query) {
+                int[] cell = minHeap.poll();
+                int val = cell[0], r = cell[1], c = cell[2];
+
+                points++;
+
+                for (int[] dir : directions) {
+                    int nr = r + dir[0], nc = c + dir[1];
+                    String key = nr + "," + nc;
+
+                    if (nr >= 0 && nr < m && nc >= 0 && nc < n && !visited.contains(key)) {
+                        visited.add(key);
+                        minHeap.offer(new int[]{grid[nr][nc], nr, nc});
+                    }
+                }
+            }
+            queryResult.put(query, points);
+        }
+
+        for (int i = 0; i < queries.length; i++) {
+            answer[i] = queryResult.get(queries[i]);
+        }
+
+        return answer;
+    }
+}
+
+or
+
+
+class Solution {
+    public int[] maxPoints(int[][] grid, int[] queries) {
+        int m = grid.length, n = grid[0].length;
+        int[][] directions = {{-1,0}, {1,0}, {0,-1}, {0,1}};
+        boolean[][] visited = new boolean[m][n];
+        PriorityQueue<int[]> minHeap = new PriorityQueue<>((a, b) -> Integer.compare(a[0], b[0]));
+        List<Integer> order = new ArrayList<>();
+
+        minHeap.offer(new int[]{grid[0][0], 0, 0});
+        visited[0][0] = true;
+
+        while (!minHeap.isEmpty()) {
+            int[] top = minHeap.poll();
+            int val = top[0], x = top[1], y = top[2];
+            order.add(val);
+
+            for (int[] dir : directions) {
+                int newX = x + dir[0], newY = y + dir[1];
+                if (newX >= 0 && newX < m && newY >= 0 && newY < n && !visited[newX][newY]) {
+                    visited[newX][newY] = true;
+                    minHeap.offer(new int[]{grid[newX][newY], newX, newY});
+                }
+            }
+        }
+
+        // Convert order[] to prefix maximums
+        for (int i = 1; i < order.size(); i++) {
+            order.set(i, Math.max(order.get(i), order.get(i - 1)));
+        }
+
+        // Process queries using binary search
+        int[] result = new int[queries.length];
+        for (int i = 0; i < queries.length; i++) {
+            result[i] = binarySearch(order, queries[i]);
+        }
+
+        return result;
+    }
+
+    // Find first index where order[idx] >= query using binary search
+    private int binarySearch(List<Integer> order, int target) {
+        int left = 0, right = order.size();
+        while (left < right) {
+            int mid = left + (right - left) / 2;
+            if (order.get(mid) < target) {
+                left = mid + 1;
+            } else {
+                right = mid;
+            }
+        }
+        return left;
+    }
+}
