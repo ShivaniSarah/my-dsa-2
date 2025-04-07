@@ -1,0 +1,134 @@
+https://leetcode.ca/2016-09-11-286-Walls-and-Gates/
+
+https://leetcode.com/discuss/post/1876688/286-walls-and-gates-using-multi-source-b-3j5y/
+
+
+You are given an m x n grid rooms initialized with these three possible values.
+
+-1 A wall or an obstacle.
+0 A gate.
+INF Infinity means an empty room. We use the value 231 - 1 = 2147483647 to represent INF as you may assume that the distance to a gate is less than 2147483647.
+Fill each empty room with the distance to its nearest gate. If it is impossible to reach a gate, it should be filled with INF.
+
+
+Example 1:
+
+
+Input: rooms = [[2147483647,-1,0,2147483647],[2147483647,2147483647,2147483647,-1],[2147483647,-1,2147483647,-1],[0,-1,2147483647,2147483647]]
+Output: [[3,-1,0,1],[2,2,1,-1],[1,-1,2,-1],[0,-1,3,4]]
+Example 2:
+
+Input: rooms = [[-1]]
+Output: [[-1]]
+ 
+
+Constraints:
+
+m == rooms.length
+n == rooms[i].length
+1 <= m, n <= 250
+rooms[i][j] is -1, 0, or 231 - 1.
+
+
+# Sol
+
+The first thing that comes to the mind upon hearing finding shortest distance in grid/graph is BFS. So, initially we try to perform bfs from all the gates and update the shortest distance for all the empty rooms that we encounter on our way. But, soon we run into a problem as while updating the nearest distance to the gate for a given empty room, we take into consideration only the gate from where our bfs search initially started. There is a chance that there might have been more closer gate waiting in the queue. So, at the end we do not get correct results. So, here we need to consider multi-source bfs. That is, we add all the gates into our queue and then do bfs in parallel. This way we can be sure that the distance that the cell gets will be from the closest gate.
+
+
+# java
+
+class Solution {
+    
+    private void collectGatesLocation(int[][] rooms, Queue<int[]> queue, int m, int n, boolean[][] visited){
+        for(int i=0; i<m; i++){
+            for(int j=0; j<n; j++){
+                if(rooms[i][j] == 0){
+                    visited[i][j] = true;
+                    queue.add(new int[]{i, j});
+                }
+            }
+        }
+    }
+    
+    private void exploreNeighbors(int x, int y, int[][] rooms, boolean[][] visited, Queue<int[]> queue, int m, int n){
+        int[][] directions = {{-1, 0}, {0, -1}, {0, 1}, {1, 0}};
+        for(int[] direction: directions){
+            int newX = x + direction[0];
+            int newY = y + direction[1];
+            if(newX < 0 || newX >= m || newY < 0 || newY >= n || rooms[newX][newY] == -1 || visited[newX][newY]){
+                continue;
+            }
+            visited[newX][newY] = true;
+            queue.add(new int[]{newX, newY});
+        }
+    }
+    
+    public void wallsAndGates(int[][] rooms) {
+        // we use bfs to calculate the shortest distancde from an empty room to the gate
+        // why normal bfs won't work? - let say if we start bfs from one of the gate and update
+        // the distance of its neighbouring empty rooms with respect to the given gate, it might not
+        // be the shortest distance possible. There is a possibility that we can reach to that empty root
+        // from another gate which is closed to the current gate.
+        // Solution - we need to start our bfs search from all the gates at a single time and keep distance 
+        // of the empty rooms in parallel. This way we can be sure that whatever distance we fill into the 
+        // empty room is the shortest distance. We update the cell only if its an empty cell.
+        
+        int m = rooms.length;
+        int n = rooms[0].length;
+        
+        // first we need to get the coordinates of all the gates and visit them
+        Queue<int[]> queue = new LinkedList<>();
+        boolean[][] visited = new boolean[m][n];
+        collectGatesLocation(rooms, queue, m, n, visited);
+        
+        // now we start bfs from all the gates in parallel
+        int distance = 0;
+        while(!queue.isEmpty()){
+            int size = queue.size();
+            // in this iteration, we process all those cells which are 'distance' units away from gates
+            for(int i=0; i<size; i++){
+                int[] curr = queue.poll();
+                int x = curr[0];
+                int y = curr[1];
+                // we first update the distance of the current cell from the gate and then explore its neighbors
+                rooms[x][y] = distance;
+                exploreNeighbors(x, y, rooms, visited, queue, m, n);
+            }
+            distance++;
+        }
+        return;
+    }
+}
+
+or
+
+class Solution {
+    public void wallsAndGates(int[][] rooms) {
+        int m = rooms.length;
+        int n = rooms[0].length;
+        Deque<int[]> q = new LinkedList<>();
+        for (int i = 0; i < m; ++i) {
+            for (int j = 0; j < n; ++j) {
+                if (rooms[i][j] == 0) {
+                    q.offer(new int[] {i, j});
+                }
+            }
+        }
+        int d = 0;
+        int[] dirs = {-1, 0, 1, 0, -1};
+        while (!q.isEmpty()) {
+            ++d;
+            for (int i = q.size(); i > 0; --i) {
+                int[] p = q.poll();
+                for (int j = 0; j < 4; ++j) {
+                    int x = p[0] + dirs[j];
+                    int y = p[1] + dirs[j + 1];
+                    if (x >= 0 && x < m && y >= 0 && y < n && rooms[x][y] == Integer.MAX_VALUE) {
+                        rooms[x][y] = d;
+                        q.offer(new int[] {x, y});
+                    }
+                }
+            }
+        }
+    }
+}
