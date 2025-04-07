@@ -236,3 +236,20 @@ class Solution {
         return sum;
     }
 }
+
+
+When to Prefer One Over the Other?
+Scenario	                               Use Priority Queue	Use Binary Search
+Small m and k	                                ✅ Best	                 ❌ Slower
+Large k (e.g. close to all combinations)       ❌ Inefficient	           ✅ Best
+Need exact control over enumeration order	✅	                  ❌ Harder
+Rows are very long (n large)	               ❌ Heap explodes	          ✅ Good
+
+Recommended
+Use Priority Queue for typical LeetCode constraints (e.g., m ≤ 40, n ≤ 40, k ≤ 2000)
+
+Use Binary Search if:
+
+k is large (e.g., near total combinations),
+
+you can implement an efficient count of valid combinations ≤ sum
