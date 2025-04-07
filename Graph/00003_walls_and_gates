@@ -31,8 +31,14 @@ rooms[i][j] is -1, 0, or 231 - 1.
 
 
 # Sol
-
-The first thing that comes to the mind upon hearing finding shortest distance in grid/graph is BFS. So, initially we try to perform bfs from all the gates and update the shortest distance for all the empty rooms that we encounter on our way. But, soon we run into a problem as while updating the nearest distance to the gate for a given empty room, we take into consideration only the gate from where our bfs search initially started. There is a chance that there might have been more closer gate waiting in the queue. So, at the end we do not get correct results. So, here we need to consider multi-source bfs. That is, we add all the gates into our queue and then do bfs in parallel. This way we can be sure that the distance that the cell gets will be from the closest gate.
+multi-source bfs:
+The first thing that comes to the mind upon hearing finding shortest distance in grid/graph is BFS. 
+So, initially we try to perform bfs from all the gates and update the shortest distance for all the empty rooms 
+that we encounter on our way. But, soon we run into a problem as while updating the nearest distance to the gate for a 
+given empty room, we take into consideration only the gate from where our bfs search initially started. 
+There is a chance that there might have been more closer gate waiting in the queue. So, at the end we do not get correct results. 
+So, here we need to consider multi-source bfs. That is, we add all the gates into our queue and then do bfs in parallel. 
+This way we can be sure that the distance that the cell gets will be from the closest gate.
 
 
 # java
