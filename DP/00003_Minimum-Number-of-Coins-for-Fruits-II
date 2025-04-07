@@ -1,0 +1,146 @@
+https://leetcode.ca/2024-01-16-2969-Minimum-Number-of-Coins-for-Fruits-II/
+
+You are at a fruit market with different types of exotic fruits on display.
+
+You are given a 1-indexed array prices, where prices[i] denotes the number of coins needed to purchase the ith fruit.
+
+The fruit market has the following offer:
+
+If you purchase the ith fruit at prices[i] coins, you can get the next i fruits for free.
+Note that even if you can take fruit j for free, you can still purchase it for prices[j] coins to receive a new offer.
+
+Return the minimum number of coins needed to acquire all the fruits.
+
+ 
+
+Example 1:
+
+Input: prices = [3,1,2]
+Output: 4
+Explanation: You can acquire the fruits as follows:
+- Purchase the 1st fruit with 3 coins, and you are allowed to take the 2nd fruit for free.
+- Purchase the 2nd fruit with 1 coin, and you are allowed to take the 3rd fruit for free.
+- Take the 3rd fruit for free.
+Note that even though you were allowed to take the 2nd fruit for free, you purchased it because it is more optimal.
+It can be proven that 4 is the minimum number of coins needed to acquire all the fruits.
+Example 2:
+
+Input: prices = [1,10,1,1]
+Output: 2
+Explanation: You can acquire the fruits as follows:
+- Purchase the 1st fruit with 1 coin, and you are allowed to take the 2nd fruit for free.
+- Take the 2nd fruit for free.
+- Purchase the 3rd fruit for 1 coin, and you are allowed to take the 4th fruit for free.
+- Take the 4th fruit for free.
+It can be proven that 2 is the minimum number of coins needed to acquire all the fruits.
+ 
+
+Constraints:
+
+1 <= prices.length <= 105
+1 <= prices[i] <= 105
+
+Solution 1: Dynamic Programming
+
+We define 
+ as the minimum number of coins needed to buy all fruits starting from the 
+th fruit. So the answer is 
+.
+
+The state transition equation is 
+.
+
+
+In implementation, we calculate from back to front, and we can directly perform state transition on the array 
+, which can save space.
+
+The time complexity of the above method is 
+. Since the scale of 
+ in this problem reaches 
+, it will time out.
+
+We observe the state transition equation and find that for each 
+, we need to find the minimum value of 
+, and as 
+ decreases, the range of these values is also decreasing. This is actually finding the minimum value of a monotonically narrowing sliding window, and we can use a monotonic queue to optimize.
+
+
+We calculate from back to front, maintain a monotonically increasing queue 
+, and the queue stores the index. If the head element of 
+ is greater than 
+, it means that the elements after 
+ will not be used, so we dequeue the head element. If 
+ is not greater than 
+, then we can add 
+ to 
+, and then add 
+ to the tail of the queue. If the price of the fruit corresponding to the tail element of 
+ is greater than or equal to 
+, then we dequeue the tail element until the price of the fruit corresponding to the tail element is less than 
+ or the queue is empty, and then add 
+ to the tail of the queue.
+
+The time complexity is 
+, and the space complexity is 
+. Where 
+ is the length of the array 
+.
+
+
+class Solution {
+    public int minimumCoins(int[] prices) {
+        int n = prices.length;
+        Deque<Integer> q = new ArrayDeque<>();
+        for (int i = n; i > 0; --i) {
+            while (!q.isEmpty() && q.peek() > i * 2 + 1) {
+                q.poll();
+            }
+            if (i <= (n - 1) / 2) {
+                prices[i - 1] += prices[q.peek() - 1];
+            }
+            while (!q.isEmpty() && prices[q.peekLast() - 1] >= prices[i - 1]) {
+                q.pollLast();
+            }
+            q.offer(i);
+        }
+        return prices[0];
+    }
+}
+
+
+or
+
+
+class Solution {
+    public int minimumCoins(int[] prices) {
+        // The length of the prices array
+        int numPrices = prices.length;
+
+        // Create a double-ended queue to store indices
+        Deque<Integer> deque = new ArrayDeque<>();
+      
+        // Iterate from the last index to the first
+        for (int i = numPrices; i > 0; --i) {
+            // Remove indexes from the front of the queue that are out of the current range
+            while (!deque.isEmpty() && deque.peek() > i * 2 + 1) {
+                deque.poll();
+            }
+
+            // If the current index is in the first half of the array, update the price at that index
+            if (i <= (numPrices - 1) / 2) {
+                prices[i - 1] += prices[deque.peek() - 1];
+            }
+
+            // Remove indexes from the back of the queue that have a price higher or equal to the current price
+            while (!deque.isEmpty() && prices[deque.peekLast() - 1] >= prices[i - 1]) {
+                deque.pollLast();
+            }
+
+            // Add the current index to the end of the queue
+            deque.offer(i);
+        }
+      
+        // The price at the first index after all operations is the answer
+        return prices[0];
+    }
+}
