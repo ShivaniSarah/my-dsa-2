@@ -1,0 +1,167 @@
+https://leetcode.com/problems/max-value-of-equation/description/
+
+
+You are given an array points containing the coordinates of points on a 2D plane, sorted by the x-values, where points[i] = [xi, yi] such that xi < xj for all 1 <= i < j <= points.length. You are also given an integer k.
+
+Return the maximum value of the equation yi + yj + |xi - xj| where |xi - xj| <= k and 1 <= i < j <= points.length.
+
+It is guaranteed that there exists at least one pair of points that satisfy the constraint |xi - xj| <= k.
+
+ 
+
+Example 1:
+
+Input: points = [[1,3],[2,0],[5,10],[6,-10]], k = 1
+Output: 4
+Explanation: The first two points satisfy the condition |xi - xj| <= 1 and if we calculate the equation we get 3 + 0 + |1 - 2| = 4. Third and fourth points also satisfy the condition and give a value of 10 + -10 + |5 - 6| = 1.
+No other pairs satisfy the condition, so we return the max of 4 and 1.
+Example 2:
+
+Input: points = [[0,0],[3,0],[9,2]], k = 3
+Output: 3
+Explanation: Only the first two points have an absolute difference of 3 or less in the x-values, and give the value of 0 + 0 + |0 - 3| = 3.
+ 
+
+Constraints:
+
+2 <= points.length <= 105
+points[i].length == 2
+-108 <= xi, yi <= 108
+0 <= k <= 2 * 108
+xi < xj for all 1 <= i < j <= points.length
+xi form a strictly increasing sequence.
+
+
+# java
+
+
+class Solution {
+        public int findMaxValueOfEquation(int[][] points, int k) {
+        PriorityQueue<Pair<Integer, Integer>> pq = new PriorityQueue<>((a, b) -> (a.getKey() == b.getKey() ? a.getValue() - b.getValue() : b.getKey() - a.getKey()));
+        int res = Integer.MIN_VALUE;
+        for (int[] point : points) {
+            while (!pq.isEmpty() && point[0] - pq.peek().getValue() > k) {
+                pq.poll();
+            }
+            if (!pq.isEmpty()) {
+                res = Math.max(res, pq.peek().getKey() + point[0] + point[1]);
+            }
+            pq.offer(new Pair<>(point[1] - point[0], point[0]));
+        }
+        return res;
+    }
+}
+
+or
+
+
+class Solution {
+            public int findMaxValueOfEquation(int[][] points, int k) {
+        Deque<Pair<Integer, Integer>> ms = new ArrayDeque<>();
+        int res = Integer.MIN_VALUE;
+        for (int[] point : points) {
+            while (!ms.isEmpty() && point[0] - ms.peekFirst().getValue() > k) {
+                ms.pollFirst();
+            }
+            if (!ms.isEmpty()) {
+                res = Math.max(res, ms.peekFirst().getKey() + point[0] + point[1]);
+            }
+            while (!ms.isEmpty() && point[1] - point[0] > ms.peekLast().getKey()) {
+                ms.pollLast();
+            }
+            ms.offerLast(new Pair<>(point[1] - point[0], point[0]));
+        }
+        return res;
+    }
+}
+
+
+or
+
+
+class Solution {
+    public int findMaxValueOfEquation(int[][] points, int k) {
+        int result = Integer.MIN_VALUE;
+        LinkedList<int[]> list = new LinkedList<>();
+        for (int[] point : points) {
+            while (list.size() > 0 && point[0] - list.getFirst()[0] > k) {
+                list.pollFirst();
+            }
+            if (list.size() > 0) {
+                int curVal = point[1] - point[0]; 
+                result = Math.max(result, point[0] + point[1] + list.getFirst()[1] - list.getFirst()[0]);
+                while (list.size() > 0 && (list.getLast()[1] - list.getLast()[0]) <= curVal) {
+                    list.pollLast();
+                }
+            }
+            list.offer(point);
+        }
+        
+        return result; 
+    }
+}
+
+// TC = SC= O(n)
+
+
+or
+
+
+class Solution {
+    public int findMaxValueOfEquation(int[][] points, int k) {
+        // Initialize answer to a very small number to ensure any valid equation will be larger.
+        int answer = Integer.MIN_VALUE;
+      
+        // Use a deque to maintain potential candidates for (xi, yi) in a sliding window fashion.
+        Deque<int[]> candidates = new ArrayDeque<>();
+      
+        // Iterate over all points.
+        for (int[] point : points) {
+            int x = point[0];
+            int y = point[1];
+          
+            // Remove points from the start of the deque if their x values are out of the acceptable range (> k).
+            while (!candidates.isEmpty() && x - candidates.peekFirst()[0] > k) {
+                candidates.pollFirst();
+            }
+          
+            // If the deque is not empty, compute the potential answer using the current point 
+            // and the front of the deque, then update the answer if necessary.
+            if (!candidates.isEmpty()) {
+                answer = Math.max(answer, x + y + candidates.peekFirst()[1] - candidates.peekFirst()[0]);
+            }
+          
+            // Remove points from the end of the deque if they are no longer preferable.
+            // If the current point has a better y - x value, then it is a better candidate.
+            while (!candidates.isEmpty() && y - x >= candidates.peekLast()[1] - candidates.peekLast()[0]) {
+                candidates.pollLast();
+            }
+          
+            // Add the current point to the deque as it may be a candidate for future points.
+            candidates.offerLast(point);
+        }
+      
+        // Return the final computed answer.
+        return answer;
+    }
+}
+
+or
+
+class Solution {
+    public int findMaxValueOfEquation(int[][] points, int k) {
+        int ans = -(1 << 30);
+        PriorityQueue<int[]> pq = new PriorityQueue<>((a, b) -> b[0] - a[0]);
+        for (var p : points) {
+            int x = p[0], y = p[1];
+            while (!pq.isEmpty() && x - pq.peek()[1] > k) {
+                pq.poll();
+            }
+            if (!pq.isEmpty()) {
+                ans = Math.max(ans, x + y + pq.peek()[0]);
+            }
+            pq.offer(new int[] {y - x, x});
+        }
+        return ans;
+    }
+}
