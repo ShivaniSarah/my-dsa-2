@@ -1,0 +1,265 @@
+https://leetcode.com/problems/find-the-k-sum-of-an-array/description/
+
+You are given an integer array nums and a positive integer k. You can choose any subsequence of the array and sum all of its elements together.
+
+We define the K-Sum of the array as the kth largest subsequence sum that can be obtained (not necessarily distinct).
+
+Return the K-Sum of the array.
+
+A subsequence is an array that can be derived from another array by deleting some or no elements without changing the order of the remaining elements.
+
+Note that the empty subsequence is considered to have a sum of 0.
+
+ 
+
+Example 1:
+
+Input: nums = [2,4,-2], k = 5
+Output: 2
+Explanation: All the possible subsequence sums that we can obtain are the following sorted in decreasing order:
+- 6, 4, 4, 2, 2, 0, 0, -2.
+The 5-Sum of the array is 2.
+Example 2:
+
+Input: nums = [1,-2,3,4,-10,12], k = 16
+Output: 10
+Explanation: The 16-Sum of the array is 10.
+ 
+
+Constraints:
+
+n == nums.length
+1 <= n <= 105
+-109 <= nums[i] <= 109
+1 <= k <= min(2000, 2n)
+
+
+# java
+
+
+class Solution {
+    public long kSum(int[] nums, int k) {
+        long minus = 0, all = 0;
+        for (int i = 0; i < nums.length; i++){
+            all += Math.max(nums[i], 0); // take all positive values 
+            nums[i] = Math.abs(nums[i]); // make all non-negative
+        }
+        Arrays.sort(nums); // sort it
+        var minheap = new PriorityQueue<long[]>(Comparator.comparingLong(o -> o[0]));
+        minheap.offer(new long[]{nums[0], 0});
+        while(--k>0){ // construct the smallest subsequence value in a smart way
+            long[] top = minheap.poll();
+            int i = (int)top[1]++;
+            long val = top[0];
+            minus = val;
+            if (i < nums.length-1){ // each item (node) branches out into 2 (children)
+                top[0] += nums[i+1];
+                minheap.offer(new long[]{val - nums[i] + nums[i+1], i+1});
+                minheap.offer(top);
+            }
+        }
+        return all - minus;
+    }
+}
+
+or
+
+import java.util.*;
+
+class Solution {
+    public long kSum(int[] nums, int k) {
+        long maxSumPositives = 0;
+        int n = nums.length;
+
+        for (int i = 0; i < n; ++i) {
+            if (nums[i] > 0) {
+                maxSumPositives += nums[i];
+            } else {
+                nums[i] = -nums[i];
+            }
+        }
+
+        Arrays.sort(nums);
+
+        PriorityQueue<Pair> minHeap = new PriorityQueue<>(Comparator.comparingLong(p -> p.sum));
+        minHeap.offer(new Pair(0L, 0));
+
+        while (--k > 0) {
+            Pair top = minHeap.poll();
+            long currentSum = top.sum;
+            int i = top.index;
+
+            if (i < n) {
+                minHeap.offer(new Pair(currentSum + nums[i], i + 1));
+                if (i > 0) {
+                    minHeap.offer(new Pair(currentSum + nums[i] - nums[i - 1], i + 1));
+                }
+            }
+        }
+
+        return maxSumPositives - minHeap.peek().sum;
+    }
+
+    // Custom Pair class to store sum and index
+    private static class Pair {
+        long sum;
+        int index;
+
+        Pair(long sum, int index) {
+            this.sum = sum;
+            this.index = index;
+        }
+    }
+}
+
+
+or
+
+import java.util.*;
+
+class Solution {
+    public long kSum(int[] nums, int k) {
+        long mx = 0;
+        int n = nums.length;
+
+        for (int i = 0; i < n; ++i) {
+            if (nums[i] > 0) {
+                mx += nums[i];
+            } else {
+                nums[i] *= -1;
+            }
+        }
+
+        Arrays.sort(nums);
+
+        PriorityQueue<Pair> pq = new PriorityQueue<>(Comparator.comparingLong(p -> p.sum));
+        pq.offer(new Pair(0L, 0));
+
+        while (--k > 0) {
+            Pair p = pq.poll();
+            long s = p.sum;
+            int i = p.index;
+
+            if (i < n) {
+                pq.offer(new Pair(s + nums[i], i + 1));
+                if (i > 0) {
+                    pq.offer(new Pair(s + nums[i] - nums[i - 1], i + 1));
+                }
+            }
+        }
+
+        return mx - pq.peek().sum;
+    }
+
+    private static class Pair {
+        long sum;
+        int index;
+
+        Pair(long sum, int index) {
+            this.sum = sum;
+            this.index = index;
+        }
+    }
+}
+
+
+or
+
+
+import java.util.*;
+
+class Solution {
+    public long kSum(int[] nums, int k) {
+        long mx = 0;
+        int n = nums.length;
+
+        for (int i = 0; i < n; ++i) {
+            if (nums[i] > 0) {
+                mx += nums[i];
+            } else {
+                nums[i] *= -1;
+            }
+        }
+
+        Arrays.sort(nums);
+
+        PriorityQueue<Pair> pq = new PriorityQueue<>(Comparator.comparingLong(p -> p.sum));
+        pq.offer(new Pair(0L, 0));
+
+        while (--k > 0) {
+            Pair p = pq.poll();
+            long s = p.sum;
+            int i = p.index;
+
+            if (i < n) {
+                pq.offer(new Pair(s + nums[i], i + 1));
+                if (i > 0) {
+                    pq.offer(new Pair(s + nums[i] - nums[i - 1], i + 1));
+                }
+            }
+        }
+
+        return mx - pq.peek().sum;
+    }
+
+    private static class Pair {
+        long sum;
+        int index;
+
+        Pair(long sum, int index) {
+            this.sum = sum;
+            this.index = index;
+        }
+    }
+}
+
+
+or
+
+
+
+class Solution {
+    public long kSum(int[] nums, int k) {
+        // Calculate maxSubsequenceSum and abs.
+        long maxSubsequenceSum = 0;
+        int[] abs = new int[nums.length];
+        for (int i = 0; i < nums.length; ++i) {
+            int num = nums[i];
+            if (num > 0) {
+                maxSubsequenceSum += num;
+            }
+            abs[i] = Math.abs(num);
+        }
+        Arrays.sort(abs);
+        
+        // Max heap to maintain the largest subsequence sums. 
+		// The first number in the pair is the subsequence sum. 
+		// The second number is the index of the last "change" we made to obtain this subsequence sum.
+        PriorityQueue<Pair<Long, Integer>> pq = new PriorityQueue<>((p1, p2) -> {
+            return Long.compare(p2.getKey(), p1.getKey()); 
+        });
+        
+        // List of subsequence sums in order.
+        ArrayList<Long> subsequenceSums = new ArrayList<>();
+        subsequenceSums.add(maxSubsequenceSum);
+        
+        // Start with the smallest "change" we can make.
+        pq.add(new Pair(maxSubsequenceSum - abs[0], 0));
+        while (subsequenceSums.size() < k) {
+            // Get previous largest subsequence sum and add it to list.
+            Pair<Long, Integer> subsequenceSum = pq.poll();
+            long lastSubsequenceSum = subsequenceSum.getKey();
+            int lastChange = subsequenceSum.getValue();
+            subsequenceSums.add(lastSubsequenceSum);
+            
+            if (lastChange < nums.length - 1) {
+                // Continue with the last "change"
+                pq.add(new Pair(lastSubsequenceSum - abs[lastChange + 1], lastChange + 1));
+                // Replace the last "change"
+                pq.add(new Pair(lastSubsequenceSum + abs[lastChange] - abs[lastChange + 1], lastChange + 1));
+            }
+        }
+        
+        return subsequenceSums.get(k - 1);
+    }
+}
