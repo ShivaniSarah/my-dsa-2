@@ -28,6 +28,7 @@ Output: [[0,3],[5,0]]
 
 # java
 
+// tree map
 
 class Solution {
     // Time complexity: O(n log n)
@@ -73,6 +74,8 @@ public List<List<Integer>> getSkyline(int[][] buildings) {
 TC: O( n log n )
 
 or
+
+// using priority queue
 
 class Solution {
     public List<List<Integer>> getSkyline(int[][] buildings) {
@@ -120,6 +123,10 @@ Processing: O(n²) (due to inefficient remove() in heap)
 
 
 or
+
+
+// line sweep + heap
+
 
 class Solution {
     public List<List<Integer>> getSkyline(int[][] buildings) {
@@ -169,6 +176,172 @@ class Solution {
 
 or
 
+// divide and conquer
+
+class Solution {
+    public List<List<Integer>> getSkyline(int[][] buildings) {
+        return divide(buildings, 0, buildings.length - 1);
+    }
+
+    private List<List<Integer>> divide(int[][] buildings, int l, int r) {
+        List<List<Integer>> res = new ArrayList<>();
+        if (l > r) return res;
+
+        if (l == r) {
+            int left = buildings[l][0];
+            int right = buildings[l][1];
+            int height = buildings[l][2];
+            res.add(Arrays.asList(left, height));
+            res.add(Arrays.asList(right, 0));
+            return res;
+        }
+
+        int mid = (l + r) / 2;
+        List<List<Integer>> leftSkyline = divide(buildings, l, mid);
+        List<List<Integer>> rightSkyline = divide(buildings, mid + 1, r);
+        return merge(leftSkyline, rightSkyline);
+    }
+
+    private List<List<Integer>> merge(List<List<Integer>> left, List<List<Integer>> right) {
+        List<List<Integer>> result = new ArrayList<>();
+        int h1 = 0, h2 = 0, i = 0, j = 0;
+
+        while (i < left.size() && j < right.size()) {
+            List<Integer> point1 = left.get(i);
+            List<Integer> point2 = right.get(j);
+            int x, maxHeight;
+
+            if (point1.get(0) < point2.get(0)) {
+                x = point1.get(0);
+                h1 = point1.get(1);
+                maxHeight = Math.max(h1, h2);
+                i++;
+            } else if (point1.get(0) > point2.get(0)) {
+                x = point2.get(0);
+                h2 = point2.get(1);
+                maxHeight = Math.max(h1, h2);
+                j++;
+            } else {
+                x = point1.get(0);
+                h1 = point1.get(1);
+                h2 = point2.get(1);
+                maxHeight = Math.max(h1, h2);
+                i++;
+                j++;
+            }
+
+            if (result.isEmpty() || result.get(result.size() - 1).get(1) != maxHeight) {
+                result.add(Arrays.asList(x, maxHeight));
+            }
+        }
+
+        while (i < left.size()) result.add(left.get(i++));
+        while (j < right.size()) result.add(right.get(j++));
+        return result;
+    }
+}
+
+or
+
+// Segment Tree + Compression
+
+class Solution {
+    public List<List<Integer>> getSkyline(int[][] buildings) {
+        TreeSet<Integer> coords = new TreeSet<>();
+        for (int[] b : buildings) {
+            coords.add(b[0]);
+            coords.add(b[1]);
+        }
+
+        // Coordinate compression
+        List<Integer> coordList = new ArrayList<>(coords);
+        Map<Integer, Integer> coordIndex = new HashMap<>();
+        for (int i = 0; i < coordList.size(); i++) {
+            coordIndex.put(coordList.get(i), i);
+        }
+
+        int m = coordList.size();
+        SegmentTree seg = new SegmentTree(m);
+
+        // Update segment tree with building heights
+        for (int[] b : buildings) {
+            int l = coordIndex.get(b[0]);
+            int r = coordIndex.get(b[1]) - 1;  // right is exclusive in compressed form
+            seg.update(l, r, b[2]);
+        }
+
+        // Traverse x coords to build skyline
+        List<List<Integer>> res = new ArrayList<>();
+        int prev = 0;
+        for (int i = 0; i < m; i++) {
+            int height = seg.query(i);
+            if (res.isEmpty() || res.get(res.size() - 1).get(1) != height) {
+                res.add(Arrays.asList(coordList.get(i), height));
+            }
+        }
+
+        return res;
+    }
+
+    static class SegmentTree {
+        int[] tree, lazy;
+        int size;
+
+        SegmentTree(int n) {
+            size = n * 4;
+            tree = new int[size];
+            lazy = new int[size];
+        }
+
+        void push(int node, int l, int r) {
+            if (lazy[node] != 0) {
+                tree[node] = Math.max(tree[node], lazy[node]);
+                if (l != r) {
+                    lazy[node * 2] = Math.max(lazy[node * 2], lazy[node]);
+                    lazy[node * 2 + 1] = Math.max(lazy[node * 2 + 1], lazy[node]);
+                }
+                lazy[node] = 0;
+            }
+        }
+
+        void update(int ql, int qr, int val) {
+            update(1, 0, size / 4 - 1, ql, qr, val);
+        }
+
+        void update(int node, int l, int r, int ql, int qr, int val) {
+            push(node, l, r);
+            if (r < ql || l > qr) return;
+            if (ql <= l && r <= qr) {
+                lazy[node] = val;
+                push(node, l, r);
+                return;
+            }
+            int mid = (l + r) / 2;
+            update(node * 2, l, mid, ql, qr, val);
+            update(node * 2 + 1, mid + 1, r, ql, qr, val);
+            tree[node] = Math.max(tree[node * 2], tree[node * 2 + 1]);
+        }
+
+        int query(int index) {
+            return query(1, 0, size / 4 - 1, index);
+        }
+
+        int query(int node, int l, int r, int index) {
+            push(node, l, r);
+            if (l == r) return tree[node];
+            int mid = (l + r) / 2;
+            if (index <= mid) return query(node * 2, l, mid, index);
+            else return query(node * 2 + 1, mid + 1, r, index);
+        }
+    }
+}
+
+
+or
+
+Binary Indexed Tree or Fenwick Tree way is not suited for this as it is for prefix sum and not for range updates.
+
+or
 
 class Solution {
     public List<List<Integer>> getSkyline(int[][] buildings) {
