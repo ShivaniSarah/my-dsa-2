@@ -1,0 +1,129 @@
+https://leetcode.com/problems/next-greater-element-iv/description/
+
+class Solution {
+    public int[] secondGreaterElement(int[] nums) {
+        int n = nums.length;
+        int[] ans = new int[n];
+        Arrays.fill(ans, -1);
+        int[][] arr = new int[n][0];
+        for (int i = 0; i < n; ++i) {
+            arr[i] = new int[] {nums[i], i};
+        }
+        Arrays.sort(arr, (a, b) -> a[0] == b[0] ? a[1] - b[1] : b[0] - a[0]);
+        TreeSet<Integer> ts = new TreeSet<>();
+        for (int[] pair : arr) {
+            int i = pair[1];
+            Integer j = ts.higher(i);
+            if (j != null && ts.higher(j) != null) {
+                ans[i] = nums[ts.higher(j)];
+            }
+            ts.add(i);
+        }
+        return ans;
+    }
+}
+
+
+or
+
+class Solution {
+    public int[] secondGreaterElement(int[] nums) {
+        // Stack to keep indexes of elements in a descending order
+        Deque<Integer> stack = new ArrayDeque<>();
+      
+        // Priority Queue to store the elements and their corresponding indexes which are waiting for the second greater element
+        PriorityQueue<int[]> queue = new PriorityQueue<>((a, b) -> a[0] - b[0]);
+      
+        // Length of the input array
+        int length = nums.length;
+      
+        // Array to hold the final answer, initialized to -1 as default value
+        int[] answer = new int[length];
+        Arrays.fill(answer, -1);
+      
+        // Iterating over input array elements
+        for (int i = 0; i < length; ++i) {
+            int value = nums[i];
+          
+            // Process elements in the priority queue with value smaller than the current element
+            while (!queue.isEmpty() && queue.peek()[0] < value) {
+                answer[queue.peek()[1]] = value; // Assign the current element as second greater
+                queue.poll(); // Remove from priority queue
+            }
+          
+            // Process elements in the stack with value smaller than the current element
+            while (!stack.isEmpty() && nums[stack.peek()] < value) {
+                // Add elements to the priority queue with their value and index
+                queue.offer(new int[] {nums[stack.peek()], stack.pop()});
+            }
+          
+            // Push current index onto the stack
+            stack.push(i);
+        }
+      
+        // Return the answer array containing the second greater element for each position
+        return answer;
+    }
+}
+
+or
+
+class Solution {
+        public int[] secondGreaterElement(int[] A) {
+        int n = A.length,  res[] = new int[n];
+        Arrays.fill(res, -1);
+        Stack<Integer> s1 = new Stack<>(), s2 = new Stack<>(), tmp = new Stack<>();
+        for (int i=0; i < n; i++) {
+            while (!s2.empty() && A[s2.peek()] < A[i])
+                res[s2.pop()] = A[i];
+            while (!s1.empty() && A[s1.peek()] < A[i])
+                tmp.push(s1.pop());
+            while (!tmp.empty())
+                s2.push(tmp.pop());
+            s1.push(i);
+        }
+        return res;
+    }
+}
+
+or
+
+
+public class ListNode {
+    int idx;
+    int val;
+    int count;
+    ListNode next;
+    ListNode() {}
+    ListNode(int idx, int val, int count, ListNode next) {
+        this.idx = idx;
+        this.val = val;
+        this.count = count;
+        this.next = next;
+    }
+}
+
+class Solution {
+    public int[] secondGreaterElement(int[] nums) {
+        int[] result = new int[nums.length];
+        Arrays.fill(result, -1);
+        ListNode head = new ListNode();
+        ListNode prev, cur;
+        for (int i = 0; i < nums.length; ++i) {
+            prev = head;
+            cur = head.next;
+            while (cur != null && nums[i] > cur.val) {
+                ++cur.count;
+                if (cur.count == 2) {
+                    result[cur.idx] = nums[i]; // set second greater element nums[i] for cur.idx
+                    prev.next = cur.next; // remove cur from the linked list
+                } else {
+                    prev = cur;
+                }
+                cur = cur.next;
+            }
+            prev.next = new ListNode(i, nums[i], 0, cur); // insert cur to the linked list
+        }
+        return result;
+    }
+}
