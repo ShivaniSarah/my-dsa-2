@@ -1,0 +1,287 @@
+https://leetcode.com/problems/number-of-possible-sets-of-closing-branches/
+
+There is a company with n branches across the country, some of which are connected by roads. Initially, all branches are reachable from each other by traveling some roads.
+
+The company has realized that they are spending an excessive amount of time traveling between their branches. As a result, they have decided to close down some of these branches (possibly none). However, they want to ensure that the remaining branches have a distance of at most maxDistance from each other.
+
+The distance between two branches is the minimum total traveled length needed to reach one branch from another.
+
+You are given integers n, maxDistance, and a 0-indexed 2D array roads, where roads[i] = [ui, vi, wi] represents the undirected road between branches ui and vi with length wi.
+
+Return the number of possible sets of closing branches, so that any branch has a distance of at most maxDistance from any other.
+
+Note that, after closing a branch, the company will no longer have access to any roads connected to it.
+
+Note that, multiple roads are allowed.
+
+ 
+
+Example 1:
+
+
+Input: n = 3, maxDistance = 5, roads = [[0,1,2],[1,2,10],[0,2,10]]
+Output: 5
+Explanation: The possible sets of closing branches are:
+- The set [2], after closing, active branches are [0,1] and they are reachable to each other within distance 2.
+- The set [0,1], after closing, the active branch is [2].
+- The set [1,2], after closing, the active branch is [0].
+- The set [0,2], after closing, the active branch is [1].
+- The set [0,1,2], after closing, there are no active branches.
+It can be proven, that there are only 5 possible sets of closing branches.
+Example 2:
+
+
+Input: n = 3, maxDistance = 5, roads = [[0,1,20],[0,1,10],[1,2,2],[0,2,2]]
+Output: 7
+Explanation: The possible sets of closing branches are:
+- The set [], after closing, active branches are [0,1,2] and they are reachable to each other within distance 4.
+- The set [0], after closing, active branches are [1,2] and they are reachable to each other within distance 2.
+- The set [1], after closing, active branches are [0,2] and they are reachable to each other within distance 2.
+- The set [0,1], after closing, the active branch is [2].
+- The set [1,2], after closing, the active branch is [0].
+- The set [0,2], after closing, the active branch is [1].
+- The set [0,1,2], after closing, there are no active branches.
+It can be proven, that there are only 7 possible sets of closing branches.
+Example 3:
+
+Input: n = 1, maxDistance = 10, roads = []
+Output: 2
+Explanation: The possible sets of closing branches are:
+- The set [], after closing, the active branch is [0].
+- The set [0], after closing, there are no active branches.
+It can be proven, that there are only 2 possible sets of closing branches.
+
+
+# java
+
+
+class Solution {
+    public int numberOfSets(int n, int maxDistance, int[][] roads) {
+        int ans = 0;
+        for (int mask = 0; mask < 1 << n; ++mask) {
+            int[][] g = new int[n][n];
+            for (var e : g) {
+                Arrays.fill(e, 1 << 29);
+            }
+            for (var e : roads) {
+                int u = e[0], v = e[1], w = e[2];
+                if ((mask >> u & 1) == 1 && (mask >> v & 1) == 1) {
+                    g[u][v] = Math.min(g[u][v], w);
+                    g[v][u] = Math.min(g[v][u], w);
+                }
+            }
+            for (int k = 0; k < n; ++k) {
+                if ((mask >> k & 1) == 1) {
+                    g[k][k] = 0;
+                    for (int i = 0; i < n; ++i) {
+                        for (int j = 0; j < n; ++j) {
+                            g[i][j] = Math.min(g[i][j], g[i][k] + g[k][j]);
+                        }
+                    }
+                }
+            }
+            int ok = 1;
+            for (int i = 0; i < n && ok == 1; ++i) {
+                for (int j = 0; j < n && ok == 1; ++j) {
+                    if ((mask >> i & 1) == 1 && (mask >> j & 1) == 1) {
+                        if (g[i][j] > maxDistance) {
+                            ok = 0;
+                        }
+                    }
+                }
+            }
+            ans += ok;
+        }
+        return ans;
+    }
+}
+
+
+or
+
+
+class Solution {
+    public int numberOfSets(int n, int maxDistance, int[][] roads) {
+        int answer = 0; // Initialize the answer variable to store the count of subsets.
+        // Iterate over each possible subset of nodes by examining each bitmask from 0 to 2^n - 1.
+        for (int mask = 0; mask < (1 << n); ++mask) {
+            int[][] graph = new int[n][n]; // Initialize the adjacency matrix for the graph based on the number of nodes.
+            // Loop over all nodes in the graph and set distances to a very high value, since we are looking for the minimum.
+            for (int[] row : graph) {
+                Arrays.fill(row, (1 << 29)); // Use 1 << 29 as the representation of infinity.
+            }
+            // Fill in the adjacency matrix with actual road distances where applicable.
+            for (var road : roads) {
+                int u = road[0]; // Start node
+                int v = road[1]; // End node
+                int w = road[2]; // Distance
+                // If both nodes are included in the current subset,
+                // update the graph with the minimum distance between u and v.
+                if (((mask >> u) & 1) == 1 && ((mask >> v) & 1) == 1) {
+                    graph[u][v] = Math.min(graph[u][v], w);
+                    graph[v][u] = Math.min(graph[v][u], w);
+                }
+            }
+            // Perform the Floyd-Warshall algorithm to find all shortest paths in the subset graph.
+            for (int k = 0; k < n; ++k) {
+                if (((mask >> k) & 1) == 1) {
+                    // Distance from a node to itself is always 0.
+                    graph[k][k] = 0;
+                    // Compute the shortest paths through the current node.
+                    for (int i = 0; i < n; ++i) {
+                        for (int j = 0; j < n; ++j) {
+                            graph[i][j] = Math.min(graph[i][j], graph[i][k] + graph[k][j]);
+                        }
+                    }
+                }
+            }
+            int isValidSubset = 1; // A flag to check if the subset satisfies the maxDistance constraint.
+            // Check if all pairs of nodes in the subset have a distance less than or equal to maxDistance.
+            for (int i = 0; i < n && isValidSubset == 1; ++i) {
+                for (int j = 0; j < n && isValidSubset == 1; ++j) {
+                    if (((mask >> i) & 1) == 1 && ((mask >> j) & 1) == 1) {
+                        if (graph[i][j] > maxDistance) {
+                            isValidSubset = 0; // The subset violates the maxDistance constraint, so it's not valid.
+                        }
+                    }
+                }
+            }
+            answer += isValidSubset; // Add the valid subset to the count.
+        }
+        return answer; // Return the total count of valid subsets.
+    }
+}
+
+or
+
+
+
+class Solution {
+    public int numberOfSets(int n, int maxDistance, int[][] roads) {
+        int ans = 0;
+        for (int i = 0; i < (1 << n); i++) {
+            int[][] g = new int[n][n];
+            for (int[] row : g) {
+                Arrays.fill(row, (int) 1e9);
+            }
+
+            for (int[] it : roads) {
+                int x = it[0], y = it[1], w = it[2];
+                if (((i >> x) & 1) == 1 && ((i >> y) & 1) == 1) {
+                    g[x][y] = Math.min(g[x][y], w);
+                    g[y][x] = Math.min(g[y][x], w);
+                }
+            }
+
+            for (int j = 0; j < n; j++) {
+                g[j][j] = 0;
+            }
+
+            for (int p = 0; p < n; p++) {
+                for (int q = 0; q < n; q++) {
+                    for (int k = 0; k < n; k++) {
+                        g[q][k] = Math.min(g[q][k], g[q][p] + g[p][k]);
+                    }
+                }
+            }
+
+            int ok = 1;
+            for (int j = 0; j < n; j++) {
+                for (int k = 0; k < n; k++) {
+                    if (((i >> j) & 1) == 1 && ((i >> k) & 1) == 1) {
+                        ok &= (g[j][k] <= maxDistance) ? 1 : 0;
+                    }
+                }
+            }
+
+            ans += ok;
+        }
+        return ans;
+    }
+}
+
+
+or
+
+
+class Solution {
+
+    public int numberOfSets(int n, int maxDistance, int[][] roads) {
+        List<List<Integer>> res = new ArrayList();
+        dfs(res, n - 1, 0, new ArrayList<Integer>());
+        
+        Map<Integer, Map<Integer, Integer>> map = new HashMap();
+        for(int[] r : roads) {
+            if(r[2] > maxDistance) continue;
+            
+            int i = r[0], j = r[1];
+            if(!map.containsKey(i)) map.put(i, new HashMap<Integer, Integer>());
+            if(!map.get(i).containsKey(j)) map.get(i).put(j, r[2]);
+            else map.get(i).put(j, Math.min(r[2], map.get(i).get(j)));
+        }
+
+        int cnt = 0;
+        for(List<Integer> list : res) {
+            if(list.size() <= 1) { cnt++; continue; }
+            if(validate(n, list, maxDistance, map)) {
+                cnt++;
+            } 
+        }
+        return cnt;
+    }
+    
+    void dfs(List<List<Integer>> res, int n, int idx, List<Integer> curr) {
+        res.add(new ArrayList(curr));
+        for(int i = idx; i <= n; i++) {
+            curr.add(i);
+            dfs(res, n, i + 1, curr);
+            curr.remove(curr.size() - 1);
+        }
+    }
+    
+    boolean validate(int n, List<Integer> list, int max, Map<Integer, Map<Integer, Integer>> map) {
+        if(map.size() == 0) return false;
+
+        int N = list.size();
+        
+        Set<Integer> set = new HashSet();
+        for(int i : list) set.add(i);
+        
+        // any two points should be validated
+        int[][] graph = new int[n][n];
+        for(int i = 0; i < n; i++) Arrays.fill(graph[i], 99999);
+        for(int i = 0; i < n; i++) graph[i][i] = 0;
+
+        // Populate the graph with roads data
+        for(int i = 0; i < N; i++) {
+            int node = list.get(i);
+            Map<Integer, Integer> neis = map.get(node);
+            if(neis == null) continue;
+            for(int nei : neis.keySet()) {
+                if(!set.contains(nei)) continue;
+                graph[node][nei] = Math.min(graph[node][nei], neis.get(nei));
+                graph[nei][node] = Math.min(graph[nei][node], neis.get(nei));
+            }
+        }
+
+        for(int k = 0; k < N; k++) {
+            for(int i = 0; i < N; i++) {
+                for(int j = 0; j < N; j++) {
+                    int ii = list.get(i), jj = list.get(j), kk = list.get(k);
+                    if(graph[ii][jj] > graph[ii][kk] + graph[kk][jj]) {
+                        graph[ii][jj] = graph[ii][kk] + graph[kk][jj];
+                    }
+                }
+            }        
+        }
+
+        for(int i = 0; i < N; i++) {
+            for(int j = i + 1; j < N; j++) {
+                int ii = list.get(i), jj = list.get(j);
+                if(graph[ii][jj] > max) return false;
+            }
+        }
+        
+        return true;        
+    }
+}
