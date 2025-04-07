@@ -1,0 +1,334 @@
+https://leetcode.com/problems/earliest-second-to-mark-indices-ii/description/
+
+
+You are given two 1-indexed integer arrays, nums and, changeIndices, having lengths n and m, respectively.
+
+Initially, all indices in nums are unmarked. Your task is to mark all indices in nums.
+
+In each second, s, in order from 1 to m (inclusive), you can perform one of the following operations:
+
+Choose an index i in the range [1, n] and decrement nums[i] by 1.
+Set nums[changeIndices[s]] to any non-negative value.
+Choose an index i in the range [1, n], where nums[i] is equal to 0, and mark index i.
+Do nothing.
+Return an integer denoting the earliest second in the range [1, m] when all indices in nums can be marked by choosing operations optimally, or -1 if it is impossible.
+
+ 
+
+Example 1:
+
+Input: nums = [3,2,3], changeIndices = [1,3,2,2,2,2,3]
+Output: 6
+Explanation: In this example, we have 7 seconds. The following operations can be performed to mark all indices:
+Second 1: Set nums[changeIndices[1]] to 0. nums becomes [0,2,3].
+Second 2: Set nums[changeIndices[2]] to 0. nums becomes [0,2,0].
+Second 3: Set nums[changeIndices[3]] to 0. nums becomes [0,0,0].
+Second 4: Mark index 1, since nums[1] is equal to 0.
+Second 5: Mark index 2, since nums[2] is equal to 0.
+Second 6: Mark index 3, since nums[3] is equal to 0.
+Now all indices have been marked.
+It can be shown that it is not possible to mark all indices earlier than the 6th second.
+Hence, the answer is 6.
+Example 2:
+
+Input: nums = [0,0,1,2], changeIndices = [1,2,1,2,1,2,1,2]
+Output: 7
+Explanation: In this example, we have 8 seconds. The following operations can be performed to mark all indices:
+Second 1: Mark index 1, since nums[1] is equal to 0.
+Second 2: Mark index 2, since nums[2] is equal to 0.
+Second 3: Decrement index 4 by one. nums becomes [0,0,1,1].
+Second 4: Decrement index 4 by one. nums becomes [0,0,1,0].
+Second 5: Decrement index 3 by one. nums becomes [0,0,0,0].
+Second 6: Mark index 3, since nums[3] is equal to 0.
+Second 7: Mark index 4, since nums[4] is equal to 0.
+Now all indices have been marked.
+It can be shown that it is not possible to mark all indices earlier than the 7th second.
+Hence, the answer is 7.
+Example 3:
+
+Input: nums = [1,2,3], changeIndices = [1,2,3]
+Output: -1
+Explanation: In this example, it can be shown that it is impossible to mark all indices, as we don't have enough seconds. 
+Hence, the answer is -1.
+
+
+
+# java
+
+class Solution {
+    public boolean check(int[] nums, int[] changeIndices, int mid) {
+        int n = nums.length;
+        int m = changeIndices.length;
+
+        long tot = 0;
+        for (int num : nums) {
+            tot += num;
+        }
+
+        java.util.PriorityQueue<Integer> pq = new java.util.PriorityQueue<>();
+        java.util.HashMap<Integer, Integer> mp = new java.util.HashMap<>();
+
+        for (int i = 0; i < mid; i++) {
+            if (!mp.containsKey(changeIndices[i])) {
+                mp.put(changeIndices[i], i);
+            }
+        }
+
+        long mark = 1;
+
+        for (int i = mid - 1; i >= 0; i--) {
+            if (nums[changeIndices[i] - 1] == 0) {
+                mark++;
+            } else if (mp.get(changeIndices[i]) == i) {
+                pq.offer(nums[changeIndices[i] - 1]);
+                mark--;
+                tot -= nums[changeIndices[i] - 1];
+                if (mark < 0) {
+                    mark += 2;
+                    tot += pq.poll();
+                }
+            } else {
+                mark++;
+            }
+        }
+
+        long toti = tot + n + pq.size();
+        return toti <= (mid + 1);
+    }
+
+    public int earliestSecondToMarkIndices(int[] nums, int[] changeIndices) {
+        int n = nums.length;
+        int m = changeIndices.length;
+
+        int low = 0;
+        int high = m - 1;
+
+        int ans = -1;
+
+        while (low <= high) {
+            int mid = (low + high) / 2;
+            if (check(nums, changeIndices, mid)) {
+                ans = mid + 1;
+                high = mid - 1;
+            } else {
+                low = mid + 1;
+            }
+        }
+
+        return ans;
+    }
+}
+
+
+or
+
+// binary search
+
+class Solution {
+    int m,n;
+    int[] nums, changeIndices;
+    boolean[] first;
+    long sum;
+    public int earliestSecondToMarkIndices(int[] nums, int[] changeIndices) {
+        m = changeIndices.length;
+        n = nums.length;
+        if (m < n) {
+            return -1;
+        }
+        this.nums = nums;
+        this.changeIndices = changeIndices;
+        Set<Integer> set = new HashSet<>();
+        first = new boolean[m];
+        for (int i = 0; i < m; i++) {
+            if (nums[changeIndices[i] - 1] > 1 && set.add(changeIndices[i])) {
+                first[i] = true;
+            }
+        }
+        for (int num : nums) {
+            sum += num;
+        }
+        sum += n;
+        int l = n, r = ((int)Math.min(sum, m)) + 1;
+        while (l < r) {
+            int mid = (l + r) / 2;
+            if (check(mid)) {
+                r = mid;
+            } else {
+                l = mid + 1;
+            }
+        }
+        return l > Math.min(sum, m) ? -1 : l;
+
+    }
+    boolean check(int idx) {
+        Queue<Integer> pq = new PriorityQueue<>();
+        long need = sum;
+        int count = 0;
+        for (int i = idx - 1; i >= 0 && need > idx; i--) {
+            if (!first[i]) {
+                count++;
+                continue;
+            }
+            pq.add(nums[changeIndices[i] - 1]);
+            need -= nums[changeIndices[i] - 1] - 1;
+            if (pq.size() > count) {
+                need += pq.poll() - 1;
+                count++;
+            }
+        }
+        // while (!pq.isEmpty() && need > idx) {
+        //     need -= pq.poll() - 1;
+        // }
+        return need <= idx;
+    }
+}
+
+
+or
+
+
+
+class Solution {
+    public int earliestSecondToMarkIndices(int[] nums, int[] changeIndices) {
+        //decrement changeIndices since I prefer things to be zero indexed.
+        for (int i = 0; i < changeIndices.length; i++) {
+            changeIndices[i]--;
+        }
+        //before getting to the meat, lets pre-compute some things.
+        //recored when the first time an index of nums occures in changeIndex and has value > 1.
+        //This indicates when we plan to use the set operation on the number to set it to zero.
+        int[] firstCI = new int[nums.length];
+        Arrays.fill(firstCI,-1);
+        for (int i = 0; i < changeIndices.length; i++) {
+            if (nums[changeIndices[i]] > 1 && firstCI[changeIndices[i]] == -1) {
+                firstCI[changeIndices[i]] = i;
+            }
+        }
+        //compute the total time needed if we could not use the set operation. The checkPossible method
+        //will attempt to reduce time needed using set operations.
+
+        long timeNeeded = nums.length;//for marking each number
+        for (int n : nums) {
+            timeNeeded += n;//for subtracting 1, n times.
+        }
+        //check if it is possible using all the time. If not, return -1.
+        if (!checkPossible(nums,changeIndices,changeIndices.length,firstCI,timeNeeded)) {
+            return -1;
+        }
+        //binary search for fastest time.
+        int fastest = 0;
+        int slowest = changeIndices.length;
+        while (fastest != slowest) {
+            int mid = (fastest+slowest)/2;
+            if (checkPossible(nums,changeIndices,mid,firstCI,timeNeeded)) {
+                slowest = mid;
+            } else {
+                fastest = mid+1;
+            }
+        }
+        return fastest;
+    }
+
+    public boolean checkPossible(int[] nums, int[] changeIndices, int maxTime, int[] firstCI, long timeNeeded) {
+        //we will reduce timeNeeded using set operations as best as possible to see if 
+        //we can get timeNeeded down to maxTime.
+        //pq hold the numbers that we have zeroed with the set operation.
+        Queue<Integer> pq = new PriorityQueue<>();
+        //alreadyZeroed is the number time steps we've encoutered where a number was zeroed earlier.
+        //These are time steps that we need to use for marking. So working backwards in time, 
+        //if pq.size() > aleadyZeroed then we are setting more to zero at the end then we can mark, which is invalid. 
+        //So use pq.poll() to undo the set operation that gave the smallest improvement in timeNeeded. 
+        int alreadyZeroed = 0;
+        //start at maxTime and work backwords.
+        for (int i = maxTime-1; i >= 0 && timeNeeded > maxTime; i--) {
+            if (firstCI[changeIndices[i]] != i) {
+                //was set earlier in time.
+                alreadyZeroed++;
+                continue;
+            }
+            //this is the first oportunity to set nums[changeIndices[i]] = 0, so we 
+            //would like to do that. This reduces time needed.
+            timeNeeded -= nums[changeIndices[i]]-1;//-1 since we use a timestep to make zero.
+            pq.add(nums[changeIndices[i]]);
+            //if pq.size() is greater than already zeroed it means we are zeroing too many at the end
+            //without saving enough time to mark.
+            //so find the smallest value which we previously zeroed, and unzero it.
+            if (pq.size() > alreadyZeroed) {
+                //since it is not zeroed, but we assumed it was, we need to add back to timeNeeded.
+                timeNeeded += pq.poll()-1;
+                //already zeroed increases since we assume this was zeroed through operations other than set operation.
+                alreadyZeroed++;
+            }
+        }
+        return timeNeeded <= maxTime;
+    }
+}
+
+
+or
+
+
+class Solution {
+    public int earliestSecondToMarkIndices(int[] nums, int[] changeIndices) {
+        if (nums.length == 1 && nums[0] == 0) {
+            return 1;
+        }
+
+        changeIndices = Arrays.stream(changeIndices).map(x -> x - 1).toArray();
+
+        long total = 0;
+        for (int i = 0; i < nums.length; i++) {
+            total += nums[i];
+        }
+        total += nums.length;
+
+        int low = 0, high = changeIndices.length;
+        while (low < high) {
+            int mid = low + (high - low) / 2;
+            if (isPossible(nums, changeIndices, mid, total)) {
+                high = mid;
+            } else {
+                low = mid + 1;
+            }
+        }
+        return isPossible(nums, changeIndices, low, total) ? low + 1 : -1;
+    }
+
+    private boolean isPossible(int[] nums, int[] changeIndices, int mid, long total) {
+        if (mid >= changeIndices.length) {
+            return false;
+        }
+
+        HashMap<Integer, Integer> firstIndices = new HashMap<>();
+        for (int i = 0; i <= mid; i++) {
+            if (nums[changeIndices[i]] > 0 && !firstIndices.containsKey(changeIndices[i])) {
+                firstIndices.put(changeIndices[i], i);
+            }
+        }
+
+        PriorityQueue<int[]> priorityQueue = new PriorityQueue<>((a, b) -> a[0] - b[0]);
+        int available = 0;
+        for (int i = mid; i >= 0; i--) {
+            if (firstIndices.get(changeIndices[i]) != null && firstIndices.get(changeIndices[i]) == i) {
+                if (available > 0) {
+                    priorityQueue.offer(new int[]{nums[changeIndices[i]], changeIndices[i]});
+                    available--;
+                } else if (!priorityQueue.isEmpty() && priorityQueue.peek()[0] < nums[changeIndices[i]]) {
+                    priorityQueue.poll();
+                    priorityQueue.offer(new int[]{nums[changeIndices[i]], changeIndices[i]});
+                    available++;
+                } else {
+                    available++;
+                }
+            } else {
+                available++;
+            }
+        }
+
+        while (!priorityQueue.isEmpty()) {
+            total -= (priorityQueue.poll()[0] + 1);
+        }
+
+        return total <= available;
+    }
+}
