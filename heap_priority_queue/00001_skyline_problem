@@ -121,6 +121,54 @@ Processing: O(n²) (due to inefficient remove() in heap)
 
 or
 
+class Solution {
+    public List<List<Integer>> getSkyline(int[][] buildings) {
+        List<int[]> events = new ArrayList<>();
+        for (int[] b : buildings) {
+            events.add(new int[]{b[0], -b[2]}); // start of building
+            events.add(new int[]{b[1], b[2]});  // end of building
+        }
+
+        // Sort by x. If x is same, process higher height first
+        events.sort((a, b) -> {
+            if (a[0] != b[0]) return a[0] - b[0];
+            return a[1] - b[1];
+        });
+
+        List<List<Integer>> result = new ArrayList<>();
+        PriorityQueue<Integer> maxHeap = new PriorityQueue<>(Collections.reverseOrder());
+        maxHeap.add(0); // ground level
+        int prevMaxHeight = 0;
+
+        Map<Integer, Integer> toRemove = new HashMap<>();
+
+        for (int[] event : events) {
+            int x = event[0], h = event[1];
+            if (h < 0) { // start of building
+                maxHeap.add(-h);
+            } else { // end of building
+                toRemove.put(h, toRemove.getOrDefault(h, 0) + 1);
+            }
+
+            // Remove heights marked for deletion
+            while (!maxHeap.isEmpty() && toRemove.getOrDefault(maxHeap.peek(), 0) > 0) {
+                int top = maxHeap.poll();
+                toRemove.put(top, toRemove.get(top) - 1);
+            }
+
+            int currentMaxHeight = maxHeap.peek();
+            if (currentMaxHeight != prevMaxHeight) {
+                result.add(Arrays.asList(x, currentMaxHeight));
+                prevMaxHeight = currentMaxHeight;
+            }
+        }
+
+        return result;
+    }
+}
+
+or
+
 
 class Solution {
     public List<List<Integer>> getSkyline(int[][] buildings) {
