@@ -1,0 +1,234 @@
+https://leetcode.com/problems/minimum-number-of-visited-cells-in-a-grid/description/
+
+
+You are given a 0-indexed m x n integer matrix grid. Your initial position is at the top-left cell (0, 0).
+
+Starting from the cell (i, j), you can move to one of the following cells:
+
+Cells (i, k) with j < k <= grid[i][j] + j (rightward movement), or
+Cells (k, j) with i < k <= grid[i][j] + i (downward movement).
+Return the minimum number of cells you need to visit to reach the bottom-right cell (m - 1, n - 1). If there is no valid path, return -1.
+
+ 
+
+Example 1:
+
+
+Input: grid = [[3,4,2,1],[4,2,3,1],[2,1,0,0],[2,4,0,0]]
+Output: 4
+Explanation: The image above shows one of the paths that visits exactly 4 cells.
+Example 2:
+
+
+Input: grid = [[3,4,2,1],[4,2,1,1],[2,1,1,0],[3,4,1,0]]
+Output: 3
+Explanation: The image above shows one of the paths that visits exactly 3 cells.
+Example 3:
+
+
+Input: grid = [[2,1,0],[1,0,0]]
+Output: -1
+Explanation: It can be proven that no path exists.
+ 
+
+Constraints:
+
+m == grid.length
+n == grid[i].length
+1 <= m, n <= 105
+1 <= m * n <= 105
+0 <= grid[i][j] < m * n
+grid[m - 1][n - 1] == 0
+
+
+# java
+
+
+class Solution {
+    public int minimumVisitedCells(int[][] grid) {
+        int m = grid.length, n = grid[0].length;
+        int[][] dist = new int[m][n];
+        PriorityQueue<int[]>[] row = new PriorityQueue[m];
+        PriorityQueue<int[]>[] col = new PriorityQueue[n];
+        for (int i = 0; i < m; ++i) {
+            Arrays.fill(dist[i], -1);
+            row[i] = new PriorityQueue<>((a, b) -> a[0] == b[0] ? a[1] - b[1] : a[0] - b[0]);
+        }
+        for (int i = 0; i < n; ++i) {
+            col[i] = new PriorityQueue<>((a, b) -> a[0] == b[0] ? a[1] - b[1] : a[0] - b[0]);
+        }
+        dist[0][0] = 1;
+        for (int i = 0; i < m; ++i) {
+            for (int j = 0; j < n; ++j) {
+                while (!row[i].isEmpty() && grid[i][row[i].peek()[1]] + row[i].peek()[1] < j) {
+                    row[i].poll();
+                }
+                if (!row[i].isEmpty() && (dist[i][j] == -1 || row[i].peek()[0] + 1 < dist[i][j])) {
+                    dist[i][j] = row[i].peek()[0] + 1;
+                }
+                while (!col[j].isEmpty() && grid[col[j].peek()[1]][j] + col[j].peek()[1] < i) {
+                    col[j].poll();
+                }
+                if (!col[j].isEmpty() && (dist[i][j] == -1 || col[j].peek()[0] + 1 < dist[i][j])) {
+                    dist[i][j] = col[j].peek()[0] + 1;
+                }
+                if (dist[i][j] != -1) {
+                    row[i].offer(new int[] {dist[i][j], j});
+                    col[j].offer(new int[] {dist[i][j], i});
+                }
+            }
+        }
+        return dist[m - 1][n - 1];
+    }
+}
+
+
+or
+
+
+import java.util.Arrays;
+import java.util.PriorityQueue;
+
+class Solution {
+    public int minimumVisitedCells(int[][] grid) {
+        // dimensions of the grid
+        int rows = grid.length, columns = grid[0].length;
+        // 2D array to store the minimum distance to reach each cell
+        int[][] distances = new int[rows][columns];
+        PriorityQueue<int[]>[] priorityQueuesForRow = new PriorityQueue[rows];
+        PriorityQueue<int[]>[] priorityQueuesForColumn = new PriorityQueue[columns];
+
+        // Initialize distances with -1 and set up the priority queues for each row and column
+        for (int i = 0; i < rows; ++i) {
+            Arrays.fill(distances[i], -1);
+            priorityQueuesForRow[i] = new PriorityQueue<>((a, b) ->
+                    a[0] == b[0] ? a[1] - b[1] : a[0] - b[0]);
+        }
+        for (int j = 0; j < columns; ++j) {
+            priorityQueuesForColumn[j] = new PriorityQueue<>((a, b) ->
+                    a[0] == b[0] ? a[1] - b[1] : a[0] - b[0]);
+        }
+
+        // Starting point
+        distances[0][0] = 1;
+
+        // Iterate over each cell in the grid
+        for (int i = 0; i < rows; ++i) {
+            for (int j = 0; j < columns; ++j) {
+                // Remove invalid positions from priority queue for the current row
+                while (!priorityQueuesForRow[i].isEmpty() && 
+                        grid[i][priorityQueuesForRow[i].peek()[1]] + priorityQueuesForRow[i].peek()[1] < j) {
+                    priorityQueuesForRow[i].poll();
+                }
+                // Update the distance for the current cell if needed
+                if (!priorityQueuesForRow[i].isEmpty() && 
+                        (distances[i][j] == -1 || priorityQueuesForRow[i].peek()[0] + 1 < distances[i][j])) {
+                    distances[i][j] = priorityQueuesForRow[i].peek()[0] + 1;
+                }
+
+                // Remove invalid positions from priority queue for the current column
+                while (!priorityQueuesForColumn[j].isEmpty() && 
+                        grid[priorityQueuesForColumn[j].peek()[1]][j] + priorityQueuesForColumn[j].peek()[1] < i) {
+                    priorityQueuesForColumn[j].poll();
+                }
+                // Update the distance for the current cell if needed
+                if (!priorityQueuesForColumn[j].isEmpty() && 
+                        (distances[i][j] == -1 || priorityQueuesForColumn[j].peek()[0] + 1 < distances[i][j])) {
+                    distances[i][j] = priorityQueuesForColumn[j].peek()[0] + 1;
+                }
+
+                // If the current cell is reachable, add it to the priority queues for further processing
+                if (distances[i][j] != -1) {
+                    priorityQueuesForRow[i].offer(new int[] {distances[i][j], j});
+                    priorityQueuesForColumn[j].offer(new int[] {distances[i][j], i});
+                }
+            }
+        }
+
+        // Return the minimum distance to reach the bottom-right cell of the grid
+        return distances[rows - 1][columns - 1];
+    }
+}
+
+
+or
+
+
+import java.util.Arrays;
+import java.util.PriorityQueue;
+
+class Solution {
+    public int minimumVisitedCells(int[][] grid) {
+    int m = grid.length, n = grid[0].length;
+    TreeSet<Integer>[] s0 = new TreeSet[m], s1 = new TreeSet[n];
+    for (int i = 0; i < m; i++) {
+        s0[i] = new TreeSet<>();
+        for (int j = 0; j < n; j++)
+            s0[i].add(j);
+    }
+    for (int j = 0; j < n; j++) {
+        s1[j] = new TreeSet<>();
+        for (int i = 0; i < m; i++) 
+            s1[j].add(i);
+    }
+    Queue<int[]> q = new LinkedList<>();
+    q.offer(new int[]{0, 0, 1});
+
+    while (!q.isEmpty()) {
+        int[] cell = q.poll();
+        int i = cell[0], j = cell[1], d = cell[2];
+        if (i == m - 1 && j == n - 1) return d;
+
+        Integer k = s0[i].ceiling(j+1);
+        while (k != null && k <= j + grid[i][j]) {
+            q.offer(new int[]{i, k.intValue(), d + 1});
+            s0[i].remove(k);
+            s1[k.intValue()].remove(i);
+            k = s0[i].ceiling(j + 1);
+        }
+        k = s1[j].ceiling(i+1);
+        while (k != null && k <= i + grid[i][j]) {
+            q.offer(new int[]{k.intValue(), j, d + 1});
+            s1[j].remove(k);
+            s0[k.intValue()].remove(j);
+            k = s1[j].ceiling(i + 1);
+        }
+    }
+    return -1;
+}
+}
+
+
+or
+
+
+import java.util.Arrays;
+import java.util.PriorityQueue;
+
+class Solution {
+        public int minimumVisitedCells(int[][] grid) {
+        int m = grid.length, n = grid[0].length;
+        boolean[][] visited = new boolean[m][n];
+        int[] horizontals = new int[m], verticals = new int[n];
+        LinkedList<int[]> queue = new LinkedList<>();
+        queue.add(new int[] {0, 0});
+        horizontals[0] = 1;
+        verticals[0] = 1;
+        for (int output = 1; !queue.isEmpty(); output++) for (int i = queue.size(); i > 0; i--) {
+            int[] t = queue.removeFirst();
+            int x = t[0], y = t[1];
+            if (x == m - 1 && y == n - 1) return output;
+            for (int j = Math.max(horizontals[x], y + 1); j <= grid[x][y] + y && j < n; j++) if (!visited[x][j]) {
+                visited[x][j] = true;
+                queue.add(new int[] {x, j});
+            }
+            while (horizontals[x] < n && visited[x][horizontals[x]]) horizontals[x]++;
+            for (int j = Math.max(verticals[y], x + 1); j <= grid[x][y] + x && j < m; j++) if (!visited[j][y]) {
+                visited[j][y] = true;
+                queue.add(new int[] {j, y});
+            }
+            while (verticals[y] < m && visited[verticals[y]][y]) verticals[y]++;
+        }
+        return -1;
+    }
+}
