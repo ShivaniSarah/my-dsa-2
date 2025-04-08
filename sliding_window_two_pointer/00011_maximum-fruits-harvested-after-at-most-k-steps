@@ -1,0 +1,400 @@
+https://leetcode.com/problems/maximum-fruits-harvested-after-at-most-k-steps/description/
+
+
+2106. Maximum Fruits Harvested After at Most K Steps
+Hard
+Topics
+Companies
+Hint
+Fruits are available at some positions on an infinite x-axis. You are given a 2D integer array fruits where fruits[i] = [positioni, amounti] depicts amounti fruits at the position positioni. fruits is already sorted by positioni in ascending order, and each positioni is unique.
+
+You are also given an integer startPos and an integer k. Initially, you are at the position startPos. From any position, you can either walk to the left or right. It takes one step to move one unit on the x-axis, and you can walk at most k steps in total. For every position you reach, you harvest all the fruits at that position, and the fruits will disappear from that position.
+
+Return the maximum total number of fruits you can harvest.
+
+ 
+
+Example 1:
+
+
+Input: fruits = [[2,8],[6,3],[8,6]], startPos = 5, k = 4
+Output: 9
+Explanation: 
+The optimal way is to:
+- Move right to position 6 and harvest 3 fruits
+- Move right to position 8 and harvest 6 fruits
+You moved 3 steps and harvested 3 + 6 = 9 fruits in total.
+Example 2:
+
+
+Input: fruits = [[0,9],[4,1],[5,7],[6,2],[7,4],[10,9]], startPos = 5, k = 4
+Output: 14
+Explanation: 
+You can move at most k = 4 steps, so you cannot reach position 0 nor 10.
+The optimal way is to:
+- Harvest the 7 fruits at the starting position 5
+- Move left to position 4 and harvest 1 fruit
+- Move right to position 6 and harvest 2 fruits
+- Move right to position 7 and harvest 4 fruits
+You moved 1 + 3 = 4 steps and harvested 7 + 1 + 2 + 4 = 14 fruits in total.
+Example 3:
+
+
+Input: fruits = [[0,3],[6,4],[8,5]], startPos = 3, k = 2
+Output: 0
+Explanation:
+You can move at most k = 2 steps and cannot reach any position with fruits.
+ 
+
+Constraints:
+
+1 <= fruits.length <= 105
+fruits[i].length == 2
+0 <= startPos, positioni <= 2 * 105
+positioni-1 < positioni for any i > 0 (0-indexed)
+1 <= amounti <= 104
+0 <= k <= 2 * 105
+
+
+# java
+
+class Solution {
+    public int maxTotalFruits(int[][] fruits, int startPos, int k) {
+        int ans = 0, s = 0;
+        for (int i = 0, j = 0; j < fruits.length; ++j) {
+            int pj = fruits[j][0], fj = fruits[j][1];
+            s += fj;
+            while (i <= j
+                && pj - fruits[i][0]
+                        + Math.min(Math.abs(startPos - fruits[i][0]), Math.abs(startPos - pj))
+                    > k) {
+                s -= fruits[i++][1];
+            }
+            ans = Math.max(ans, s);
+        }
+        return ans;
+    }
+}
+
+
+or
+
+class Solution {
+  public int maxTotalFruits(int[][] fruits, int startPos, int k) {
+    final int maxRight = Math.max(startPos, fruits[fruits.length - 1][0]);
+    int ans = 0;
+    int[] amounts = new int[1 + maxRight];
+    int[] prefix = new int[2 + maxRight];
+
+    for (int[] f : fruits)
+      amounts[f[0]] = f[1];
+
+    for (int i = 0; i + 1 < prefix.length; ++i)
+      prefix[i + 1] = prefix[i] + amounts[i];
+
+    // Go right first.
+    final int maxRightSteps = Math.min(maxRight - startPos, k);
+    for (int rightSteps = 0; rightSteps <= maxRightSteps; ++rightSteps) {
+      final int leftSteps = Math.max(0, k - 2 * rightSteps); // Turn left
+      ans = Math.max(ans, getFruits(startPos, maxRight, leftSteps, rightSteps, prefix));
+    }
+
+    // Go left first.
+    final int maxLeftSteps = Math.min(startPos, k);
+    for (int leftSteps = 0; leftSteps <= maxLeftSteps; ++leftSteps) {
+      final int rightSteps = Math.max(0, k - 2 * leftSteps); // Turn right
+      ans = Math.max(ans, getFruits(startPos, maxRight, leftSteps, rightSteps, prefix));
+    }
+
+    return ans;
+  }
+
+  private int getFruits(int startPos, int maxRight, int leftSteps, int rightSteps, int[] prefix) {
+    final int l = Math.max(0, startPos - leftSteps);
+    final int r = Math.min(maxRight, startPos + rightSteps);
+    return prefix[r + 1] - prefix[l];
+  }
+}
+
+
+
+
+or
+
+
+class Solution {
+    public int maxTotalFruits(int[][] fruits, int startPos, int k) {
+        int maxFruits = 0; // Stores the maximum number of fruits we can collect
+        int currentSum = 0; // Stores the current sum of fruits between two points
+      
+        // Two pointers approach: i is for the start point and j is for the end point
+        for (int i = 0, j = 0; j < fruits.length; ++j) {
+            int positionJ = fruits[j][0]; // The position of the j-th tree
+            int fruitsAtJ = fruits[j][1]; // The number of fruits at the j-th tree
+            currentSum += fruitsAtJ; // Add fruits at the j-th tree to the current sum
+
+            // Adjust the starting point i to not exceed the maximum distance k
+            while (i <= j &&
+                   positionJ - fruits[i][0] +
+                   Math.min(Math.abs(startPos - fruits[i][0]), Math.abs(startPos - positionJ))
+                   > k) {
+                // Subtract the number of fruits at the i-th tree as we move the start point forward
+                currentSum -= fruits[i][1];
+                i++; // Increment the start point
+            }
+          
+            // Update maxFruits with the maximum of current sum and previously calculated maxFruits
+            maxFruits = Math.max(maxFruits, currentSum);
+        }
+        return maxFruits; // Return the maximum number of fruits that can be collected
+    }
+}
+
+
+or
+
+
+class Solution {
+    public int maxTotalFruits(int[][] f, int pos, int k) {
+    int l = 0, sum = 0, max_sum = 0;
+    while (l < f.length && f[l][0] < pos - k)
+        ++l;
+    for (int r = l; r < f.length && f[r][0] <= pos + k; ++r) {
+        sum += f[r][1];
+        while(Math.min(pos - 2 * f[l][0] + f[r][0], 2 * f[r][0] - f[l][0] - pos) > k)
+            sum -= f[l++][1];
+        max_sum = Math.max(max_sum, sum);
+    }
+    return max_sum;
+}
+}
+
+or
+
+// modified prefix sum
+
+
+class Solution {
+    public int maxTotalFruits(int[][] fruits, int startPos, int k) {
+        int n = fruits.length;
+        int posOfLastFruit = fruits[n-1][0];
+        int prefixArr[] = new int[posOfLastFruit + 1];
+        int start = Math.max(startPos - k, 0);
+        int end = Math.min(startPos + k, prefixArr.length-1);
+        
+        if(startPos > posOfLastFruit) {
+            int diff = startPos - posOfLastFruit;
+            startPos = posOfLastFruit;
+             k = k - diff;
+            if(k == 0)
+                return fruits[posOfLastFruit][1];
+            else if(k < 0)
+                return 0;
+        }
+        
+        for(int i = 0 ; i < n ; i++) {
+            prefixArr[fruits[i][0]] = fruits[i][1];
+        }
+        
+        int curr = 0;
+        for(int i = startPos-1 ; i >= start ; i--) {
+            curr += prefixArr[i];
+            prefixArr[i] = curr;
+        }
+        
+        curr = 0;
+        for(int i = startPos+1 ; i <= end ; i++) {
+            curr += prefixArr[i];
+            prefixArr[i] = curr;
+        }
+        
+        int minimum = prefixArr[startPos];
+        prefixArr[startPos] = 0;
+        int ans = 0;
+        
+        for(int i = start ; i < startPos ; i++) {
+            int maxCurrPossible = prefixArr[i];
+            int stepsAlreadyWalked = startPos - i;
+            int stepsRemaining = k - stepsAlreadyWalked;
+            int endIndex = i + stepsRemaining;
+            
+            if(endIndex > startPos && endIndex < prefixArr.length) {
+                maxCurrPossible += prefixArr[endIndex];
+            } else if(endIndex >= prefixArr.length) {
+                maxCurrPossible += prefixArr[prefixArr.length-1];
+            }
+            
+            ans = Math.max(ans, maxCurrPossible);
+        }
+        
+        for(int i = startPos+1 ; i <= end ; i++) {
+            int maxCurrPossible = prefixArr[i];
+            int stepsAlreadyWalked = i - startPos;
+            int stepsRemaining = k - stepsAlreadyWalked;
+            int endIndex = i - stepsRemaining;
+            
+            if(endIndex < startPos && endIndex >= 0) {
+                maxCurrPossible += prefixArr[endIndex];
+            } else if(endIndex < 0) {
+                maxCurrPossible += prefixArr[0];
+            }
+            
+            ans = Math.max(ans, maxCurrPossible);
+        }
+        
+        return ans + minimum;
+    }
+}
+
+or
+
+class Solution {
+    public int maxTotalFruits(int[][] fruits, int startPos, int k) {
+        int maxStep = 200005;
+        int[] count = new int[200005];
+        for (int[] fruit : fruits) count[fruit[0] + 1] += fruit[1];
+        for (int i = 1; i < 200004; i++) count[i] += count[i - 1];
+        startPos++;
+        int res = 0;
+        for (int left = 0; startPos - left > 0 && left <= k; left++) { //max left step we can go, index not beyond 0, count <= k
+            int right = startPos + k - 2 * left;  //we need to go left first then come back, double distance of left trip 2 * left, because we have total k steps, the left we can go right is k - 2 * left
+            if (right >= maxStep) right = maxStep - 1;
+            if (k - 2 * left <= 0) right = startPos;
+            res = Math.max(res, count[right] - count[startPos - left - 1]);
+        }
+        for (int right = 0; startPos + right < maxStep && right <= k; right++) {
+            int left = startPos - (k - 2 * right);
+            if (left <= 1) left = 1;
+            if (k - 2 * right < 0) left = startPos;
+            res = Math.max(res, count[startPos + right] - count[left - 1]);
+        }
+        return res;
+    }
+}
+
+
+or
+
+
+class Solution {
+    public int maxTotalFruits(int[][] fruits, int startPos, int k) {
+        int n = fruits.length, i = 0, j = 0, s = 0, maxs = 0, x = -1;
+        while (i < n && startPos - fruits[i][0] >= 0) {
+            if (startPos - fruits[i][0] <= k)  s += fruits[i][1];
+            else x = i;
+            i++;
+        }
+        j = i;
+        if (x >= 0) i = x + 1;
+        else i = 0;
+        maxs = s;
+        while (i < n && j < n) {
+            if (startPos - fruits[i][0] >= 0)
+                x = Math.min((fruits[j][0] - startPos) * 2 + startPos - fruits[i][0],
+                        (startPos - fruits[i][0]) * 2 + fruits[j][0] - startPos);
+            else x = fruits[j][0] - startPos;
+            if (x <= k) s += fruits[j++][1];
+            else s -= fruits[i++][1];
+            if (maxs < s)  maxs = s;
+        }
+        return maxs;
+    }
+}
+
+or
+
+
+class Solution {
+    public int maxTotalFruits(int[][] fruits, int startPos, int k) {
+        int max=0,i=0,j=0,tmp=0;
+        while(j<fruits.length){
+            int jp=fruits[j][0];
+            tmp+=fruits[j][1];
+
+            while(i<=j&&(jp-fruits[i][0])+Math.min(Math.abs(fruits[i][0]-startPos),Math.abs(jp-startPos))>k){
+                tmp-=fruits[i][1];
+                i++;
+            }
+            max=Math.max(max,tmp);
+            j++;
+        }
+        return max;
+    }
+}
+
+
+or
+
+
+class Solution {
+    public int maxTotalFruits(int[][] fruits, int startPos, int k) {
+        int max = 0;
+        for (int i = 0; i < fruits.length; i++) {
+            max = Math.max(max, fruits[i][0]);
+        }
+        max = Math.max(startPos, max);// if the max is less than starting position
+        int line[] = new int[max + 1];
+        for (int i = 0; i < fruits.length; i++) {
+            line[fruits[i][0]] = fruits[i][1];
+        }
+        // System.out.println(Arrays.toString(line));
+        int start = startPos;
+        int left[] = new int[k + 1];
+        int right[] = new int[k + 1];
+        int i = start;
+        int sum = 0;
+        int step = 0;
+        int temp = line[start];
+        line[start] = 0;
+        // moving left
+        while (step <= k && i >= 0) {
+            sum = sum + line[i];
+            left[step] = sum;
+            step++;
+            i--;
+
+        }
+        // Remaining left index if it goes beyond the last fruit it can collect all
+        // fruits
+        while (step <= k) {
+            left[step] = sum;
+            step++;
+        }
+
+        step = 0;
+        int j = start;
+        sum = 0;
+
+        while (step <= k && j < line.length) {
+            sum = sum + line[j];
+            right[step] = sum;
+            step++;
+            j++;
+
+        }
+        // Remaining right index if it goes beyond the last fruit it can collect all
+        // fruits
+        while (step <= k) {
+            right[step] = sum;
+            step++;
+        }
+        // System.out.println(Arrays.toString(left));
+        // System.out.println(Arrays.toString(right));
+        int ans = 0;
+
+        for (int val = 0; val < left.length; val++) {
+            int move = val;
+            int remain = k - (2 * val);
+            if (remain > 0) {
+                ans = Math.max(ans, Math.max(left[val],
+                        Math.max(right[val], Math.max(left[move] + right[remain], right[move] + left[remain]))));
+
+            } else {
+                ans = Math.max(ans, Math.max(left[val], right[val]));
+            }
+        }
+
+        return ans + temp;//adding the start position
+
+    }
+}
