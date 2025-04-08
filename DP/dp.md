@@ -1,3 +1,5 @@
+https://leetcode.com/discuss/post/5190444/dynamic-programming-problems-category-wi-7xpk/
+
 Hello everyone,
 
 I would want to share my results from my recent completion of my DP trip, which I began in January of last year, in this post. As of right now, LeetCode has 250 dp-tagged problems. Of those, 26 are locked.
