@@ -1,0 +1,405 @@
+https://leetcode.com/problems/maximize-the-minimum-powered-city/description/
+
+2528. Maximize the Minimum Powered City
+Hard
+Topics
+Companies
+Hint
+You are given a 0-indexed integer array stations of length n, where stations[i] represents the number of power stations in the ith city.
+
+Each power station can provide power to every city in a fixed range. In other words, if the range is denoted by r, then a power station at city i can provide power to all cities j such that |i - j| <= r and 0 <= i, j <= n - 1.
+
+Note that |x| denotes absolute value. For example, |7 - 5| = 2 and |3 - 10| = 7.
+The power of a city is the total number of power stations it is being provided power from.
+
+The government has sanctioned building k more power stations, each of which can be built in any city, and have the same range as the pre-existing ones.
+
+Given the two integers r and k, return the maximum possible minimum power of a city, if the additional power stations are built optimally.
+
+Note that you can build the k power stations in multiple cities.
+
+ 
+
+Example 1:
+
+Input: stations = [1,2,4,5,0], r = 1, k = 2
+Output: 5
+Explanation: 
+One of the optimal ways is to install both the power stations at city 1. 
+So stations will become [1,4,4,5,0].
+- City 0 is provided by 1 + 4 = 5 power stations.
+- City 1 is provided by 1 + 4 + 4 = 9 power stations.
+- City 2 is provided by 4 + 4 + 5 = 13 power stations.
+- City 3 is provided by 5 + 4 = 9 power stations.
+- City 4 is provided by 5 + 0 = 5 power stations.
+So the minimum power of a city is 5.
+Since it is not possible to obtain a larger power, we return 5.
+Example 2:
+
+Input: stations = [4,4,4,4], r = 0, k = 3
+Output: 4
+Explanation: 
+It can be proved that we cannot make the minimum power of a city greater than 4.
+ 
+
+Constraints:
+
+n == stations.length
+1 <= n <= 105
+0 <= stations[i] <= 105
+0 <= r <= n - 1
+0 <= k <= 109
+
+
+# java
+
+
+
+class Solution {
+    private long[] s;
+    private long[] d;
+    private int n;
+
+    public long maxPower(int[] stations, int r, int k) {
+        n = stations.length;
+        d = new long[n + 1];
+        s = new long[n + 1];
+        for (int i = 0; i < n; ++i) {
+            int left = Math.max(0, i - r), right = Math.min(i + r, n - 1);
+            d[left] += stations[i];
+            d[right + 1] -= stations[i];
+        }
+        s[0] = d[0];
+        for (int i = 1; i < n + 1; ++i) {
+            s[i] = s[i - 1] + d[i];
+        }
+        long left = 0, right = 1l << 40;
+        while (left < right) {
+            long mid = (left + right + 1) >>> 1;
+            if (check(mid, r, k)) {
+                left = mid;
+            } else {
+                right = mid - 1;
+            }
+        }
+        return left;
+    }
+
+    private boolean check(long x, int r, int k) {
+        Arrays.fill(d, 0);
+        long t = 0;
+        for (int i = 0; i < n; ++i) {
+            t += d[i];
+            long dist = x - (s[i] + t);
+            if (dist > 0) {
+                if (k < dist) {
+                    return false;
+                }
+                k -= dist;
+                int j = Math.min(i + r, n - 1);
+                int left = Math.max(0, j - r), right = Math.min(j + r, n - 1);
+                d[left] += dist;
+                d[right + 1] -= dist;
+                t += dist;
+            }
+        }
+        return true;
+    }
+}
+
+or
+
+
+class Solution {
+  public long maxPower(int[] stations, int r, int k) {
+    long left = Arrays.stream(stations).min().getAsInt();
+    long right = Arrays.stream(stations).asLongStream().sum() + k + 1;
+
+    while (left < right) {
+      final long mid = (left + right) / 2;
+      if (check(stations.clone(), r, k, mid))
+        left = mid + 1;
+      else
+        right = mid;
+    }
+
+    return left - 1;
+  }
+
+  // Returns true if each city can have at least `minPower`.
+  boolean check(int[] stations, int r, int additionalStations, long minPower) {
+    final int n = stations.length;
+    // Initilaize `power` as the 0-th city's power - stations[r].
+    long power = 0;
+
+    for (int i = 0; i < r; ++i)
+      power += stations[i];
+
+    for (int i = 0; i < n; ++i) {
+      if (i + r < n)
+        power += stations[i + r]; // `power` = sum(stations[i - r..i + r]).
+      if (power < minPower) {
+        final long requiredPower = minPower - power;
+        // There're not enough stations to plant.
+        if (requiredPower > additionalStations)
+          return false;
+        // Greedily plant `requiredPower` power stations in the farthest place
+        // to cover as many cities as possible.
+        stations[Math.min(n - 1, i + r)] += requiredPower;
+        additionalStations -= requiredPower;
+        power += requiredPower;
+      }
+      if (i - r >= 0)
+        power -= stations[i - r];
+    }
+
+    return true;
+  }
+}
+
+or
+
+
+class Solution {
+    private long[] prefixSum; // To hold the running prefix sums of power values.
+    private long[] diff; // To represent the difference array for doing range updates.
+    private int stationCount; // The number of stations.
+
+    // Primary function to calculate the maximum power using binary search.
+    public long maxPower(int[] stations, int radius, int k) {
+        stationCount = stations.length;
+        diff = new long[stationCount + 1];
+        prefixSum = new long[stationCount + 1];
+        // Initialize the differencing array based on the power ranges of each station.
+        for (int i = 0; i < stationCount; ++i) {
+            int left = Math.max(0, i - radius), right = Math.min(i + radius, stationCount - 1);
+            diff[left] += stations[i];
+            diff[right + 1] -= stations[i];
+        }
+        // Construct the prefixSum array from the diff array.
+        prefixSum[0] = diff[0];
+        for (int i = 1; i < stationCount + 1; ++i) {
+            prefixSum[i] = prefixSum[i - 1] + diff[i];
+        }
+        // Binary search to determine the maximum power.
+        long left = 0, right = 1L << 40;
+        while (left < right) {
+            long mid = (left + right + 1) >>> 1; // unsigned division by 2.
+            // If the current power level is possible, explore higher power.
+            if (check(mid, radius, k)) {
+                left = mid;
+            } else {
+                // Otherwise, explore lower power.
+                right = mid - 1;
+            }
+        }
+        return left;
+    }
+
+    // Helper function to check if the given power level is attainable.
+    private boolean check(long power, int radius, int k) {
+        // Reset the difference array for this check.
+        Arrays.fill(diff, 0);
+        long tempSum = 0; // To keep track of the current increments.
+      
+        for (int i = 0; i < stationCount; ++i) {
+            tempSum += diff[i];
+            // Calculate how much more power is needed to reach the "power" target.
+            long requiredPower = power - (prefixSum[i] + tempSum);
+            // If additional power is required.
+            if (requiredPower > 0) {
+                // Check if we have enough power bombs to meet the requirement.
+                if (k < requiredPower) {
+                    return false;
+                }
+                // Use the power bombs to increase the power of the range.
+                k -= requiredPower;
+                // Update the effective range in the difference array.
+                int j = Math.min(i + radius, stationCount - 1);
+                int left = Math.max(0, j - radius);
+                int right = Math.min(j + radius, stationCount - 1);
+                diff[left] += requiredPower;
+                diff[right + 1] -= requiredPower;
+                // Update the current sum with the additional power.
+                tempSum += requiredPower;
+            }
+        }
+        // If we've made it through the loop, the power level is attainable.
+        return true;
+    }
+}
+
+
+or
+
+// binary search + sliding window
+
+class Solution {
+    public long maxPower(int[] stations, int r, int k) {
+        int n = stations.length;
+        long left = 0, right = k;
+        for (int x: stations)
+            right += x;
+        // v is the stations after adding
+        long []v = new long[n];
+        while (left <= right) {
+            long x = (left + right) / 2;
+            for (int i = 0; i < n; ++i) 
+                v[i] = stations[i];
+            // s means the power of city i
+            // at first, it record the sum of v[0,r)
+            long s = 0, use = 0;
+            for (int i = 0; i < r; ++i) 
+                s += v[i];
+            for (int i = 0; i < n; ++i) {
+                // add to t if needed
+                int t = Math.min(n - 1, i + r);
+                // update s
+                // find a city should be added
+                if (i + r < n) s += v[i + r];
+                // find a city should be removed
+                if (i - r > 0) s -= v[i - r - 1];
+                // mising power stations
+                long diff = Math.max(0, x - s);
+                v[t] += diff;
+                s += diff;
+                use += diff;
+            }
+            if (use <= k) left = x + 1;
+            else right = x - 1;
+        }
+        return right;
+    }
+}
+
+or
+
+
+// Binary Search On Answer + Sliding Window + Greedy
+
+
+class Solution {
+    boolean check(int[] stations, long mid, int r, int k){
+        long sum=0;
+        int n=stations.length;
+        long[] ans = new long[n];
+            for(int i=0;i<n;i++)
+            ans[i]=stations[i];
+        
+        for(int i=0;i<r;i++)
+            sum+=ans[i];
+        for(int i=0;i<n;i++){
+            sum+=((i+r<=n-1)?ans[i+r]:0)-((i-r-1>=0)?ans[i-r-1]:0); //sliding window
+            if(sum<mid){
+                    if((mid-sum)>k)
+                        return false;
+                if(i+r<=n-1) ans[i+r]+=(mid-sum); //greedy
+                k-=(mid-sum);
+                sum=mid;
+            }
+        }
+        return true;
+    }
+    public long maxPower(int[] stations, int r, int k) {
+        long l=0;
+        long h=k;
+        int n=stations.length;
+        for(int i=0;i<n;i++)
+            h+=(long)stations[i];
+			
+        // Binary Search on ans
+        while(l<h){
+            long mid=h+(l-h)/2;
+            if(check(stations,mid,r,k)) l=mid;
+            else h=mid-1;
+        }
+        return l;
+    }
+}
+
+
+or
+
+// binary search
+
+class Solution {
+    public long maxPower(int[] stations, int r, int k) {
+        int n = stations.length; 
+        long lo = 0, hi = k + Arrays.stream(stations).asLongStream().sum();
+        while (lo < hi) {
+            long mid = lo + (hi-lo+1)/2, prefix = 0; 
+            int kk = k; 
+            int[] ss = stations.clone(); 
+            boolean ok = true; 
+            for (int i = 0; i < n+r; ++i) {
+                if (i < n) prefix += ss[i]; 
+                if (i >= 2*r+1) prefix -= ss[i-2*r-1]; 
+                if (i >= r && prefix < mid) {
+                    if (kk < mid - prefix) {
+                        ok = false; 
+                        break; 
+                    }
+                    kk -= mid - prefix; 
+                    if (i < n) ss[i] += mid - prefix; 
+                    prefix = mid; 
+                }
+            }
+            if (ok) lo = mid; 
+            else hi = mid - 1; 
+        }
+        return lo; 
+    }
+}
+
+
+or
+
+
+// Prefix Sum + Binary Search + Greedy
+
+
+class Solution {
+    private int len, r;
+    public long maxPower(int[] stations, int r, int k) {
+        this.len = stations.length;
+        this.r = r;
+
+        long[] prefixSum = new long[len + 1], powers = new long[len + 1];
+        for (int i = 1; i <= len; ++i) {
+            prefixSum[i] += prefixSum[i - 1] + stations[i - 1];
+        }
+        for (int i = 1; i <= len; ++i) {
+            int ub = Math.min(len, i + r), lb = Math.max(0, i - r - 1);
+            powers[i] = prefixSum[ub] - prefixSum[lb];
+        }
+
+        long start = 0L, end = prefixSum[len] + k;
+        while (start < end - 1) {
+            long mid = start + (end - start) / 2;
+            if (isReachable(mid, k, powers)) {
+                start = mid;                
+            } else {
+                end = mid - 1;
+            }
+        }
+        if (isReachable(end, k, powers)) return end;
+        return start;
+    }
+    private boolean isReachable(long required, int extra, long[] powers) {
+
+        // check the power of each city
+        long[] diff = new long[len + 1];
+        long powerDiff = 0L;
+        for (int i = 1; i <= len; ++i) {
+            powerDiff += diff[i - 1];
+            long needed = required - powers[i] - powerDiff;
+            if (needed > 0) {
+                extra -= needed;
+                if (extra < 0) return false;
+                diff[i] += needed;
+                if (i + 2 * r <= len) diff[i + 2 * r] -= needed;
+            }
+        }
+        return true;
+    }
+}
