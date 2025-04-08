@@ -1,0 +1,477 @@
+https://leetcode.com/problems/maximum-number-of-visible-points/description/
+
+1610. Maximum Number of Visible Points
+Hard
+Topics
+Companies
+Hint
+You are given an array points, an integer angle, and your location, where location = [posx, posy] and points[i] = [xi, yi] both denote integral coordinates on the X-Y plane.
+
+Initially, you are facing directly east from your position. You cannot move from your position, but you can rotate. In other words, posx and posy cannot be changed. Your field of view in degrees is represented by angle, determining how wide you can see from any given view direction. Let d be the amount in degrees that you rotate counterclockwise. Then, your field of view is the inclusive range of angles [d - angle/2, d + angle/2].
+
+
+You can see some set of points if, for each point, the angle formed by the point, your position, and the immediate east direction from your position is in your field of view.
+
+There can be multiple points at one coordinate. There may be points at your location, and you can always see these points regardless of your rotation. Points do not obstruct your vision to other points.
+
+Return the maximum number of points you can see.
+
+
+Example 1:
+
+
+Input: points = [[2,1],[2,2],[3,3]], angle = 90, location = [1,1]
+Output: 3
+Explanation: The shaded region represents your field of view. All points can be made visible in your field of view, including [3,3] even though [2,2] is in front and in the same line of sight.
+Example 2:
+
+Input: points = [[2,1],[2,2],[3,4],[1,1]], angle = 90, location = [1,1]
+Output: 4
+Explanation: All points can be made visible in your field of view, including the one at your location.
+Example 3:
+
+
+Input: points = [[1,0],[2,1]], angle = 13, location = [1,1]
+Output: 1
+Explanation: You can only see one of the two points, as shown above.
+ 
+
+Constraints:
+
+1 <= points.length <= 105
+points[i].length == 2
+location.length == 2
+0 <= angle < 360
+0 <= posx, posy, xi, yi <= 100
+
+
+# java
+
+// O(n log n) for sorting
+// O(n) for the sliding window
+// Total: O(n log n), where n is the number of input points.
+
+class Solution {
+    public int visiblePoints(List<List<Integer>> points, int angle, List<Integer> location) {
+        List<Double> angles = new ArrayList<>();
+        int sameLocationCount = 0;
+
+        int x0 = location.get(0), y0 = location.get(1);
+
+        for (List<Integer> point : points) {
+            int x = point.get(0), y = point.get(1);
+            if (x == x0 && y == y0) {
+                sameLocationCount++;
+            } else {
+                double theta = Math.atan2(y - y0, x - x0) * 180 / Math.PI;
+                if (theta < 0) theta += 360;
+                angles.add(theta);
+            }
+        }
+
+        Collections.sort(angles);
+        int n = angles.size();
+        List<Double> extended = new ArrayList<>(angles);
+        for (double a : angles) extended.add(a + 360);
+
+        int maxVisible = 0;
+        for (int left = 0, right = 0; right < extended.size(); right++) {
+            while (extended.get(right) - extended.get(left) > angle) {
+                left++;
+            }
+            maxVisible = Math.max(maxVisible, right - left + 1);
+        }
+
+        return maxVisible + sameLocationCount;
+    }
+}
+
+or
+
+
+class Solution {
+    public int visiblePoints(List<List<Integer>> points, int angle, List<Integer> location) {
+        List<Double> v = new ArrayList<>();
+        int x = location.get(0), y = location.get(1);
+        int same = 0;
+        for (List<Integer> p : points) {
+            int xi = p.get(0), yi = p.get(1);
+            if (xi == x && yi == y) {
+                ++same;
+                continue;
+            }
+            v.add(Math.atan2(yi - y, xi - x));
+        }
+        Collections.sort(v);
+        int n = v.size();
+        for (int i = 0; i < n; ++i) {
+            v.add(v.get(i) + 2 * Math.PI);
+        }
+        int mx = 0;
+        Double t = angle * Math.PI / 180;
+        for (int i = 0, j = 0; j < 2 * n; ++j) {
+            while (i < j && v.get(j) - v.get(i) > t) {
+                ++i;
+            }
+            mx = Math.max(mx, j - i + 1);
+        }
+        return mx + same;
+    }
+}
+
+
+or
+
+
+class Solution {
+  public int visiblePoints(List<List<Integer>> points, int angle, List<Integer> location) {
+    final int posX = location.get(0);
+    final int posY = location.get(1);
+    int maxVisible = 0;
+    int same = 0;
+    List<Double> pointAngles = new ArrayList<>();
+
+    for (List<Integer> p : points) {
+      final int x = p.get(0);
+      final int y = p.get(1);
+      if (x == posX && y == posY)
+        ++same;
+      else
+        pointAngles.add(getAngle(y - posY, x - posX));
+    }
+
+    Collections.sort(pointAngles);
+
+    final int n = pointAngles.size();
+    for (int i = 0; i < n; ++i)
+      pointAngles.add(pointAngles.get(i) + 360);
+
+    for (int l = 0, r = 0; r < pointAngles.size(); ++r) {
+      while (pointAngles.get(r) - pointAngles.get(l) > angle)
+        ++l;
+      maxVisible = Math.max(maxVisible, r - l + 1);
+    }
+
+    return maxVisible + same;
+  }
+
+  private double getAngle(int dy, int dx) {
+    return Math.atan2(dy, dx) * 180 / Math.PI;
+  }
+}
+
+
+or
+
+
+class Solution {
+    public int visiblePoints(List<List<Integer>> points, int angle, List<Integer> location) {
+        int overlap = 0;
+        List<Double> list = new ArrayList<>(points.size());
+        for (List<Integer> p : points) {
+            if (p.get(0) == location.get(0) && p.get(1) == location.get(1)) {
+                overlap++;
+            } else {
+                list.add(angle(p.get(1) - location.get(1), 
+                               p.get(0) - location.get(0)));
+            }
+        }
+        Collections.sort(list);
+        int max = 0;
+        int n = list.size();
+        int i2 = 0;
+		// list.get(i1) is first angle leg 
+		// list.get(i2) is second angle leg
+        for (int i1 = 0; i1 < n; i1++) {
+			// let's grow i1-i2 angle as much as possible
+			// edge case example: angle = 30, i1 = 350 degrees, i2 = 10 degrees
+			// edge case handling: allow i2 to circle around and calculate second leg as (360 + list.get(i2 % n))
+			//                     then i1 = 350, i2 = 370, delta = 20 degrees < 30 degrees
+            while ((i2 < n && list.get(i2) - list.get(i1) <= angle) || 
+                   (i2 >= n && 360 + list.get(i2 % n) - list.get(i1) <= angle)) {
+                i2++;
+            }
+			// after i2 went as far as possible away from i1 under allowed limit - check if a new maximum found
+            max = Math.max(max, i2-i1);        
+        }
+        return max + overlap;
+    }
+    
+    private double angle(int dy, int dx) {
+        double a = Math.toDegrees(Math.atan2(dy, dx));
+        return (a < 0 ? a + 360 : a);
+    }
+}
+
+
+or
+
+
+class Solution {
+    public int visiblePoints(List<List<Integer>> points, int angle, List<Integer> location) {
+        int pointer = 0;
+        List<Double> lis = new ArrayList<>();
+        for(List<Integer> point : points){
+            if(point.get(0) - location.get(0) == 0 && point.get(1) - location.get(1) == 0) {
+                pointer++; continue;
+            }
+            lis.add(Math.toDegrees(Math.atan2(point.get(0) - location.get(0), point.get(1) - location.get(1))));
+        }
+        
+        double[] arr = new double[lis.size() * 2];
+        int counter = 0, output = pointer;
+        for(Double v : lis){
+            arr[counter++] = v; arr[counter++] = v + 360;
+        }
+        Arrays.sort(arr);
+        for(int i=0,j=i+1;i<arr.length;i++){
+            while(arr[i] - arr[j] > angle) j++;
+            output = Math.max(output, pointer+i-j+1);
+        }
+        return output;
+    }
+}
+
+
+or
+
+
+class Solution {
+    public int visiblePoints(List<List<Integer>> points, int angle, List<Integer> location) {
+     
+        int x=0,y=1; // set the coordinate indexes to make it easier to follow
+        
+        int alreadyAtLocation = 0;
+        List<Double> pointAngles = new ArrayList<>();
+        for(List<Integer> point : points) {    
+            if(point.get(x).equals(location.get(x)) && point.get(y).equals(location.get(y))) {
+                 alreadyAtLocation++;
+             } else {
+                // tangent to angle : https://stackoverflow.com/a/41085980/2815227
+                double pointAngle = Math.toDegrees(Math.atan2( point.get(y) - location.get(y),
+                                                               point.get(x) - location.get(x)));
+                pointAngles.add(pointAngle);
+                if(pointAngle <= 0)
+                    pointAngles.add(pointAngle+360.0); //this is due to angles under x axis
+            }
+        }
+        
+        // after now on it is no geometry, just sliding window
+        // check maximum number of different angles in a range of "angle"
+        
+        Collections.sort(pointAngles); // move the close points (per angle) together  
+        int left=0, right = 0, maxPoints = 0;
+        while(right < pointAngles.size() && maxPoints < pointAngles.size()-left) {
+            if(pointAngles.get(right)-pointAngles.get(left) <= angle ) {
+                maxPoints = Math.max(right-left+1,maxPoints);
+                right++;
+            } else {
+                left++; 
+            }
+        }
+        
+        return maxPoints+alreadyAtLocation; 
+    }
+}
+
+
+or
+
+
+class Solution {
+    public int visiblePoints(List<List<Integer>> points, int angle, List<Integer> location) {
+        List<Double> positions = new ArrayList<>();
+
+        int count = 0;
+        for(List<Integer> point: points){
+
+            int delX = point.get(0) - location.get(0);
+            int delY = point.get(1) - location.get(1);
+            if(delX == 0 &&  delY == 0){
+                count++;
+                continue;
+            }
+
+            var v = (Math.atan2(delY,delX) * 180 / Math.PI);
+            positions.add(v);
+        }
+        Collections.sort(positions);
+
+        List<Double> list = new ArrayList<>(positions);
+
+        for(int i =0; i < positions.size();i++){
+            list.add(360+ positions.get(i));
+        }
+
+        int low = 0, high =0;
+        int max = 0;
+
+        while(high < list.size()){
+            // if out of rang 
+            double lowAngle = list.get(low);
+            double highAngle = list.get(high);
+            if(highAngle - lowAngle <= angle){
+                max = Math.max(high - low +1,max);
+                high++;
+            }else{
+               low++; 
+            }
+        }
+
+        return max + count;
+
+        
+
+    }
+}
+
+
+or
+
+
+
+class Solution {
+    public int visiblePoints(List<List<Integer>> points, int angle, List<Integer> location) {
+        int[][] A = new int[points.size()][2];
+        for (int i = 0; i < points.size(); i++){
+            A[i][0]=points.get(i).get(0)-location.get(0);
+            A[i][1]=points.get(i).get(1)-location.get(1);
+        }
+        boolean can = angle <= 180;
+        angle = Math.min(360-angle, angle); // handling 300 degrees is troublesome, switch to 60 instead.
+        int extra = 0;
+        int ans = can? 0 : Integer.MAX_VALUE;
+        for (int k = 0; k < 4; k++){ // 3 reflections in total 
+            Arrays.sort(A, Comparator.comparingDouble(o -> deg(o)));
+            Deque<int[]> deque = new ArrayDeque<>();
+            extra = 0;
+            for (int i = 0; i < points.size(); i++){
+                if (A[i][0]==0&&A[i][1]==0){
+                    extra++;
+                }else{
+                    double prev = 0; // prev begins at 0 (IMPORTANT)
+                    while(!deque.isEmpty() && deg(A[i]) - deg(deque.peekFirst()) > angle){
+                        prev = deg(deque.pollFirst());
+                    }
+                    if (!can && deg(A[i])-prev>=angle){ // update min outside the while loop, not inside.
+                        ans = Math.min(ans, deque.size());
+                    }
+                    deque.offerLast(A[i]);
+                    if (can){
+                        ans = Math.max(ans, deque.size());
+                    }
+                }
+            }
+            for (int i = 0; i < points.size(); i++){ // reflect it 4 times because why not.
+                A[i][k&1]*=-1;
+            }
+        }
+        return can? ans+extra : points.size()-ans;
+    }
+
+    private double deg(int[] A){
+        return (Math.toDegrees(Math.atan2(A[1], A[0])) + 360)%360;
+    }
+}
+
+or
+
+
+class Solution { 
+    List<Double> angles;
+    double angle;
+    double diff;
+    int ans;
+    int pointsAtLocation;
+    
+    // Get the angle between current location and point in question
+    private double getAngle(List<Integer> point, List<Integer> location) {
+        double angle = Math.toDegrees(Math.atan2(point.get(0) - location.get(0), point.get(1) - location.get(1)));
+        
+        // If the angle is negative, let's add 360 to keep the angles in range 0 - 359.9...
+        angle += angle < 0 ? 360 : 0;
+        return angle;
+    }
+    
+    // Method to get the difference in first and last angles of current window
+    private double getDiff(int start, int end) {
+        diff = angles.get(end) - angles.get(start);
+        if(diff < 0) diff += 360.0;
+        return diff;
+    }
+    
+    // Initialize 
+    private void initialize() {
+        angles = new ArrayList<>();
+        int ans = 0;
+        int pointsAtLocation = 0;
+    }
+    
+    // Drive method
+    public int visiblePoints(List<List<Integer>> points, int angle, List<Integer> location) {
+        initialize();
+        
+        for(List<Integer> point : points) {
+            // If the point is same as location there is no need to check this
+            // From problem statement: "There may be points at your location, and you can always see these points regardless of your rotation."
+            if(point.get(0) == location.get(0) && point.get(1) == location.get(1))
+                pointsAtLocation++;
+            else
+                angles.add(getAngle(point, location));
+        }
+        
+        // Sorting helps us convert this problem into sliding window
+        Collections.sort(angles);
+        int n = angles.size();
+        
+        // This is where all the magic happens
+        for(int end = 0, start = 0; start < n; end++) {
+            // If all of the points are visible, let's terminate! This will avoid start never crossing n and ending up in an infinite loop
+            if(ans == n) return ans + pointsAtLocation;
+            
+            // If the difference in angle of first and last points of window is greater than threshold, we need to shrink the window
+            while(start < angles.size() && getDiff(start, end % n) > angle) {
+                start++;
+            }
+            ans = Math.max(ans, end - start + 1);
+        }
+        
+        return ans + pointsAtLocation;
+    }
+}
+
+or
+
+class Solution {
+public int visiblePoints(List<List<Integer>> points, int angle, List<Integer> location) {
+    
+    int minVisiblePoints = 0;
+    List<Double> pointAngles = new ArrayList<>();
+    
+    for(List<Integer> point : points){
+        if(point.equals(location)){
+            minVisiblePoints++;
+            continue;
+        }
+        
+        double alpha = Math.atan2(point.get(1) - location.get(1) ,point.get(0) - location.get(0))*180/Math.PI;           
+        pointAngles.add(alpha);
+    }
+    
+    
+    Collections.sort(pointAngles);
+    List<Double> temp = pointAngles.stream().map(x->(360+x)).collect(Collectors.toList());
+    pointAngles.addAll(temp);
+    
+    int maxVisiblePoints = 0;
+    for(int l=0, r = 0; l<pointAngles.size()/2; l++){
+        
+		while( r<pointAngles.size() && pointAngles.get(r)-pointAngles.get(l) <= angle)
+            r++;
+        
+        maxVisiblePoints = Math.max(maxVisiblePoints, r-l);
+    }
+    
+    return maxVisiblePoints + minVisiblePoints;
+}
+}
