@@ -1,0 +1,208 @@
+https://leetcode.com/problems/last-substring-in-lexicographical-order/description/
+
+1163. Last Substring in Lexicographical Order
+Hard
+Topics
+Companies
+Hint
+Given a string s, return the last substring of s in lexicographical order.
+
+ 
+
+Example 1:
+
+Input: s = "abab"
+Output: "bab"
+Explanation: The substrings are ["a", "ab", "aba", "abab", "b", "ba", "bab"]. The lexicographically maximum substring is "bab".
+Example 2:
+
+Input: s = "leetcode"
+Output: "tcode"
+ 
+
+Constraints:
+
+1 <= s.length <= 4 * 105
+s contains only lowercase English letters.
+
+
+# java
+
+class Solution {
+    public String lastSubstring(String s) {
+        int n = s.length();
+        int i = 0;
+        for (int j = 1, k = 0; j + k < n;) {
+            int d = s.charAt(i + k) - s.charAt(j + k);
+            if (d == 0) {
+                ++k;
+            } else if (d < 0) {
+                i += k + 1;
+                k = 0;
+                if (i >= j) {
+                    j = i + 1;
+                }
+            } else {
+                j += k + 1;
+                k = 0;
+            }
+        }
+        return s.substring(i);
+    }
+}
+
+or
+
+
+class Solution {
+  public String lastSubstring(String s) {
+    int i = 0;
+    int j = 1;
+    int k = 0; // the number of the same letters of s[i..n) and s[j..n)
+
+    while (j + k < s.length())
+      if (s.charAt(i + k) == s.charAt(j + k)) {
+        ++k;
+      } else if (s.charAt(i + k) > s.charAt(j + k)) {
+        // Skip s[j..j + k) and advance to s[j + k + 1] to find a possible
+        // lexicographically larger substring since s[i..i + k) == s[j..j + k)
+        // and s[i + k] > s[j + k).
+        j = j + k + 1;
+        k = 0;
+      } else {
+        // Skip s[i..i + k) and advance to s[i + k + 1] or s[j] to find a
+        // possible lexicographically larger substring since
+        // s[i..i + k) == s[j..j + k) and s[i + k] < s[j + k).
+        // Note that it's unnecessary to explore s[i + k + 1..j) if
+        // i + k + 1 < j since they are already explored by j.
+        i = Math.max(i + k + 1, j);
+        j = i + 1;
+        k = 0;
+      }
+
+    return s.substring(i);
+  }
+}
+
+or
+
+
+class Solution {
+
+public String lastSubstring(String s) {
+int maxIndex = s.length() - 1;
+
+for(int currIndex = s.length() - 1 ; currIndex >= 0 ; currIndex--){
+    if(s.charAt(currIndex) > s.charAt(maxIndex))
+        maxIndex = currIndex;
+        
+    else if(s.charAt(currIndex) == s.charAt(maxIndex)){
+        int i = currIndex + 1;
+        int j = maxIndex + 1;
+        
+        
+        while(i < maxIndex && j < s.length() && s.charAt(i) == s.charAt(j)){
+            i++;
+            j++;
+        }
+        
+        if(i == maxIndex || j == s.length() || s.charAt(i) > s.charAt(j))
+            maxIndex = currIndex;
+    }
+}
+
+return s.substring(maxIndex);
+}
+}
+
+
+or
+
+
+class Solution {
+    public String lastSubstring(String s) {
+        int i = 0;
+        int j = 1;
+        int k = 0;
+        int n = s.length();
+        char[] ca = s.toCharArray();
+
+        while (j + k < n){
+            if (ca[i + k] == ca[j + k]) {
+                k++;
+            } else if (ca[i + k] > ca[j + k]) {
+                j = j + k + 1;
+                k = 0;
+            } else {
+                i = Math.max(i + k + 1, j);
+                j = i + 1;
+                k = 0;
+            }
+        }
+        return s.substring(i);
+    }
+}
+
+
+or
+
+
+
+class Solution {
+    public String lastSubstring(String s) {
+    int maxIndex = s.length() - 1;
+    
+    for(int currIndex = s.length() - 1 ; currIndex >= 0 ; currIndex--){
+        if(s.charAt(currIndex) > s.charAt(maxIndex))
+            maxIndex = currIndex;
+            
+        else if(s.charAt(currIndex) == s.charAt(maxIndex)){
+            int i = currIndex + 1;
+            int j = maxIndex + 1;
+            
+            
+            while(i < maxIndex && j < s.length() && s.charAt(i) == s.charAt(j)){
+                i++;
+                j++;
+            }
+            
+            if(i == maxIndex || j == s.length() || s.charAt(i) > s.charAt(j))
+                maxIndex = currIndex;
+        }
+    }
+    
+    return s.substring(maxIndex);
+}
+}
+
+or
+
+
+class Solution {
+    public String lastSubstring(String s) {
+        int n = s.length();
+        int i = 0;
+        int j = 1;
+        int k = 0;
+
+        char[] s1 = s.toCharArray();
+
+        while(j+k<n){
+            if(s1[i+k]==s1[j+k]){
+                k++;
+
+                continue;
+            }
+
+            if(s1[i+k]>s1[j+k])
+                j=j+k+1;
+            
+            else{
+                i=Math.max(i+k+1, j);
+                j=i+1;
+            }
+            k=0;
+        }
+        return s.substring(i);
+    }
+}
