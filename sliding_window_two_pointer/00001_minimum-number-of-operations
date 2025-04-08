@@ -1,0 +1,193 @@
+https://leetcode.com/problems/minimum-number-of-operations-to-make-elements-in-array-distinct/description/
+
+You are given an integer array nums. You need to ensure that the elements in the array are distinct. To achieve this, you can perform the following operation any number of times:
+
+Remove 3 elements from the beginning of the array. If the array has fewer than 3 elements, remove all remaining elements.
+Note that an empty array is considered to have distinct elements. Return the minimum number of operations needed to make the elements in the array distinct.
+
+
+Example 1:
+
+Input: nums = [1,2,3,4,2,3,3,5,7]
+
+Output: 2
+
+Explanation:
+
+In the first operation, the first 3 elements are removed, resulting in the array [4, 2, 3, 3, 5, 7].
+In the second operation, the next 3 elements are removed, resulting in the array [3, 5, 7], which has distinct elements.
+Therefore, the answer is 2.
+
+Example 2:
+
+Input: nums = [4,5,6,4,4]
+
+Output: 2
+
+Explanation:
+
+In the first operation, the first 3 elements are removed, resulting in the array [4, 4].
+In the second operation, all remaining elements are removed, resulting in an empty array.
+Therefore, the answer is 2.
+
+Example 3:
+
+Input: nums = [6,7,8,9]
+
+Output: 0
+
+Explanation:
+
+The array already contains distinct elements. Therefore, the answer is 0.
+
+
+
+# java
+
+
+
+class Solution {
+   int minimumOperations(int[] nums) {
+    int[] freq = new int[101];
+    Arrays.fill(freq, 0);
+    for(int i = nums.length-1; i >= 0; --i){
+        if(++freq[nums[i]] > 1) return (int)Math.ceil((double)(i + 1)/3);
+    }
+    return 0;
+}
+}
+
+or
+
+class Solution {
+    public int minimumOperations(int[] nums) {
+        int[] mpp = new int[101];
+        for (int i = nums.length - 1; i >= 0; --i) {
+            if (++mpp[nums[i]] > 1) 
+                return (i + 3) / 3;
+        }
+        return 0;
+    }
+}
+
+or
+
+import java.util.HashMap;
+
+class Solution {
+    public int minimumOperations(int[] array) {
+        // Count the frequency of each element in the array
+        HashMap<Integer, Integer> countMap = new HashMap<>();
+        for (int value : array) {
+            countMap.put(value, countMap.getOrDefault(value, 0) + 1);
+        }
+
+        // Count duplicates
+        int totalDuplicates = 0;
+        for (int count : countMap.values()) {
+            if (count > 1) {
+                totalDuplicates += count - 1;
+            }
+        }
+
+        int operationCount = 0;
+        while (totalDuplicates > 0) {
+            if (array.length >= 3) {
+                // Create a new array excluding the first three elements
+                int[] newArray = new int[array.length - 3];
+                System.arraycopy(array, 3, newArray, 0, newArray.length);
+                array = newArray;
+            } else {
+                array = new int[0];  // Clear the array
+            }
+
+            // Recalculate frequencies after removal
+            countMap.clear();
+            for (int value : array) {
+                countMap.put(value, countMap.getOrDefault(value, 0) + 1);
+            }
+
+            // Recalculate duplicates
+            totalDuplicates = 0;
+            for (int count : countMap.values()) {
+                if (count > 1) {
+                    totalDuplicates += count - 1;
+                }
+            }
+
+            operationCount++;
+        }
+
+        return operationCount;
+    }
+}
+
+
+or
+
+class Solution {
+
+    public int minimumOperations(int[] nums) {
+        int ans = 0;
+        for (int i = 0; i < nums.length; i += 3, ans++) {
+            if (checkUnique(nums, i)) {
+                return ans;
+            }
+        }
+        return ans;
+    }
+
+    private boolean checkUnique(int[] nums, int start) {
+        HashSet<Integer> cnt = new HashSet<>();
+        for (int i = start; i < nums.length; i++) {
+            if (cnt.contains(nums[i])) {
+                return false;
+            }
+            cnt.add(nums[i]);
+        }
+        return true;
+    }
+}
+
+or
+
+class Solution {
+
+    public int minimumOperations(int[] nums) {
+        boolean[] seen = new boolean[128];
+        for (int i = nums.length - 1; i >= 0; i--) {
+            if (seen[nums[i]]) {
+                return i / 3 + 1;
+            }
+            seen[nums[i]] = true;
+        }
+        return 0;
+    }
+}
+
+
+or
+
+
+class Solution {
+    public int minimumOperations(int[] nums) {
+        int cnt = 0, temp;
+        List<Integer> list = new ArrayList<>();
+        for (int n : nums)
+            list.add(n);
+        while (true) {
+            HashMap<Integer, Integer> mpp = new HashMap<>();
+            temp = 0;
+            for (int num : list)
+                if (mpp.put(num, mpp.getOrDefault(num, 0) + 1) != null && mpp.get(num) == 2)
+                    temp++;
+            if (temp == 0)
+                break;
+            int removeCount = Math.min(3, list.size());
+            for (int i = 0; i < removeCount; i++)
+                list.remove(0);
+            cnt++;
+        }
+        return cnt;
+    }
+}
