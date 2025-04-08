@@ -1,0 +1,290 @@
+https://leetcode.com/problems/maximum-frequency-of-an-element-after-performing-operations-ii/description/
+
+
+3347. Maximum Frequency of an Element After Performing Operations II
+Hard
+Topics
+Companies
+Hint
+You are given an integer array nums and two integers k and numOperations.
+
+You must perform an operation numOperations times on nums, where in each operation you:
+
+Select an index i that was not selected in any previous operations.
+Add an integer in the range [-k, k] to nums[i].
+Return the maximum possible frequency of any element in nums after performing the operations.
+
+ 
+
+Example 1:
+
+Input: nums = [1,4,5], k = 1, numOperations = 2
+
+Output: 2
+
+Explanation:
+
+We can achieve a maximum frequency of two by:
+
+Adding 0 to nums[1], after which nums becomes [1, 4, 5].
+Adding -1 to nums[2], after which nums becomes [1, 4, 4].
+Example 2:
+
+Input: nums = [5,11,20,20], k = 5, numOperations = 1
+
+Output: 2
+
+Explanation:
+
+We can achieve a maximum frequency of two by:
+
+Adding 0 to nums[1].
+ 
+
+Constraints:
+
+1 <= nums.length <= 105
+1 <= nums[i] <= 109
+0 <= k <= 109
+0 <= numOperations <= nums.length
+
+
+
+#  java
+
+
+class Solution {
+    public int maxFrequency(int[] nums, int k, int numOperations) {
+        Map<Integer, Integer> cnt = new HashMap<>();
+        TreeMap<Integer, Integer> d = new TreeMap<>();
+        for (int x : nums) {
+            cnt.merge(x, 1, Integer::sum);
+            d.putIfAbsent(x, 0);
+            d.merge(x - k, 1, Integer::sum);
+            d.merge(x + k + 1, -1, Integer::sum);
+        }
+        int ans = 0, s = 0;
+        for (var e : d.entrySet()) {
+            int x = e.getKey(), t = e.getValue();
+            s += t;
+            ans = Math.max(ans, Math.min(s, cnt.getOrDefault(x, 0) + numOperations));
+        }
+        return ans;
+    }
+}
+
+
+or
+
+
+class Solution {
+  // Same as 3346. Maximum Frequency of an Element After Performing Operations I
+  public int maxFrequency(int[] nums, int k, int numOperations) {
+    int ans = 1;
+    int adjustable = 0;
+    Map<Integer, Integer> count = new HashMap<>();
+    TreeMap<Integer, Integer> line = new TreeMap<>();
+    TreeSet<Integer> candidates = new TreeSet<>();
+
+    for (final int num : nums) {
+      count.merge(num, 1, Integer::sum);
+      line.merge(num - k, 1, Integer::sum);
+      line.merge(num + k + 1, -1, Integer::sum);
+      candidates.add(num);
+      candidates.add(num - k);
+      candidates.add(num + k + 1);
+    }
+
+    for (final int num : candidates) {
+      adjustable += line.getOrDefault(num, 0);
+      final int countNum = count.getOrDefault(num, 0);
+      final int adjusted = adjustable - countNum;
+      ans = Math.max(ans, countNum + Math.min(numOperations, adjusted));
+    }
+
+    return ans;
+  }
+}
+
+or
+
+
+class Solution {
+    public int maxFrequency(int[] nums, int k, int numOperations) {
+        Map<Integer, Integer> pointsCover = new HashMap<>();
+        Map<Integer, Integer> cntPoints = new HashMap<>();
+        Set<Integer> points = new TreeSet<>(); // TreeSet to keep points sorted
+
+        for (int num : nums) {
+            cntPoints.put(num, cntPoints.getOrDefault(num, 0) + 1);
+            pointsCover.put(num - k, pointsCover.getOrDefault(num - k, 0) + 1);
+            pointsCover.put(num + k + 1, pointsCover.getOrDefault(num + k + 1, 0) - 1);
+            points.add(num);
+            points.add(num - k);
+            points.add(num + k + 1);
+        }
+
+        int res = 0;
+        int pointsCoverThisPoint = 0;
+
+        for (int point : points) {
+            pointsCoverThisPoint += pointsCover.getOrDefault(point, 0);
+            res = Math.max(res, cntPoints.getOrDefault(point, 0) + 
+                        Math.min(pointsCoverThisPoint - cntPoints.getOrDefault(point, 0), numOperations));
+        }
+
+        return res;
+    }
+}
+
+
+or
+
+
+
+class Solution {
+    public int maxFrequency(int[] nums, int k, int numOperations) {
+        int n = nums.length, ans = 0, left = 0, right = 0;
+        Arrays.sort(nums);
+
+        // HashMap to store the frequency of each number in the sorted array
+        HashMap<Integer, Integer> count = new HashMap<>();
+        for(int num : nums) count.put(num, count.getOrDefault(num, 0) + 1);
+
+        // First pass: choose an existing number as the "reference point"
+        for(int mid = 0; mid < n; mid++) {
+            // Move the left pointer to maintain that the difference between nums[mid] and nums[left] is <= k
+            while(nums[mid] - nums[left] > k) {
+                left++;
+            }
+
+            // Move the right pointer to maintain that the difference between nums[right] and nums[mid] is <= k
+            while(right < n - 1 && nums[right + 1] - nums[mid] <= k) {
+                right++;
+            }
+
+            int total = right - left + 1; // total elements in the current range
+            ans = Math.max(ans, Math.min(total - count.get(nums[mid]), numOperations) + count.get(nums[mid]));
+        }
+
+        // Second pass: choose a non-existent number as the "reference point"
+        left = 0;
+        for(right = 0; right < n; right++) {
+            int mid = (nums[left] + nums[right]) / 2;
+
+            // Move the left pointer until the mid-point falls within range [nums[left], nums[right]]
+            while(mid - nums[left] > k || nums[right] - mid > k) {
+                left++;
+                mid = (nums[left] + nums[right]) / 2;
+            }
+            ans = Math.max(ans, Math.min(right - left + 1, numOperations));
+        }
+
+        return ans;
+    }
+}
+
+
+or
+
+
+class Solution {
+    public int maxFrequency(int[] nums, int k, int numOperations) {
+        int n = nums.length, ans = 0, left = 0, right = 0;
+        Arrays.sort(nums);
+
+        // HashMap to store the frequency of each number in the sorted array
+        HashMap<Integer, Integer> count = new HashMap<>();
+        for(int num : nums) count.put(num, count.getOrDefault(num, 0) + 1);
+
+        // First pass: choose an existing number as the "reference point"
+        for(int mid = 0; mid < n; mid++) {
+            // Move the left pointer to maintain that the difference between nums[mid] and nums[left] is <= k
+            while(nums[mid] - nums[left] > k) {
+                left++;
+            }
+
+            // Move the right pointer to maintain that the difference between nums[right] and nums[mid] is <= k
+            while(right < n - 1 && nums[right + 1] - nums[mid] <= k) {
+                right++;
+            }
+
+            int total = right - left + 1; // total elements in the current range
+            ans = Math.max(ans, Math.min(total - count.get(nums[mid]), numOperations) + count.get(nums[mid]));
+        }
+
+        // Second pass: choose a non-existent number as the "reference point"
+        left = 0;
+        for(right = 0; right < n; right++) {
+            int mid = (nums[left] + nums[right]) / 2;
+
+            // Move the left pointer until the mid-point falls within range [nums[left], nums[right]]
+            while(mid - nums[left] > k || nums[right] - mid > k) {
+                left++;
+                mid = (nums[left] + nums[right]) / 2;
+            }
+            ans = Math.max(ans, Math.min(right - left + 1, numOperations));
+        }
+
+        return ans;
+    }
+}
+
+
+or
+
+
+class Solution {
+    public int maxFrequency(int[] nums, int k, int numOperations) {
+        Map<Integer, Integer> freqMap = new HashMap<>();
+        TreeMap<Integer, Integer> prefixMap = new TreeMap<>();
+        for (int num : nums) {
+            freqMap.put(num, freqMap.getOrDefault(num, 0) + 1);
+            prefixMap.put(num, prefixMap.getOrDefault(num, 0));
+            prefixMap.put(num + k + 1, prefixMap.getOrDefault(num + k + 1, 0) - 1);
+            prefixMap.put(num - k, prefixMap.getOrDefault(num - k, 0) + 1);
+        }
+        int maxFreq = 0, prefixSum = 0;
+        for (Map.Entry<Integer, Integer> entry : prefixMap.entrySet()) {
+            prefixSum += entry.getValue();
+            int freq = freqMap.getOrDefault(entry.getKey(), 0);
+            maxFreq = Math.max(maxFreq, Math.min(prefixSum - freq, numOperations) + freq);
+        }
+        return maxFreq;
+    }
+}
+
+or
+
+class Solution {
+    public static final int MAX = (int) 1e5;
+
+    public int maxFrequency(int[] nums, int k, int numOperations) {
+        //Stores the frequency of a number in nums
+        var freqMap = new HashMap<Integer, Integer>();
+        //This map will be used to know the maximum frequency possible for a number
+        var prefixMap = new TreeMap<Integer, Integer>();
+
+        for (var n : nums) {
+            //Update or insert number in freqMap
+            freqMap.compute(n, (key, val) -> val == null ? 1 : (val + 1));
+
+            //Make sure number exists prefixMap, so that number will be considered while calculating the prefixSum
+            //Because we are using map no need to worry about index out bounds issue
+            prefixMap.putIfAbsent(n, 0);
+            prefixMap.compute(n + k + 1, (key, val) -> val == null ? -1 : (val - 1));
+            prefixMap.compute((n - k), (key, val) -> val == null ? 1 : (val + 1));
+        }
+
+        int ans = 0, prefixSum = 0;
+        for (var entry : prefixMap.entrySet()) {
+            prefixSum += entry.getValue();
+            var freq = freqMap.getOrDefault(entry.getKey(), 0);
+            // Here Math.min(prefixSum - freq, numOperations) indicates that count of numbers which can be updated to match entry.getValue()
+            // Remove freq to exclude the numbers which are already matching entry.getValue()
+            ans = Math.max(Math.min(prefixSum - freq, numOperations) + freq, ans);
+        }
+
+        return ans;
+    }
+}
