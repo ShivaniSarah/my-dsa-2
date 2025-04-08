@@ -1,0 +1,246 @@
+https://leetcode.com/problems/count-of-sub-multisets-with-bounded-sum/description/
+
+
+2902. Count of Sub-Multisets With Bounded Sum
+Hard
+Topics
+Companies
+Hint
+You are given a 0-indexed array nums of non-negative integers, and two integers l and r.
+
+Return the count of sub-multisets within nums where the sum of elements in each subset falls within the inclusive range of [l, r].
+
+Since the answer may be large, return it modulo 109 + 7.
+
+A sub-multiset is an unordered collection of elements of the array in which a given value x can occur 0, 1, ..., occ[x] times, where occ[x] is the number of occurrences of x in the array.
+
+Note that:
+
+Two sub-multisets are the same if sorting both sub-multisets results in identical multisets.
+The sum of an empty multiset is 0.
+ 
+
+Example 1:
+
+Input: nums = [1,2,2,3], l = 6, r = 6
+Output: 1
+Explanation: The only subset of nums that has a sum of 6 is {1, 2, 3}.
+Example 2:
+
+Input: nums = [2,1,4,2,7], l = 1, r = 5
+Output: 7
+Explanation: The subsets of nums that have a sum within the range [1, 5] are {1}, {2}, {4}, {2, 2}, {1, 2}, {1, 4}, and {1, 2, 2}.
+Example 3:
+
+Input: nums = [1,2,1,3,5,2], l = 3, r = 5
+Output: 9
+Explanation: The subsets of nums that have a sum within the range [3, 5] are {3}, {5}, {1, 2}, {1, 3}, {2, 2}, {2, 3}, {1, 1, 2}, {1, 1, 3}, and {1, 2, 2}.
+ 
+
+Constraints:
+
+1 <= nums.length <= 2 * 104
+0 <= nums[i] <= 2 * 104
+
+
+
+# java
+
+
+class Solution {
+    static final int MOD = 1_000_000_007;
+    public int countSubMultisets(List<Integer> nums, int l, int r) {
+        Map<Integer, Integer> count = new HashMap<>();
+        int total = 0;
+        for (int num : nums) {
+            total += num;
+            if (num <= r) {
+                count.merge(num, 1, Integer::sum);
+            }
+        }
+        if (total < l) {
+            return 0;
+        }
+        r = Math.min(r, total);
+        int[] dp = new int[r + 1];
+        dp[0] = count.getOrDefault(0, 0) + 1;
+        count.remove(Integer.valueOf(0));
+        int sum = 0;
+        for (Map.Entry<Integer, Integer> e : count.entrySet()) {
+            int num = e.getKey();
+            int c = e.getValue();
+            sum = Math.min(sum + c * num, r);
+            // prefix part
+            // dp[i] = dp[i] + dp[i - num] + ... + dp[i - c*num] + dp[i-(c+1)*num] + ... + dp[i %
+            // num]
+            for (int i = num; i <= sum; i++) {
+                dp[i] = (dp[i] + dp[i - num]) % MOD;
+            }
+            int temp = (c + 1) * num;
+            // correction part
+            // subtract dp[i - (freq + 1) * num] to the end part.
+            // leves dp[i] = dp[i] + dp[i-num] +...+ dp[i - c*num];
+            for (int i = sum; i >= temp; i--) {
+                dp[i] = (dp[i] - dp[i - temp] + MOD) % MOD;
+            }
+        }
+        int ans = 0;
+        for (int i = l; i <= r; i++) {
+            ans += dp[i];
+            ans %= MOD;
+        }
+        return ans;
+    }
+}
+
+
+or
+
+
+class Solution {
+  public int countSubMultisets(List<Integer> nums, int l, int r) {
+    final int MOD = 1_000_000_007;
+    // dp[i] := the number of submultisets of `nums` with sum i
+    long[] dp = new long[r + 1];
+    dp[0] = 1;
+    Map<Integer, Integer> count = new HashMap<>();
+
+    for (final int num : nums)
+      count.merge(num, 1, Integer::sum);
+
+    final int zeros = count.containsKey(0) ? count.remove(0) : 0;
+
+    for (Map.Entry<Integer, Integer> entry : count.entrySet()) {
+      final int num = entry.getKey();
+      final int freq = entry.getValue();
+      // stride[i] := dp[i] + dp[i - num] + dp[i - 2 * num] + ...
+      long[] stride = dp.clone();
+      for (int i = num; i <= r; ++i)
+        stride[i] += stride[i - num];
+      for (int i = r; i > 0; --i)
+        if (i >= num * (freq + 1))
+          // dp[i] + dp[i - num] + dp[i - freq * num]
+          dp[i] = (stride[i] - stride[i - num * (freq + 1)]) % MOD;
+        else
+          dp[i] = stride[i] % MOD;
+    }
+
+    long ans = 0;
+    for (int i = l; i <= r; ++i)
+      ans = (ans + dp[i]) % MOD;
+    return (int) (((zeros + 1) * ans) % MOD);
+  }
+}
+
+
+or
+
+class Solution {
+    // The modulo constant as specified in the problem
+    private static final int MOD = 1_000_000_007;
+
+    // Count the number of sub-multisets with sum in the range [l, r]
+    public int countSubMultisets(List<Integer> nums, int l, int r) {
+        // Count the frequency of each number in nums
+        Map<Integer, Integer> frequencyMap = new HashMap<>();
+        int totalSum = 0; // Variable to store the total sum of numbers
+      
+        // Accumulate counts for each number and compute the total sum
+        for (int num : nums) {
+            totalSum += num;
+            // Only consider numbers that are within the specified range [1, r]
+            if (num <= r) {
+                frequencyMap.merge(num, 1, Integer::sum);
+            }
+        }
+
+        // If total sum is less than l, no subsets can have sum in [l, r]
+        if (totalSum < l) {
+            return 0;
+        }
+        // Restrict upper bound to the minimum of totalSum and r
+        r = Math.min(r, totalSum);
+      
+        int[] dp = new int[r + 1]; // Dynamic programming array
+        // Base case: there's always one empty subset that sums to 0
+        dp[0] = frequencyMap.getOrDefault(0, 0) + 1;
+        frequencyMap.remove(0); // Remove zero count from map, if present
+      
+        int currentMaxSum = 0; // Variable to keep track of the maximum sum we calculate
+        // Iterate through each entry in the frequency map
+        for (Map.Entry<Integer, Integer> entry : frequencyMap.entrySet()) {
+            int num = entry.getKey();
+            int frequency = entry.getValue();
+            currentMaxSum = Math.min(currentMaxSum + frequency * num, r);
+          
+            // Prefix part - calculate new dp values based on the number and its frequency.
+            for (int i = num; i <= currentMaxSum; i++) {
+                dp[i] = (dp[i] + dp[i - num]) % MOD;
+            }
+          
+            // Correction part - removes counts incorrectly included from previous iterations.
+            int temp = (frequency + 1) * num;
+            for (int i = currentMaxSum; i >= temp; i--) {
+                dp[i] = (dp[i] - dp[i - temp] + MOD) % MOD;
+            }
+        }
+      
+        // Calculate the answer by summing dp values within range [l, r]
+        int answer = 0;
+        for (int i = l; i <= r; i++) {
+            answer = (answer + dp[i]) % MOD;
+        }
+      
+        return answer; // Return the computed answer
+    }
+}
+
+or
+
+
+class Solution {
+    static final int MOD = 1_000_000_007;
+
+    public int countSubMultisets(List<Integer> nums, int l, int r) {
+        TreeMap<Integer, Integer> numsMap = new TreeMap<>();
+        for (int num : nums) {
+            numsMap.put(num, numsMap.getOrDefault(num, 0) + 1);
+        }
+
+        long[] cache = new long[r + 1];
+        cache[0] = 1;
+
+        for (Map.Entry<Integer, Integer> entry : numsMap.entrySet()) {
+            int num = entry.getKey();
+            int freq = entry.getValue();
+
+            // preprocessing
+            long[] pSum = Arrays.copyOf(cache, r + 1);
+            for (int i = 0; i <= r; ++i) {
+                if (i >= num) {
+                    pSum[i] += pSum[i - num];
+                    pSum[i] %= MOD;
+                }
+            }
+
+            // update dp cache
+            for (int i = r; i >= 0; --i) {
+                if (num > 0) {
+                    int j = i - (freq + 1) * num;
+                    cache[i] = pSum[i] - (j >= 0 ? pSum[j] : 0);
+                    cache[i] = Math.floorMod(cache[i], MOD);
+                } else {
+                    cache[i] *= freq + 1;
+                    cache[i] %= MOD;
+                }
+            }
+        }
+
+        long res = 0;
+        for (int i = l; i <= r; ++i) {
+            res += cache[i];
+            res %= MOD;
+        }
+        return (int) res;
+    }
+}
