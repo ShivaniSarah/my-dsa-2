@@ -1,0 +1,97 @@
+https://leetcode.com/problems/find-pattern-in-infinite-stream-ii/description/
+
+3037. Find Pattern in Infinite Stream II
+Description
+You are given a binary array pattern and an object stream of class InfiniteStream representing a 0-indexed infinite stream of bits.
+
+The class InfiniteStream contains the following function:
+
+int next(): Reads a single bit (which is either 0 or 1) from the stream and returns it.
+Return the first starting index where the pattern matches the bits read from the stream. For example, if the pattern is [1, 0], the first match is the highlighted part in the stream [0, 1, 0, 1, ...].
+
+ 
+
+Example 1:
+
+Input: stream = [1,1,1,0,1,1,1,...], pattern = [0,1]
+Output: 3
+Explanation: The first occurrence of the pattern [0,1] is highlighted in the stream [1,1,1,0,1,...], which starts at index 3.
+Example 2:
+
+Input: stream = [0,0,0,0,...], pattern = [0]
+Output: 0
+Explanation: The first occurrence of the pattern [0] is highlighted in the stream [0,...], which starts at index 0.
+Example 3:
+
+Input: stream = [1,0,1,1,0,1,1,0,1,...], pattern = [1,1,0,1]
+Output: 2
+Explanation: The first occurrence of the pattern [1,1,0,1] is highlighted in the stream [1,0,1,1,0,1,...], which starts at index 2.
+ 
+
+Constraints:
+
+1 <= pattern.length <= 104
+pattern consists only of 0 and 1.
+stream consists only of 0 and 1.
+The input is generated such that the pattern's start index exists in the first 105 bits of the stream.
+
+
+# java
+
+/**
+ * Definition for an infinite stream.
+ * class InfiniteStream {
+ *   public InfiniteStream(int[] bits);
+ *   public int next();
+ * }
+ */
+
+class Solution {
+  // Same as 3023. Find Pattern in Infinite Stream I
+  public int findPattern(InfiniteStream stream, int[] pattern) {
+    int[] lps = getLPS(pattern);
+    int i = 0;   // stream's index
+    int j = 0;   // pattern's index
+    int bit = 0; // the bit in the stream
+    boolean readNext = false;
+    while (true) {
+      if (!readNext) {
+        bit = stream.next();
+        readNext = true;
+      }
+      if (bit == pattern[j]) {
+        ++i;
+        readNext = false;
+        ++j;
+        if (j == pattern.length)
+          return i - j;
+      }
+      // Mismatch after j matches.
+      else if (j > 0) {
+        // Don't match lps[0..lps[j - 1]] since they will match anyway.
+        j = lps[j - 1];
+      } else {
+        ++i;
+        readNext = false;
+      }
+    }
+  }
+
+  // Returns the lps array, where lps[i] is the length of the longest prefix of
+  // pattern[0..i] which is also a suffix of this substring.
+  private int[] getLPS(int[] pattern) {
+    int[] lps = new int[pattern.length];
+    int j = 0;
+    for (int i = 1; i < pattern.length; ++i) {
+      while (j > 0 && pattern[j] != pattern[i])
+        j = lps[j - 1];
+      if (pattern[i] == pattern[j])
+        lps[i] = ++j;
+    }
+    return lps;
+  }
+}
+
+
+
+
