@@ -1,0 +1,414 @@
+https://leetcode.com/problems/longest-duplicate-substring/description/
+
+1044. Longest Duplicate Substring
+Hard
+Topics
+Companies
+Hint
+Given a string s, consider all duplicated substrings: (contiguous) substrings of s that occur 2 or more times. The occurrences may overlap.
+
+Return any duplicated substring that has the longest possible length. If s does not have a duplicated substring, the answer is "".
+
+ 
+
+Example 1:
+
+Input: s = "banana"
+Output: "ana"
+Example 2:
+
+Input: s = "abcd"
+Output: ""
+ 
+
+Constraints:
+
+2 <= s.length <= 3 * 104
+s consists of lowercase English letters.
+
+
+ # java
+
+class Solution {
+    private long[] p;
+    private long[] h;
+
+    public String longestDupSubstring(String s) {
+        int base = 131;
+        int n = s.length();
+        p = new long[n + 10];
+        h = new long[n + 10];
+        p[0] = 1;
+        for (int i = 0; i < n; ++i) {
+            p[i + 1] = p[i] * base;
+            h[i + 1] = h[i] * base + s.charAt(i);
+        }
+        String ans = "";
+        int left = 0, right = n;
+        while (left < right) {
+            int mid = (left + right + 1) >> 1;
+            String t = check(s, mid);
+            if (t.length() > 0) {
+                left = mid;
+                ans = t;
+            } else {
+                right = mid - 1;
+            }
+        }
+        return ans;
+    }
+
+    private String check(String s, int len) {
+        int n = s.length();
+        Set<Long> vis = new HashSet<>();
+        for (int i = 1; i + len - 1 <= n; ++i) {
+            int j = i + len - 1;
+            long t = h[j] - h[i - 1] * p[j - i + 1];
+            if (vis.contains(t)) {
+                return s.substring(i - 1, j);
+            }
+            vis.add(t);
+        }
+        return "";
+    }
+}
+
+
+or
+
+class Solution {
+  public String longestDupSubstring(String s) {
+    final int n = s.length();
+    int[] pows = new int[n];
+    int bestStart = -1;
+    int l = 1;
+    int r = n;
+
+    pows[0] = 1;
+    for (int i = 1; i < n; ++i)
+      pows[i] = (int) (pows[i - 1] * BASE % HASH);
+
+    while (l < r) {
+      final int m = (l + r) / 2;
+      final int start = getStart(s, m, pows);
+      if (start == -1) {
+        r = m;
+      } else {
+        bestStart = start;
+        l = m + 1;
+      }
+    }
+
+    if (bestStart == -1)
+      return "";
+    if (getStart(s, l, pows) == -1)
+      return s.substring(bestStart, bestStart + l - 1);
+    return s.substring(bestStart, bestStart + l);
+  }
+
+  private static final long BASE = 26;
+  private static final long HASH = 1_000_000_007;
+
+  private static int val(char c) {
+    return c - 'a';
+  }
+
+  // k := the length of the substring to be hashed
+  private int getStart(final String s, int k, int[] pows) {
+    Map<Long, List<Integer>> hashToStarts = new HashMap<>();
+    long h = 0;
+
+    // Compute the hash value of s[:k].
+    for (int i = 0; i < k; ++i)
+      h = (h * BASE % HASH + val(s.charAt(i))) % HASH;
+    hashToStarts.put(h, new ArrayList<>());
+    hashToStarts.get(h).add(0);
+
+    // Compute the rolling hash by Rabin Karp.
+    for (int i = k; i < s.length(); ++i) {
+      final int startIndex = i - k + 1;
+      h = ((h - (long) (pows[k - 1]) * val(s.charAt(i - k))) % HASH + HASH) % HASH;
+      h = (h * BASE + val(s.charAt(i))) % HASH;
+      if (hashToStarts.containsKey(h)) {
+        final String currSub = s.substring(startIndex, startIndex + k);
+        for (final int start : hashToStarts.get(h))
+          if (s.substring(start, start + k).equals(currSub))
+            return startIndex;
+      }
+      hashToStarts.put(h, new ArrayList<>());
+      hashToStarts.get(h).add(startIndex);
+    }
+
+    return -1;
+  }
+}
+
+or
+
+
+import java.math.BigInteger;
+import java.util.Random;
+
+class Solution {
+    
+    private static final int BASE = 256;
+    private static final int MOD = longRandomPrime();
+    
+    // Hint: Binary search for the length of the answer. (If there's an answer of length 10, then there are answers of length 9, 8, 7, ...)
+    public String longestDupSubstring(String s) {
+        String result = "";
+        int low = 1, high = s.length() - 1;
+        while (low <= high) {
+            int mid = (low + high) / 2;
+            String dup = findDupSubstring(s, mid);
+            if (dup.isEmpty()) {
+                high = mid - 1;
+            } else {
+                result = dup;
+                low = mid + 1; // dup is recorded, so it's safe to move low beyond mid
+            }
+        }
+        return result;
+    }
+    
+    // Find if duplicate substring in length K by Rabin-Karp algorithm
+    private String findDupSubstring(String s, int k) {
+        Map<Long, List<Integer>> hashes = new HashMap<>();
+        long hash = 0, power = 0;
+        for (int i = 0; i < k; i++) {
+            power = (i == 0) ? 1 : power * BASE % MOD;
+            hash = (hash * BASE + s.charAt(i)) % MOD;
+        }
+        hashes.put(hash, new ArrayList<>(Arrays.asList(0)));
+        
+        for (int i = 1; i <= s.length() - k; i++) {
+            hash = (hash + MOD - s.charAt(i - 1) * power % MOD) % MOD;
+            hash = (hash * BASE + (s.charAt(i + k - 1))) % MOD;
+            
+            List<Integer> indexes = hashes.get(hash);
+            if (indexes == null) {
+                indexes = new ArrayList<>();
+                hashes.put(hash, indexes);
+            } else { // Check if collison or real duplicates
+                String cur = s.substring(i, i + k);
+                for (int from : indexes) {
+                    if (cur.equals(s.substring(from, from + k))) {
+                        return cur;
+                    }
+                }
+            }
+            indexes.add(i);
+        }
+        return "";
+    }
+    
+    // a random 31-bit prime
+    private static int longRandomPrime() {
+        BigInteger prime = BigInteger.probablePrime(31, new Random());
+        return prime.intValue();
+    }
+}
+
+
+or
+
+
+
+// The "Optimization #n" comments refer to paragraphs in the 
+// discussion for this leetcode problem #1044 created by 
+// username "dudeandcat", for the code below.
+
+class Solution {
+    static final int CHAR_BASE = 'a';   // Character with the lowest  
+                                        // allowed value in the passed 
+                                        // String.
+    static final int CHAR_COUNT = 'z' - 'a' + 1;
+                                        // Number of unique characters 
+                                        // allowed in the passed String.
+                                        // 'a'...'z' ==> 26 chars.
+    
+    public String longestDupSubstring(String S) {
+        char[] sc = S.toCharArray();
+        int scLen = sc.length;
+        
+        // Check if there aren't any duplicate substrings.  There can 
+        // only be no duplicates if the string does not have more than 
+        // one occurrence of any character in the string.  Since the 
+        // string only contains lowercase characters, the string 
+        // length must be less than 26 characters, otherwise at least 
+        // one character must be duplicated.
+        // (Optimization #1)
+        int longestSubstringIdx = 0;
+        int longestSubstringLen = 0;
+        int[] found = new int[CHAR_COUNT];
+        for (int i = scLen - 1; i >= 0; i--) {
+            if (found[sc[i] - CHAR_BASE]++ > 0) {
+                longestSubstringIdx = i;
+                longestSubstringLen = 1;
+                break;
+            }
+        }
+        if (longestSubstringLen == 0)  return "";
+        
+        // Check for the same character over a large contiguous area.  
+        // If we find a long repeat of the same character, then we can 
+        // use this to set a minimum length for the longest duplicate 
+        // substring, and therefore we don't have to check any shorter 
+        // substrings.
+        // (Optimization #2)
+        for (int i = scLen - 1; i > 0; i--) {
+            if (sc[i] == sc[i - 1]) {
+                final char c = sc[i];
+                final int startI = i;
+                int reptCount = 2;
+                for (i = i - 2; i >= 0 && sc[i] == c; i--) { }
+                i++;
+                if (startI - i > longestSubstringLen) {
+                    longestSubstringLen = startI - i;
+                    longestSubstringIdx = i + 1;
+                }
+            }
+        }
+        if (longestSubstringLen == scLen - 1)  return S.substring(0, longestSubstringLen);
+
+        // Build a table of two-charactar combined values for the 
+        // passed String.  These combined values are formed for any 
+        // index into the String, by the character at the current 
+        // index reduced to the range [0..25] times 26, plus the 
+        // next character in the string reduced to the range [0..25].  
+        // This combined value is used to index into the array 
+        // twoCharHead[], which contains the index into the string of 
+        // the first character pair with this combined value, which is 
+        // also used to index into the array twoCharList[].  The 
+        // twoCharList[] array is a "linked list" of String indexes 
+        // that have the same combined values for a character pair.
+        //
+        // To look up all character pairs with the same combined 
+        // value N, start at twoCharHead[N].  This will give the 
+        // String index X of the first character pair with that 
+        // combined value.  To find successive String indexes, lookup 
+        // in twoCharList[X] to get the new String index X.  Then 
+        // repeatedly lookup new X values in twoCharList[X], until 
+        // X equals zero, which indicates the end of the character 
+        // pairs with the same combined value.
+        short[] twoCharHead = new short[CHAR_COUNT * CHAR_COUNT];
+        short[] twoCharList = new short[scLen];
+        for (int i = scLen - longestSubstringLen - 1; i > 0; i--) {
+            int twoCharNum = (sc[i] - CHAR_BASE) * CHAR_COUNT + 
+                        sc[i + 1] - CHAR_BASE;
+            twoCharList[i] = twoCharHead[twoCharNum];
+            twoCharHead[twoCharNum] = (short)i;
+        }
+        
+        // Search the String for matching substrings that are longer 
+        // than the current longest substring found.  Start at the 
+        // beginning of the string, and successively get a character 
+        // pair's combined value.  Use that character pair's combined 
+        // value to find all other character pair's with the same 
+        // combined value.  In the process, remove any character pairs 
+        // that occur in the String before the current character pair.  
+        // For two character pairs that appear that they may be a 
+        // possible matching substring longer than the currently 
+        // longest found match, then test to see if the substrings 
+        // match.
+        int curIdxLimit = scLen - longestSubstringLen - 1;  // (Optimization #3)
+        for (int i = 0; i <= curIdxLimit; i++) {            // (Optimization #3)
+            int twoCharNum = (sc[i] - CHAR_BASE) * CHAR_COUNT + 
+                        sc[i + 1] - CHAR_BASE;
+            while (twoCharHead[twoCharNum] <= i && twoCharHead[twoCharNum] != 0)
+                twoCharHead[twoCharNum] = twoCharList[twoCharHead[twoCharNum]];
+                                                            // (Optimization #4)
+            int listIdx = twoCharHead[twoCharNum];
+            while (listIdx != 0 && listIdx <= curIdxLimit /* (Optimization #5) */) {
+                if (sc[i + longestSubstringLen] == sc[listIdx + longestSubstringLen] && 
+                        sc[i + longestSubstringLen/2] == sc[listIdx + longestSubstringLen/2]) {
+                                                            // (Optimization #6)
+                    int lowIdx = i + 2;                     // (Optimization #7)
+                    int highIdx = listIdx + 2;              // (Optimization #7)
+                    while (highIdx < scLen && sc[lowIdx] == sc[highIdx]) {
+                        lowIdx++;
+                        highIdx++;
+                    }
+                    if (lowIdx - i > longestSubstringLen) {
+                        longestSubstringLen = lowIdx - i;
+                        longestSubstringIdx = i;
+                        curIdxLimit = scLen - longestSubstringLen - 1;  // (Optimization #3)
+                    }
+                }
+                listIdx = twoCharList[listIdx];
+            }
+        }
+        
+        return S.substring(longestSubstringIdx, longestSubstringIdx + longestSubstringLen);
+    }
+}
+
+or
+
+
+class Solution {
+    public String longestDupSubstring(String s) {
+	var low = 0;
+	var high = s.length();
+	var prime = (1 << 31) - 1;
+	var letterSize = 26;
+	var longestDupSub = "";
+	while (low <= high) {
+		var mid = low + (high - low) / 2;
+		var dupSub = search(s, mid, prime, letterSize);
+		if (dupSub == null) {
+			high = mid - 1;
+		} else {
+			if (dupSub.length() > longestDupSub.length())
+				longestDupSub = dupSub;
+			low = mid + 1;
+		}
+	}
+	return longestDupSub;
+}
+
+/**
+ * @param s          The original string
+ * @param windowSize rolling hash window size controlled by mid
+ * @param Q          a big prime
+ * @param L          letter size
+ * @return duplicate substring if any else null
+ */
+private String search(String s, int windowSize, int Q, int L) {
+	// calculate hash of first window
+	var winHash = 0L;
+	for (var i = 0; i < windowSize; i++)
+		winHash = (L * winHash + s.charAt(i)) % Q;
+
+	var map = new HashMap<Long, List<Integer>>();
+	map.put(winHash, new ArrayList<>(Collections.singletonList(0)));
+
+	var E = 1L; // L ^ pattern length mod Q
+	for (var i = 1; i < windowSize; i++)
+		E = L * E % Q;
+
+	for (int i = 1; i <= s.length() - windowSize; i++) {
+		// remove first char
+		winHash = (winHash - E * s.charAt(i - 1) % Q + Q) % Q;
+		// left shift
+		winHash = winHash * L % Q;
+		// add new last char
+		winHash = (winHash + s.charAt(i + windowSize - 1)) % Q;
+
+		// hash collision
+		if (map.containsKey(winHash))
+			for (var start : map.get(winHash))
+				if (isEqual(s, start, i, windowSize))
+					return s.substring(i, i + windowSize);
+		map.computeIfAbsent(winHash, k -> new ArrayList<>()).add(i);
+	}
+	return null;
+}
+
+private boolean isEqual(String s, int previous, int current, int windowSize) {
+	for (var j = 0; j < windowSize; j++)
+		if (s.charAt(previous++) != s.charAt(current++))
+			return false;
+	return true;
+}
+}
