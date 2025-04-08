@@ -1,0 +1,215 @@
+https://leetcode.com/problems/maximum-frequency-score-of-a-subarray/description/
+
+2524. Maximum Frequency Score of a Subarray
+
+You are given an integer array nums and a positive integer k.
+
+The frequency score of an array is the sum of the distinct values in the array raised to the power of their frequencies, taking the sum modulo 109 + 7.
+
+For example, the frequency score of the array [5,4,5,7,4,4] is (43 + 52 + 71) modulo (109 + 7) = 96.
+Return the maximum frequency score of a subarray of size k in nums. You should maximize the value under the modulo and not the actual value.
+
+A subarray is a contiguous part of an array.
+
+ 
+
+Example 1:
+
+Input: nums = [1,1,1,2,1,2], k = 3
+Output: 5
+Explanation: The subarray [2,1,2] has a frequency score equal to 5. It can be shown that it is the maximum frequency score we can have.
+Example 2:
+
+Input: nums = [1,1,1,1,1,1], k = 4
+Output: 1
+Explanation: All the subarrays of length 4 have a frequency score equal to 1.
+ 
+
+Constraints:
+
+1 <= k <= nums.length <= 105
+1 <= nums[i] <= 106
+
+
+class Solution {
+    private final int mod = (int) 1e9 + 7;
+
+    public int maxFrequencyScore(int[] nums, int k) {
+        Map<Integer, Integer> cnt = new HashMap<>();
+        for (int i = 0; i < k; ++i) {
+            cnt.merge(nums[i], 1, Integer::sum);
+        }
+        long cur = 0;
+        for (var e : cnt.entrySet()) {
+            cur = (cur + qpow(e.getKey(), e.getValue())) % mod;
+        }
+        long ans = cur;
+        for (int i = k; i < nums.length; ++i) {
+            int a = nums[i - k];
+            int b = nums[i];
+            if (a != b) {
+                if (cnt.getOrDefault(b, 0) > 0) {
+                    cur += (b - 1) * qpow(b, cnt.get(b)) % mod;
+                } else {
+                    cur += b;
+                }
+                if (cnt.getOrDefault(a, 0) > 1) {
+                    cur -= (a - 1) * qpow(a, cnt.get(a) - 1) % mod;
+                } else {
+                    cur -= a;
+                }
+                cur = (cur + mod) % mod;
+                cnt.put(b, cnt.getOrDefault(b, 0) + 1);
+                cnt.put(a, cnt.getOrDefault(a, 0) - 1);
+                ans = Math.max(ans, cur);
+            }
+        }
+        return (int) ans;
+    }
+
+    private long qpow(long a, long n) {
+        long ans = 1;
+        for (; n > 0; n >>= 1) {
+            if ((n & 1) == 1) {
+                ans = ans * a % mod;
+            }
+            a = a * a % mod;
+        }
+        return ans;
+    }
+}
+
+or
+
+
+class Solution {
+  public int maxFrequencyScore(int[] nums, int k) {
+    Map<Integer, Integer> count = new HashMap<>();
+
+    for (int i = 0; i < k; ++i)
+      count.merge(nums[i], 1, Integer::sum);
+
+    int sum = getInitialSum(count);
+    int ans = sum;
+
+    for (int i = k; i < nums.length; ++i) {
+      // Remove the leftmost number that's out-of-window.
+      final int leftNum = nums[i - k];
+      sum = (sum - modPow(leftNum, count.get(leftNum)) + MOD) % MOD;
+      // After decreasing its frequency, if it's still > 0, then add it back.
+      if (count.merge(leftNum, -1, Integer::sum) > 0)
+        sum = (sum + modPow(leftNum, count.get(leftNum))) % MOD;
+      // Otherwise, remove it from the count map.
+      else
+        count.remove(leftNum);
+      // Add the current number. Similarly, remove the current score like above.
+      final int rightNum = nums[i];
+      if (count.getOrDefault(rightNum, 0) > 0)
+        sum = (sum - modPow(rightNum, count.get(rightNum)) + MOD) % MOD;
+      sum = (sum + modPow(rightNum, count.merge(rightNum, 1, Integer::sum))) % MOD;
+      ans = Math.max(ans, sum);
+    }
+
+    return ans;
+  }
+
+  private static final int MOD = 1_000_000_007;
+
+  private int getInitialSum(Map<Integer, Integer> count) {
+    int sum = 0;
+    for (Map.Entry<Integer, Integer> entry : count.entrySet()) {
+      final int num = entry.getKey();
+      final int freq = entry.getValue();
+      sum = (sum + modPow(num, freq)) % MOD;
+    }
+    return sum;
+  }
+
+  private int modPow(long x, long n) {
+    if (n == 0)
+      return 1;
+    if (n % 2 == 1)
+      return (int) (x * modPow(x % MOD, (n - 1)) % MOD);
+    return modPow(x * x % MOD, (n / 2)) % MOD;
+  }
+}
+
+
+or
+
+
+
+import java.util.Map;
+import java.util.HashMap;
+
+class Solution {
+    private final int MOD = (int) 1e9 + 7;
+
+    // Method to find the maximum frequency score of a sequence
+    public int maxFrequencyScore(int[] nums, int k) {
+        // Map to store the frequency of each number
+        Map<Integer, Integer> frequencyMap = new HashMap<>();
+      
+        // Populate the map with the frequency of first k numbers
+        for (int i = 0; i < k; ++i) {
+            frequencyMap.merge(nums[i], 1, Integer::sum);
+        }
+      
+        long currentScore = 0;
+        // Calculate the initial score based on the first k elements
+        for (var entry : frequencyMap.entrySet()) {
+            currentScore = (currentScore + quickPower(entry.getKey(), entry.getValue())) % MOD;
+        }
+      
+        long maxScore = currentScore;
+      
+        // Iterate through the rest of the array, updating the score
+        for (int i = k; i < nums.length; ++i) {
+            int removedNum = nums[i - k];
+            int addedNum = nums[i];
+
+            // Update score only if the incoming and outgoing elements are different
+            if (removedNum != addedNum) {
+                // Decrease score for the removed number
+                if (frequencyMap.getOrDefault(addedNum, 0) > 0) {
+                    currentScore += (addedNum - 1) * quickPower(addedNum, frequencyMap.get(addedNum)) % MOD;
+                } else {
+                    currentScore += addedNum;
+                }
+
+                // Increase score for the added number
+                if (frequencyMap.getOrDefault(removedNum, 0) > 1) {
+                    currentScore -= (removedNum - 1) * quickPower(removedNum, frequencyMap.get(removedNum) - 1) % MOD;
+                } else {
+                    currentScore -= removedNum;
+                }
+              
+                // Normalize the current score to be within the range of MOD
+                currentScore = (currentScore + MOD) % MOD;
+
+                // Update the frequencies of the added and removed numbers
+                frequencyMap.put(addedNum, frequencyMap.getOrDefault(addedNum, 0) + 1);
+                frequencyMap.put(removedNum, frequencyMap.getOrDefault(removedNum, 0) - 1);
+
+                // Check if the current score is the maximum score so far
+                maxScore = Math.max(maxScore, currentScore);
+            }
+        }
+      
+        // Cast the max score to int before returning as per the method signature
+        return (int) maxScore;
+    }
+
+    // Helper method to perform quick power (exponentiation by squaring)
+    private long quickPower(long base, long exponent) {
+        long result = 1;
+        while (exponent > 0) {
+            if ((exponent & 1) == 1) {
+                result = result * base % MOD;
+            }
+            base = base * base % MOD;
+            exponent >>= 1;
+        }
+        return result;
+    }
+}
