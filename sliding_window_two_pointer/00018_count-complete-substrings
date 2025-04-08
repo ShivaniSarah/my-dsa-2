@@ -1,0 +1,307 @@
+https://leetcode.com/problems/count-complete-substrings/description/
+
+2953. Count Complete Substrings
+Hard
+Topics
+Companies
+Hint
+You are given a string word and an integer k.
+
+A substring s of word is complete if:
+
+Each character in s occurs exactly k times.
+The difference between two adjacent characters is at most 2. That is, for any two adjacent characters c1 and c2 in s, the absolute difference in their positions in the alphabet is at most 2.
+Return the number of complete substrings of word.
+
+A substring is a non-empty contiguous sequence of characters in a string.
+
+ 
+
+Example 1:
+
+Input: word = "igigee", k = 2
+Output: 3
+Explanation: The complete substrings where each character appears exactly twice and the difference between adjacent characters is at most 2 are: igigee, igigee, igigee.
+Example 2:
+
+Input: word = "aaabbbccc", k = 3
+Output: 6
+Explanation: The complete substrings where each character appears exactly three times and the difference between adjacent characters is at most 2 are: aaabbbccc, aaabbbccc, aaabbbccc, aaabbbccc, aaabbbccc, aaabbbccc.
+ 
+
+Constraints:
+
+1 <= word.length <= 105
+word consists only of lowercase English letters.
+1 <= k <= word.length
+
+
+# java
+
+
+class Solution {
+    public int countCompleteSubstrings(String word, int k) {
+        int n = word.length();
+        int ans = 0;
+        for (int i = 0; i < n;) {
+            int j = i + 1;
+            while (j < n && Math.abs(word.charAt(j) - word.charAt(j - 1)) <= 2) {
+                ++j;
+            }
+            ans += f(word.substring(i, j), k);
+            i = j;
+        }
+        return ans;
+    }
+
+    private int f(String s, int k) {
+        int m = s.length();
+        int ans = 0;
+        for (int i = 1; i <= 26 && i * k <= m; ++i) {
+            int l = i * k;
+            int[] cnt = new int[26];
+            for (int j = 0; j < l; ++j) {
+                ++cnt[s.charAt(j) - 'a'];
+            }
+            Map<Integer, Integer> freq = new HashMap<>();
+            for (int x : cnt) {
+                if (x > 0) {
+                    freq.merge(x, 1, Integer::sum);
+                }
+            }
+            if (freq.getOrDefault(k, 0) == i) {
+                ++ans;
+            }
+            for (int j = l; j < m; ++j) {
+                int a = s.charAt(j) - 'a';
+                int b = s.charAt(j - l) - 'a';
+                freq.merge(cnt[a], -1, Integer::sum);
+                ++cnt[a];
+                freq.merge(cnt[a], 1, Integer::sum);
+
+                freq.merge(cnt[b], -1, Integer::sum);
+                --cnt[b];
+                freq.merge(cnt[b], 1, Integer::sum);
+                if (freq.getOrDefault(k, 0) == i) {
+                    ++ans;
+                }
+            }
+        }
+        return ans;
+    }
+}
+
+
+
+or
+
+
+class Solution {
+  public int countCompleteSubstrings(String word, int k) {
+    final int uniqueLetters = word.chars().boxed().collect(Collectors.toSet()).size();
+    int ans = 0;
+
+    for (int windowSize = k; windowSize <= k * uniqueLetters && windowSize <= word.length();
+         windowSize += k) {
+      ans += countCompleteStrings(word, k, windowSize);
+    }
+
+    return ans;
+  }
+
+  // Returns the number of complete substrings of `windowSize` of `word`.
+  private int countCompleteStrings(final String word, int k, int windowSize) {
+    int res = 0;
+    int countLetters = 0; // the number of letters in the running substring
+    int[] count = new int[26];
+
+    for (int i = 0; i < word.length(); ++i) {
+      ++count[word.charAt(i) - 'a'];
+      ++countLetters;
+      if (i > 0 && Math.abs(word.charAt(i) - word.charAt(i - 1)) > 2) {
+        count = new int[26];
+        // Start a new substring starting at word[i].
+        ++count[word.charAt(i) - 'a'];
+        countLetters = 1;
+      }
+      if (countLetters == windowSize + 1) {
+        --count[word.charAt(i - windowSize) - 'a'];
+        --countLetters;
+      }
+      if (countLetters == windowSize)
+        res += Arrays.stream(count).allMatch(freq -> freq == 0 || freq == k) ? 1 : 0;
+    }
+
+    return res;
+  }
+}
+
+
+or
+
+
+
+class Solution {
+    // Main function to count the complete substrings according to given conditions
+    public int countCompleteSubstrings(String word, int k) {
+        int wordLength = word.length();
+        int totalCount = 0;
+
+        // Iterate over the word to find all the substrings where consecutive characters have absolute difference <= 2
+        for (int i = 0; i < wordLength;) {
+            int nextIndex = i + 1;
+            // Find the end of the current substring based on the character difference condition
+            while (nextIndex < wordLength && Math.abs(word.charAt(nextIndex) - word.charAt(nextIndex - 1)) <= 2) {
+                ++nextIndex;
+            }
+
+            // Count complete substrings within the currently identified substring
+            totalCount += countValidSubstrings(word.substring(i, nextIndex), k);
+            i = nextIndex; // Move to the next position after the current substring
+        }
+        return totalCount;
+    }
+
+    // Helper function to count substrings where each character appears exactly 'k' times
+    private int countValidSubstrings(String s, int k) {
+        int substringLength = s.length();
+        int count = 0;
+
+        // Iterate for each possible length of alphabet characters, constrained by 'k' and length of 's'
+        for (int i = 1; i <= 26 && i * k <= substringLength; ++i) {
+            int segmentLength = i * k; // The length of the substring we are looking for
+            int[] charCounts = new int[26]; // Array to count occurrences of each letter
+
+            // Count occurrences of each letter in the first segment of length 'segmentLength'
+            for (int j = 0; j < segmentLength; ++j) {
+                ++charCounts[s.charAt(j) - 'a'];
+            }
+
+            // Store the frequency of frequencies
+            Map<Integer, Integer> frequencyMap = new HashMap<>();
+            for (int countValue : charCounts) {
+                if (countValue > 0) {
+                    frequencyMap.merge(countValue, 1, Integer::sum);
+                }
+            }
+
+            // If the map contains exactly 'i' entries of 'k', it's a valid substring
+            if (frequencyMap.getOrDefault(k, 0) == i) {
+                ++count;
+            }
+
+            // Slide the window of size 'segmentLength' and update counts and frequencies
+            for (int j = segmentLength; j < substringLength; ++j) {
+                int newCharIndex = s.charAt(j) - 'a';
+                int oldCharIndex = s.charAt(j - segmentLength) - 'a';
+
+                // Update frequency map for the character entering the sliding window
+                frequencyMap.merge(charCounts[newCharIndex], -1, Integer::sum);
+                ++charCounts[newCharIndex];
+                frequencyMap.merge(charCounts[newCharIndex], 1, Integer::sum);
+
+                // Update frequency map for the character leaving the sliding window
+                frequencyMap.merge(charCounts[oldCharIndex], -1, Integer::sum);
+                --charCounts[oldCharIndex];
+                frequencyMap.merge(charCounts[oldCharIndex], 1, Integer::sum);
+
+                // If the map condition holds again, increase the count
+                if (frequencyMap.getOrDefault(k, 0) == i) {
+                    ++count;
+                }
+            }
+        }
+        return count;
+    }
+}
+
+
+or
+
+
+class Solution {
+
+	public int countCompleteSubstrings(String word, int k) {
+		int count = 0;
+		for (int i = 1; i <= 26; i++) {
+			count += countCompleteSubstrings(word, k, 0, i * k);
+		}
+		return count;
+	}
+
+	private int countCompleteSubstrings(String word, int k, int start, int length) {
+		if (word.length() - start < length) {
+			return 0;
+		}
+		int map[] = new int[26], count = 0, sum = 0;
+		for (int i = start; i < word.length(); i++) {
+			if (i > start && Math.abs(word.charAt(i) - word.charAt(i - 1)) > 2) {
+				return sum + countCompleteSubstrings(word, k, i, length);
+			}
+			count += map[word.charAt(i) - 'a'] == k - 1 ? 1 : 0;
+			count -= map[word.charAt(i) - 'a']++ == k ? 1 : 0;
+			if (i >= start + length - 1) {
+				sum += count == length / k ? 1 : 0;
+				count += map[word.charAt(i - length + 1) - 'a'] == k + 1 ? 1 : 0;
+				count -= map[word.charAt(i - length + 1) - 'a']-- == k ? 1 : 0;
+			}
+		}
+		return sum;
+	}
+}
+
+or
+
+
+class Solution {
+    public int solve(int start, int end, String word, int k) {
+        int result = 0;
+        for (int chars = 1; chars <= 26 && chars * k <= end - start + 1; chars++) {
+            int[] count = new int[26];
+            int goodChars = 0; // How many chars are of frequency k
+
+            // Now do a sliding window
+            int i = start;
+            int windowLength = chars * k;
+            for (int j = start; j <= end; j++) {
+                char ch = word.charAt(j);
+
+                count[ch - 'a']++;
+                if (count[ch - 'a'] == k) {
+                    goodChars++;
+                } else if (count[ch - 'a'] == k + 1) {
+                    goodChars--;
+                }
+
+                if (j - i + 1 > windowLength) { // Need to shift window right
+                    if (count[word.charAt(i) - 'a'] == k) {
+                        goodChars--;
+                    } else if (count[word.charAt(i) - 'a'] == k + 1) {
+                        goodChars++;
+                    }
+                    count[word.charAt(i) - 'a']--;
+                    i++;
+                }
+
+                if (goodChars == chars) {
+                    result++;
+                }
+            }
+        }
+        return result;
+    }
+
+    public int countCompleteSubstrings(String word, int k) {
+        int n = word.length();
+        int result = 0;
+        int last = 0;
+
+        for (int i = 1; i <= n; i++) {
+            if (i == n || Math.abs(word.charAt(i) - word.charAt(i - 1)) > 2) { // satisfying condition 2
+                result += solve(last, i - 1, word, k); // condition 1
+                last = i;
+            }
+        }
+        return result;
+    }
+}
