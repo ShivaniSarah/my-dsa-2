@@ -1,0 +1,351 @@
+https://leetcode.com/problems/count-substrings-that-can-be-rearranged-to-contain-a-string-ii/description/
+
+3298. Count Substrings That Can Be Rearranged to Contain a String II
+Hard
+Topics
+Companies
+Hint
+You are given two strings word1 and word2.
+
+A string x is called valid if x can be rearranged to have word2 as a prefix.
+
+Return the total number of valid substrings of word1.
+
+Note that the memory limits in this problem are smaller than usual, so you must implement a solution with a linear runtime complexity.
+
+ 
+
+Example 1:
+
+Input: word1 = "bcca", word2 = "abc"
+
+Output: 1
+
+Explanation:
+
+The only valid substring is "bcca" which can be rearranged to "abcc" having "abc" as a prefix.
+
+Example 2:
+
+Input: word1 = "abcabc", word2 = "abc"
+
+Output: 10
+
+Explanation:
+
+All the substrings except substrings of size 1 and size 2 are valid.
+
+Example 3:
+
+Input: word1 = "abcabc", word2 = "aaabc"
+
+Output: 0
+
+ 
+
+Constraints:
+
+1 <= word1.length <= 106
+1 <= word2.length <= 104
+word1 and word2 consist only of lowercase English letters.
+
+
+# java
+
+
+class Solution {
+    public long validSubstringCount(String word1, String word2) {
+        if (word1.length() < word2.length()) {
+            return 0;
+        }
+        int[] cnt = new int[26];
+        int need = 0;
+        for (int i = 0; i < word2.length(); ++i) {
+            if (++cnt[word2.charAt(i) - 'a'] == 1) {
+                ++need;
+            }
+        }
+        long ans = 0;
+        int[] win = new int[26];
+        for (int l = 0, r = 0; r < word1.length(); ++r) {
+            int c = word1.charAt(r) - 'a';
+            if (++win[c] == cnt[c]) {
+                --need;
+            }
+            while (need == 0) {
+                c = word1.charAt(l) - 'a';
+                if (win[c] == cnt[c]) {
+                    ++need;
+                }
+                --win[c];
+                ++l;
+            }
+            ans += l;
+        }
+        return ans;
+    }
+}
+
+
+
+or
+
+
+class Solution {
+  // Same as 3297. Count Substrings That Can Be Rearranged to Contain a String I
+  public long validSubstringCount(String word1, String word2) {
+    long ans = 0;
+    int required = word2.length();
+    int[] count = new int[26];
+
+    for (final char c : word2.toCharArray())
+      ++count[c - 'a'];
+
+    for (int l = 0, r = 0; r < word1.length(); ++r) {
+      if (--count[word1.charAt(r) - 'a'] >= 0)
+        --required;
+      while (required == 0) {
+        // Add valid substrings containing word1[l..r] to the answer. They are
+        // word1[l..r], word1[l..r + 1], ..., word1[l..n - 1].
+        ans += word1.length() - r;
+        if (++count[word1.charAt(l++) - 'a'] > 0)
+          ++required;
+      }
+    }
+
+    return ans;
+  }
+}
+
+
+
+
+or
+
+
+import java.util.*;
+
+class Solution {
+    public long validSubstringCount(String word1, String word2) {
+        long res = 0;
+        int[][] mpp = new int[26][2]; // To store frequencies of both words
+        int l = 0, r = 0;
+        int n = word1.length();
+        int m = word2.length();
+        int size = 0;
+        
+        // Count frequency of characters in word2
+        for (char ch : word2.toCharArray()) {
+            mpp[ch - 'a'][1]++;
+        }
+        
+        while (r < n) {
+            // Slide the window while it contains all characters of word2
+            while (size == m && l <= r) {
+                res += (n - r + 1);
+                mpp[word1.charAt(l) - 'a'][0]--;
+                if (mpp[word1.charAt(l) - 'a'][1] > 0 && mpp[word1.charAt(l) - 'a'][0] < mpp[word1.charAt(l) - 'a'][1]) {
+                    size--;
+                }
+                l++;
+            }
+            // Expand the window
+            if (mpp[word1.charAt(r) - 'a'][1] > 0 && mpp[word1.charAt(r) - 'a'][0] < mpp[word1.charAt(r) - 'a'][1]) {
+                size++;
+            }
+            mpp[word1.charAt(r) - 'a'][0]++;
+            r++;
+        }
+        
+        // Handle remaining valid substrings
+        while (size == m && l <= r) {
+            res += (n - r + 1);
+            mpp[word1.charAt(l) - 'a'][0]--;
+            if (mpp[word1.charAt(l) - 'a'][1] > 0 && mpp[word1.charAt(l) - 'a'][0] < mpp[word1.charAt(l) - 'a'][1]) {
+                size--;
+            }
+            l++;
+        }
+        
+        return res;
+    }
+}
+
+
+or
+
+class Solution {
+    public long validSubstringCount(String source, String target) {
+
+        int[] targetFreq = new int[26];
+        for (int i = 0; i < target.length(); i++) {
+            char c = target.charAt(i);
+            targetFreq[c - 'a']++;
+        }
+
+        int start = 0;
+        int[] currentFreq = new int[26];
+        long validSubstrings = 0;
+        for (int end = 0; end < source.length(); end++) {
+
+            int charIndex = source.charAt(end) - 'a';
+            currentFreq[charIndex]++;
+
+            boolean isValid = true;
+            for (int j = 0; j < 26; j++) {
+                if (targetFreq[j] > currentFreq[j]) {
+                    isValid = false;
+                    break;
+                }
+            }
+
+            while (isValid) {
+                validSubstrings += (long) (source.length() - end);
+                charIndex = source.charAt(start) - 'a';
+                currentFreq[charIndex]--;
+                start++;
+
+                isValid = true;
+                for (int j = 0; j < 26; j++) {
+                    if (targetFreq[j] > currentFreq[j]) {
+                        isValid = false;
+                        break;
+                    }
+                }
+            }
+        }
+        return validSubstrings;
+    }
+}
+
+
+or
+
+class Solution {
+    public static long validSubstringCount(String word1, String word2) {
+        int[] v = new int[26];
+        for (char c : word2.toCharArray()) {
+            v[c - 'a']++;
+        }
+
+        int[] cnt = new int[26];
+        int start = 0;
+        int k = word2.length();
+        long count = 0;
+
+        for (int i = 0; i < word1.length(); i++) {
+            char curr = word1.charAt(i);
+            if (v[curr - 'a'] > 0) {
+                if (cnt[curr - 'a'] < v[curr - 'a']) {
+                    k--;
+                }
+            }
+
+            cnt[curr - 'a']++;
+
+            while (k == 0) {
+                count += word1.length() - i;
+                char pre = word1.charAt(start);
+                cnt[pre - 'a']--;
+                if (v[pre - 'a'] > 0 && cnt[pre - 'a'] < v[pre - 'a']) {
+                    k++;
+                }
+                start++;
+            }
+        }
+
+        return count;
+    }
+}
+
+
+or
+
+class Solution {
+    public long validSubstringCount(String word1, String word2) {
+        int n = word1.length();
+        int m = word2.length();
+        if (m > n) return 0;
+
+        HashMap<Character, Integer> count2 = new HashMap<>();
+        HashMap<Character, Integer> count1 = new HashMap<>();
+
+        for (char c : word2.toCharArray()) {
+            count2.put(c, count2.getOrDefault(c, 0) + 1);
+        }
+
+        long result = 0;
+        int required = count2.size();
+        int formed = 0;
+        int left = 0;
+
+        for (int right = 0; right < n; ++right) {
+            char c = word1.charAt(right);
+            count1.put(c, count1.getOrDefault(c, 0) + 1);
+
+            if (count2.containsKey(c) && count1.get(c).intValue() == count2.get(c).intValue()) {
+                formed++;
+            }
+
+            while (formed == required) {
+                result += (n - right);
+                char leftChar = word1.charAt(left);
+                count1.put(leftChar, count1.get(leftChar) - 1);
+                
+                if (count2.containsKey(leftChar) && count1.get(leftChar) < count2.get(leftChar)) {
+                    formed--;
+                }
+                left++;
+            }
+        }
+
+        return result;
+    }
+}
+
+
+or
+
+import java.util.HashMap;
+
+class Solution {
+    public long validSubstringCount(String word1, String word2) {
+        int n = word1.length();
+        int m = word2.length();
+        if (m > n) return 0;
+
+        HashMap<Character, Integer> targetCount = new HashMap<>();
+        for (char c : word2.toCharArray()) {
+            targetCount.put(c, targetCount.getOrDefault(c, 0) + 1);
+        }
+
+        long validCount = 0;
+        HashMap<Character, Integer> windowCount = new HashMap<>();
+        int left = 0;
+        int formed = 0;  // Track how many characters are currently fulfilling the requirement
+
+        for (int right = 0; right < n; right++) {
+            char currentChar = word1.charAt(right);
+            windowCount.put(currentChar, windowCount.getOrDefault(currentChar, 0) + 1);
+
+            if (targetCount.containsKey(currentChar) && 
+                windowCount.get(currentChar).intValue() == targetCount.get(currentChar).intValue()) {
+                formed++;
+            }
+
+            while (formed == targetCount.size()) {
+                validCount += (n - right); // Count valid substrings
+
+                char leftChar = word1.charAt(left);
+                windowCount.put(leftChar, windowCount.get(leftChar) - 1);
+                if (targetCount.containsKey(leftChar) && 
+                    windowCount.get(leftChar).intValue() < targetCount.get(leftChar).intValue()) {
+                    formed--;
+                }
+                left++;
+            }
+        }
+
+        return validCount;
+    }
+}
