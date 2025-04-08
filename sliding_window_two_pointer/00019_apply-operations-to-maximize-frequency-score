@@ -1,0 +1,249 @@
+https://leetcode.com/problems/apply-operations-to-maximize-frequency-score/description/
+
+
+2968. Apply Operations to Maximize Frequency Score
+Hard
+Topics
+Companies
+Hint
+You are given a 0-indexed integer array nums and an integer k.
+
+You can perform the following operation on the array at most k times:
+
+Choose any index i from the array and increase or decrease nums[i] by 1.
+The score of the final array is the frequency of the most frequent element in the array.
+
+Return the maximum score you can achieve.
+
+The frequency of an element is the number of occurences of that element in the array.
+
+ 
+
+Example 1:
+
+Input: nums = [1,2,6,4], k = 3
+Output: 3
+Explanation: We can do the following operations on the array:
+- Choose i = 0, and increase the value of nums[0] by 1. The resulting array is [2,2,6,4].
+- Choose i = 3, and decrease the value of nums[3] by 1. The resulting array is [2,2,6,3].
+- Choose i = 3, and decrease the value of nums[3] by 1. The resulting array is [2,2,6,2].
+The element 2 is the most frequent in the final array so our score is 3.
+It can be shown that we cannot achieve a better score.
+Example 2:
+
+Input: nums = [1,4,4,2,4], k = 0
+Output: 3
+Explanation: We cannot apply any operations so our score will be the frequency of the most frequent element in the original array, which is 3.
+ 
+
+Constraints:
+
+1 <= nums.length <= 105
+1 <= nums[i] <= 109
+0 <= k <= 1014
+
+
+# java
+
+class Solution {
+    public int maxFrequencyScore(int[] nums, long k) {
+        Arrays.sort(nums);
+        int n = nums.length;
+        long[] s = new long[n + 1];
+        for (int i = 1; i <= n; i++) {
+            s[i] = s[i - 1] + nums[i - 1];
+        }
+        int l = 0, r = n;
+        while (l < r) {
+            int mid = (l + r + 1) >> 1;
+            boolean ok = false;
+
+            for (int i = 0; i <= n - mid; i++) {
+                int j = i + mid;
+                int x = nums[(i + j) / 2];
+                long left = ((i + j) / 2 - i) * (long) x - (s[(i + j) / 2] - s[i]);
+                long right = (s[j] - s[(i + j) / 2]) - ((j - (i + j) / 2) * (long) x);
+                if (left + right <= k) {
+                    ok = true;
+                    break;
+                }
+            }
+
+            if (ok) {
+                l = mid;
+            } else {
+                r = mid - 1;
+            }
+        }
+
+        return l;
+    }
+}
+
+
+or
+
+
+class Solution {
+  public int maxFrequencyScore(int[] nums, long k) {
+    int ans = 0;
+    long cost = 0;
+
+    Arrays.sort(nums);
+
+    // For a window [l, r], the best choice to make the numbers in the range
+    // equal is to make them all equal to the median in this range.
+    for (int l = 0, r = 0; r < nums.length; ++r) {
+      cost += nums[r] - nums[(l + r) / 2];
+      while (cost > k)
+        cost -= nums[(l + r + 1) / 2] - nums[l++];
+      ans = Math.max(ans, r - l + 1);
+    }
+
+    return ans;
+  }
+}
+
+or
+
+
+class Solution {
+    public int maxFrequencyScore(int[] nums, long k) {
+        // Sort the array first.
+        Arrays.sort(nums);
+        int length = nums.length;
+        // Initialize a prefix sum array with an extra space for ease of calculations.
+        long[] prefixSum = new long[length + 1];
+        // Populate the prefix sum array.
+        for (int i = 1; i <= length; i++) {
+            prefixSum[i] = prefixSum[i - 1] + nums[i - 1];
+        }
+        // Initialize the binary search boundaries.
+        int left = 0, right = length;
+        // Perform binary search.
+        while (left < right) {
+            int middle = (left + right + 1) >> 1;
+            boolean isPossible = false;
+          
+            // Try for all subarrays of size 'middle'
+            for (int i = 0; i <= length - middle; i++) {
+                int j = i + middle;
+                // Choose the middle element as the target number to which other elements will be increased.
+                int targetNum = nums[(i + j) / 2];
+                // Calculate how much we need to add to the left half of the subarray to make it all equal to targetNum.
+                long costLeft = ((i + j) / 2 - i) * (long) targetNum - (prefixSum[(i + j) / 2] - prefixSum[i]);
+                // Similarly, calculate the cost for right half of the subarray.
+                long costRight = (prefixSum[j] - prefixSum[(i + j) / 2]) - ((j - (i + j) / 2) * (long) targetNum);
+                // If total operations needed are less or equal to k, it's possible to make all elements of the subarray equal.
+                if (costLeft + costRight <= k) {
+                    isPossible = true;
+                    break;
+                }
+            }
+          
+            // If it's possible to make the elements of a subarray equal with at most k operations, move left boundary up.
+            if (isPossible) {
+                left = middle;
+            } else {
+                // Otherwise, reduce the size of the subarray.
+                right = middle - 1;
+            }
+        }
+
+        // The maximum frequency is the size of the largest subarray for which
+        // we can make all the elements equal with at most k operations.
+        return left;
+    }
+}
+
+
+or
+
+class Solution {
+    public int maxFrequencyScore(int[] nums, long k) {
+        Arrays.sort(nums);
+        int n = nums.length;
+        long[] prefixSum = new long[n + 1];
+        for (int i = 0; i < n; i++) {
+            prefixSum[i + 1] = prefixSum[i] + nums[i];
+        }
+        int start = 0;
+        int end = 1;
+        int out = 1;
+        while (end < n) {
+            end++;
+            int mid = (start + end) / 2;
+            long target = nums[mid];
+            long cost = (target * (mid - start) - (prefixSum[mid] - prefixSum[start])) + (prefixSum[end] - prefixSum[mid] - target * (end - mid));
+            while (start < end && cost > k) {
+                start++;
+                mid = (start + end) / 2;
+                target = nums[mid];
+                cost = (target * (mid - start) - (prefixSum[mid] - prefixSum[start])) + (prefixSum[end] - prefixSum[mid] - target * (end - mid));
+            }
+            out = Math.max(out, end - start);
+        }
+        return out;
+    }
+}
+
+
+or
+
+
+class Solution {
+        public int maxFrequencyScore(int[] A, long k) {
+        int i = 0, res = 0, n = A.length;
+        long cur = 0;
+        Arrays.sort(A);
+        for (int j = 0; j < n; ++j) {
+            cur += A[j] - A[(i + j) / 2];
+            while (cur > k) {
+                cur -= A[(i + j + 1) / 2] - A[i];
+                i++;
+            }
+            res = Math.max(res, j - i + 1);
+        }
+        return res;
+    }
+}
+
+
+or
+
+
+class Solution {
+          public int maxFrequencyScore(int[] A, long k) {
+        int i = 0, n = A.length;
+        Arrays.sort(A);
+        for (int j = 0; j < n; ++j)
+            if ((k -= A[j] - A[(i + j) / 2]) < 0)
+                k += A[(i + j + 1) / 2] - A[i++];
+        return n - i;
+    }
+}
+
+or
+
+
+class Solution {
+    public int maxFrequencyScore(int[] nums, long k) {
+        Arrays.sort(nums);
+        int left = 0, maxFreq = 1;
+        long cost = 0;
+        int med = 0;
+        for (int right = 1; right < nums.length; right++) {
+            cost += nums[right] - nums[med];
+            med = (left + right + 1) / 2;
+            while (cost > k) {
+                cost -= nums[med] - nums[left];
+                left++;
+                med = (left + right + 1) / 2;
+            }
+
+            maxFreq = Math.max(maxFreq, right - left + 1);
+        }
+
+        return maxFreq;
+    }
+}
