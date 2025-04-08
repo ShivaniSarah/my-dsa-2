@@ -1,0 +1,145 @@
+https://leetcode.ca/2017-11-26-727-Minimum-Window-Subsequence/
+
+727. Minimum Window Subsequence
+Description
+Given strings s1 and s2, return the minimum contiguous substring part of s1, so that s2 is a subsequence of the part.
+
+If there is no such window in s1 that covers all characters in s2, return the empty string "". If there are multiple such minimum-length windows, return the one with the left-most starting index.
+
+ 
+
+Example 1:
+
+Input: s1 = "abcdebdde", s2 = "bde"
+Output: "bcde"
+Explanation: 
+"bcde" is the answer because it occurs before "bdde" which has the same length.
+"deb" is not a smaller window because the elements of s2 in the window must occur in order.
+Example 2:
+
+Input: s1 = "jmeqksfrsdcmsiwvaovztaqenprpvnbstl", s2 = "u"
+Output: ""
+ 
+
+Constraints:
+
+1 <= s1.length <= 2 * 104
+1 <= s2.length <= 100
+s1 and s2 consist of lowercase English letters.
+
+# java
+
+
+class Solution {
+    public String minWindow(String s1, String s2) {
+        int m = s1.length(), n = s2.length();
+        int[][] f = new int[m + 1][n + 1];
+        for (int i = 1; i <= m; ++i) {
+            for (int j = 1; j <= n; ++j) {
+                if (s1.charAt(i - 1) == s2.charAt(j - 1)) {
+                    f[i][j] = j == 1 ? i : f[i - 1][j - 1];
+                } else {
+                    f[i][j] = f[i - 1][j];
+                }
+            }
+        }
+        int p = 0, k = m + 1;
+        for (int i = 1; i <= m; ++i) {
+            if (s1.charAt(i - 1) == s2.charAt(n - 1) && f[i][n] > 0) {
+                int j = f[i][n] - 1;
+                if (i - j < k) {
+                    k = i - j;
+                    p = j;
+                }
+            }
+        }
+        return k > m ? "" : s1.substring(p, p + k);
+    }
+}
+
+or
+
+class Solution {
+  public String minWindow(String s1, String s2) {
+    final int m = s2.length();
+    final int n = s1.length();
+    // dp[i][j] := the start index (1-indexed) of the minimum window of s2[0..i)
+    // and s1[0..j).
+    int[][] dp = new int[m + 1][n + 1];
+
+    // Fill in the placeholder values.
+    for (int j = 0; j <= n; ++j)
+      dp[0][j] = j + 1;
+
+    for (int i = 1; i <= m; ++i)
+      for (int j = 1; j <= n; ++j)
+        if (s2.charAt(i - 1) == s1.charAt(j - 1))
+          dp[i][j] = dp[i - 1][j - 1];
+        else
+          dp[i][j] = dp[i][j - 1];
+
+    int bestLeft = 0;
+    int minLength = Integer.MAX_VALUE;
+
+    for (int j = 1; j <= n; ++j)
+      if (dp[m][j] > 0 && j - dp[m][j] + 1 < minLength) {
+        bestLeft = dp[m][j] - 1;
+        minLength = j - dp[m][j] + 1;
+      }
+
+    return minLength == Integer.MAX_VALUE ? "" : s1.substring(bestLeft, bestLeft + minLength);
+  }
+}
+
+or
+
+
+class Solution {
+    public String minWindow(String s1, String s2) {
+        int s1Length = s1.length(), s2Length = s2.length();
+      
+        // table to store the start index of the window in s1 that ends at i and has s2.charAt(j)
+        int[][] windowStartAtIndex = new int[s1Length + 1][s2Length + 1];
+      
+        // initialize the table with default values
+        for (int i = 0; i <= s1Length; i++) {
+            Arrays.fill(windowStartAtIndex[i], -1);
+        }
+      
+        // fill the table based on the input strings s1 and s2
+        for (int i = 1; i <= s1Length; ++i) {
+            for (int j = 1; j <= s2Length; ++j) {
+                // On matching characters, update the table with the start index of the current window
+                // If it's the first character of s2, the start is the current index in s1
+                // Otherwise, it's the index stored in the previous position of the table
+                if (s1.charAt(i - 1) == s2.charAt(j - 1)) {
+                    windowStartAtIndex[i][j] = (j == 1) ? i : windowStartAtIndex[i - 1][j - 1];
+                } else {
+                    // If there's no match, inherit the value from the previous index of s1
+                    windowStartAtIndex[i][j] = windowStartAtIndex[i - 1][j];
+                }
+            }
+        }
+      
+        // position and length of the minimum window
+        int startPosition = 0, minLength = s1Length + 1;
+      
+        // find the smallest window in s1 that has all characters of s2
+        for (int i = 1; i <= s1Length; ++i) {
+            // check if the current position is the end of a valid window, i.e., it matches last character of s2
+            if (s1.charAt(i - 1) == s2.charAt(s2Length - 1) && windowStartAtIndex[i][s2Length] > 0) {
+                int j = windowStartAtIndex[i][s2Length] - 1; // the window's start position in s1
+                int currentLength = i - j; // the length of the current window
+                // update minimum length window, if the current window is smaller
+                if (currentLength < minLength) {
+                    minLength = currentLength;
+                    startPosition = j;
+                }
+            }
+        }
+      
+        // if no valid window is found, return an empty string
+        // otherwise, return the substring from startPosition with minLength
+        return minLength > s1Length ? "" : s1.substring(startPosition, startPosition + minLength);
+    }
+}
