@@ -1,0 +1,292 @@
+https://leetcode.com/problems/maximum-strong-pair-xor-ii/description/
+
+
+2935. Maximum Strong Pair XOR II
+Hard
+Topics
+Companies
+Hint
+You are given a 0-indexed integer array nums. A pair of integers x and y is called a strong pair if it satisfies the condition:
+
+|x - y| <= min(x, y)
+You need to select two integers from nums such that they form a strong pair and their bitwise XOR is the maximum among all strong pairs in the array.
+
+Return the maximum XOR value out of all possible strong pairs in the array nums.
+
+Note that you can pick the same integer twice to form a pair.
+
+ 
+
+Example 1:
+
+Input: nums = [1,2,3,4,5]
+Output: 7
+Explanation: There are 11 strong pairs in the array nums: (1, 1), (1, 2), (2, 2), (2, 3), (2, 4), (3, 3), (3, 4), (3, 5), (4, 4), (4, 5) and (5, 5).
+The maximum XOR possible from these pairs is 3 XOR 4 = 7.
+Example 2:
+
+Input: nums = [10,100]
+Output: 0
+Explanation: There are 2 strong pairs in the array nums: (10, 10) and (100, 100).
+The maximum XOR possible from these pairs is 10 XOR 10 = 0 since the pair (100, 100) also gives 100 XOR 100 = 0.
+Example 3:
+
+Input: nums = [500,520,2500,3000]
+Output: 1020
+Explanation: There are 6 strong pairs in the array nums: (500, 500), (500, 520), (520, 520), (2500, 2500), (2500, 3000) and (3000, 3000).
+The maximum XOR possible from these pairs is 500 XOR 520 = 1020 since the only other non-zero XOR value is 2500 XOR 3000 = 636.
+ 
+
+Constraints:
+
+1 <= nums.length <= 5 * 104
+1 <= nums[i] <= 220 - 1
+
+
+# java
+
+
+
+// Sorting + Binary Trie
+
+class Trie {
+    private Trie[] children = new Trie[2];
+    private int cnt = 0;
+
+    public Trie() {
+    }
+
+    public void insert(int x) {
+        Trie node = this;
+        for (int i = 20; i >= 0; --i) {
+            int v = x >> i & 1;
+            if (node.children[v] == null) {
+                node.children[v] = new Trie();
+            }
+            node = node.children[v];
+            ++node.cnt;
+        }
+    }
+
+    public int search(int x) {
+        Trie node = this;
+        int ans = 0;
+        for (int i = 20; i >= 0; --i) {
+            int v = x >> i & 1;
+            if (node.children[v ^ 1] != null && node.children[v ^ 1].cnt > 0) {
+                ans |= 1 << i;
+                node = node.children[v ^ 1];
+            } else {
+                node = node.children[v];
+            }
+        }
+        return ans;
+    }
+
+    public void remove(int x) {
+        Trie node = this;
+        for (int i = 20; i >= 0; --i) {
+            int v = x >> i & 1;
+            node = node.children[v];
+            --node.cnt;
+        }
+    }
+}
+
+class Solution {
+    public int maximumStrongPairXor(int[] nums) {
+        Arrays.sort(nums);
+        Trie tree = new Trie();
+        int ans = 0, i = 0;
+        for (int y : nums) {
+            tree.insert(y);
+            while (y > nums[i] * 2) {
+                tree.remove(nums[i++]);
+            }
+            ans = Math.max(ans, tree.search(y));
+        }
+        return ans;
+    }
+}
+
+
+or
+
+class TrieNode {
+  public TrieNode[] children = new TrieNode[2];
+  public int mn = Integer.MAX_VALUE;
+  public int mx = Integer.MIN_VALUE;
+}
+
+class BitTrie {
+  public BitTrie(int maxBit) {
+    this.maxBit = maxBit;
+  }
+
+  public void insert(int num) {
+    TrieNode node = root;
+    for (int i = maxBit; i >= 0; --i) {
+      final int bit = (int) (num >> i & 1);
+      if (node.children[bit] == null)
+        node.children[bit] = new TrieNode();
+      node = node.children[bit];
+      node.mn = Math.min(node.mn, num);
+      node.mx = Math.max(node.mx, num);
+    }
+  }
+
+  // Returns max(x ^ y), where |x - y| <= min(x, y).
+  //
+  // If x <= y, |x - y| <= min(x, y) can be written as y - x <= x.
+  // So, y <= 2 * x.
+  public int getMaxXor(int x) {
+    int maxXor = 0;
+    TrieNode node = root;
+    for (int i = maxBit; i >= 0; --i) {
+      final int bit = (int) (x >> i & 1);
+      final int toggleBit = bit ^ 1;
+      // If `node.children[toggleBit].mx > x`, it means there's a number in the
+      // node that satisfies the condition to ensure that x <= y among x and y.
+      // If `node.children[toggleBit].mn <= 2 * x`, it means there's a number
+      // in the node that satisfies the condition for a valid y.
+      if (node.children[toggleBit] != null && node.children[toggleBit].mx > x &&
+          node.children[toggleBit].mn <= 2 * x) {
+        maxXor = maxXor | 1 << i;
+        node = node.children[toggleBit];
+      } else if (node.children[bit] != null) {
+        node = node.children[bit];
+      } else { // There's nothing in the Bit Trie.
+        return 0;
+      }
+    }
+    return maxXor;
+  }
+
+  private int maxBit;
+  private TrieNode root = new TrieNode();
+}
+
+class Solution {
+  // Same as 2932. Maximum Strong Pair XOR I
+  public int maximumStrongPairXor(int[] nums) {
+    final int maxNum = Arrays.stream(nums).max().getAsInt();
+    final int maxBit = (int) (Math.log(maxNum) / Math.log(2));
+    int ans = 0;
+    BitTrie bitTrie = new BitTrie(maxBit);
+
+    for (final int num : nums)
+      bitTrie.insert(num);
+
+    for (final int num : nums)
+      ans = Math.max(ans, bitTrie.getMaxXor(num));
+
+    return ans;
+  }
+}
+
+
+or
+
+
+class Trie {
+    private Trie[] children = new Trie[2]; // Trie children to represent binary digits 0 and 1
+    private int count = 0; // Variable to keep track of the presence of numbers
+
+    public Trie() {
+        // Constructor for initialization
+    }
+
+    // Function to insert a number into the Trie
+    public void insert(int number) {
+        Trie node = this;
+        // Starting from the 20th bit moving towards the least significant bit
+        for (int i = 20; i >= 0; --i) {
+            int bit = (number >> i) & 1; // Extract the bit at the current position
+            // If there is no Trie node for this bit, create one
+            if (node.children[bit] == null) {
+                node.children[bit] = new Trie();
+            }
+            node = node.children[bit]; // Move to the child node representing the current bit
+            ++node.count; // Increment the count at the current Trie node
+        }
+    }
+
+    // Function to find the maximum XOR with the given number
+    public int search(int number) {
+        Trie node = this;
+        int maximumXor = 0; // Store the result for maximum XOR value
+        // Iterate over the bits of the number
+        for (int i = 20; i >= 0; --i) {
+            int bit = (number >> i) & 1; // Extract the bit at the current position
+            // Check if the complementary bit exists and has a positive count
+            if (node.children[bit ^ 1] != null && node.children[bit ^ 1].count > 0) {
+                maximumXor |= 1 << i; // Set the bit in the answer to 1
+                node = node.children[bit ^ 1]; // Move to the child node having the complementary bit
+            } else {
+                node = node.children[bit]; // Otherwise move to the child node having the same bit
+            }
+        }
+        return maximumXor; // Return the calculated maximum XOR value
+    }
+
+    // Function to remove a number from the Trie
+    public void remove(int number) {
+        Trie node = this;
+        // Iterate over the bits of the number to remove it from the Trie
+        for (int i = 20; i >= 0; --i) {
+            int bit = (number >> i) & 1; // Extract the bit at the current position
+            node = node.children[bit]; // Move to the child node representing the current bit
+            --node.count; // Decrement the count at the current node
+        }
+    }
+}
+
+class Solution {
+    // Method to find the maximum XOR pair from the given array such that the second number is not more than twice the first
+    public int maximumStrongPairXor(int[] nums) {
+        Arrays.sort(nums); // Sort the input array
+        Trie trie = new Trie(); // Initialize a Trie
+        int result = 0; // Variable to store the result
+        int i = 0; // Initialize the pointer for the sliding window
+        for (int number : nums) {
+            trie.insert(number); // Insert the number into the Trie
+            // If the current number is more than twice the smallest number in the current sliding window, remove the smallest number
+            while (number > nums[i] * 2) {
+                trie.remove(nums[i++]);
+            }
+            // Update the result with the maximum XOR found so far
+            result = Math.max(result, trie.search(number));
+        }
+        return result; // Return the maximum XOR value found
+    }
+}
+
+
+or
+
+class Solution {
+        public int maximumStrongPairXor(int[] A) {
+        int res = 0;
+        for (int i = 20; i >= 0; i--) {
+            res <<= 1;
+            HashMap<Integer, Integer> pref = new HashMap<>(), pref2 = new HashMap<>();
+            for (int a : A) {
+                int p = a >> i;
+                if (!pref.containsKey(p)) {
+                    pref.put(p, a);
+                    pref2.put(p, a);
+                }
+                pref.put(p, Math.min(pref.get(p), a));
+                pref2.put(p, Math.max(pref2.get(p), a));
+            }
+            for (int x : pref.keySet()) {
+                int y = res ^ 1 ^ x;
+                if (x >= y && pref.containsKey(y) && pref.get(x) <= pref2.get(y) * 2) {
+                    res |= 1;
+                    break;
+                }
+            }
+        }
+        return res;
+    }
+}
