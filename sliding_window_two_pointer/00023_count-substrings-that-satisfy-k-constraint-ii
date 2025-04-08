@@ -1,0 +1,401 @@
+https://leetcode.com/problems/count-substrings-that-satisfy-k-constraint-ii/description/
+
+3261. Count Substrings That Satisfy K-Constraint II
+Hard
+Topics
+Companies
+Hint
+You are given a binary string s and an integer k.
+
+You are also given a 2D integer array queries, where queries[i] = [li, ri].
+
+A binary string satisfies the k-constraint if either of the following conditions holds:
+
+The number of 0's in the string is at most k.
+The number of 1's in the string is at most k.
+Return an integer array answer, where answer[i] is the number of substrings of s[li..ri] that satisfy the k-constraint.
+
+ 
+
+Example 1:
+
+Input: s = "0001111", k = 2, queries = [[0,6]]
+
+Output: [26]
+
+Explanation:
+
+For the query [0, 6], all substrings of s[0..6] = "0001111" satisfy the k-constraint except for the substrings s[0..5] = "000111" and s[0..6] = "0001111".
+
+Example 2:
+
+Input: s = "010101", k = 1, queries = [[0,5],[1,4],[2,3]]
+
+Output: [15,9,3]
+
+Explanation:
+
+The substrings of s with a length greater than 3 do not satisfy the k-constraint.
+
+ 
+
+Constraints:
+
+1 <= s.length <= 105
+s[i] is either '0' or '1'.
+1 <= k <= s.length
+1 <= queries.length <= 105
+queries[i] == [li, ri]
+0 <= li <= ri < s.length
+All queries are distinct.
+
+
+
+# java
+
+
+class Solution {
+    public long[] countKConstraintSubstrings(String s, int k, int[][] queries) {
+        int[] cnt = new int[2];
+        int n = s.length();
+        int[] d = new int[n];
+        Arrays.fill(d, n);
+        long[] pre = new long[n + 1];
+        for (int i = 0, j = 0; j < n; ++j) {
+            cnt[s.charAt(j) - '0']++;
+            while (cnt[0] > k && cnt[1] > k) {
+                d[i] = j;
+                cnt[s.charAt(i++) - '0']--;
+            }
+            pre[j + 1] = pre[j] + j - i + 1;
+        }
+        int m = queries.length;
+        long[] ans = new long[m];
+        for (int i = 0; i < m; ++i) {
+            int l = queries[i][0], r = queries[i][1];
+            int p = Math.min(r + 1, d[l]);
+            long a = (1L + p - l) * (p - l) / 2;
+            long b = pre[r + 1] - pre[p];
+            ans[i] = a + b;
+        }
+        return ans;
+    }
+}
+
+
+
+or
+
+class Solution {
+  public long[] countKConstraintSubstrings(String s, int k, int[][] queries) {
+    final int n = s.length();
+    long[] ans = new long[queries.length];
+    int[] count = new int[2];
+    // leftToRight[l] : = the maximum right index r s.t.s[l..r] is valid
+    int[] leftToRight = new int[n];
+    // rightToLeft[r] := the minimum left index l s.t. s[l..r] is valid
+    int[] rightToLeft = new int[n];
+    // prefix[i] := the number of valid substrings ending in [0..i - 1].
+    long[] prefix = new long[n + 1];
+
+    for (int l = 0, r = 0; r < n; ++r) {
+      ++count[s.charAt(r) - '0'];
+      while (count[0] > k && count[1] > k)
+        --count[s.charAt(l++) - '0'];
+      rightToLeft[r] = l;
+    }
+
+    Arrays.fill(count, 0);
+
+    for (int l = n - 1, r = n - 1; l >= 0; --l) {
+      ++count[s.charAt(l) - '0'];
+      while (count[0] > k && count[1] > k)
+        --count[s.charAt(r--) - '0'];
+      leftToRight[l] = r;
+    }
+
+    for (int r = 0; r < n; ++r)
+      prefix[r + 1] = prefix[r] + r - rightToLeft[r] + 1;
+
+    for (int i = 0; i < queries.length; ++i) {
+      final int l = queries[i][0];
+      final int r = queries[i][1];
+      long numValidSubstrings = 0;
+      if (r > leftToRight[l]) {
+        // If r is beyond leftToRight[l], compute the number of valid substrings
+        // from l to leftToRight[l] and add the number of valid substrings
+        // ending in [leftToRight[l] + 1..r].
+        //
+        // prefix[r + 1] := the number of valid substrings ending in [0..r].
+        // prefix[leftToRight[l] + 1] := the number of valid substrings ending
+        // in [0..leftToRight].
+        // => prefix[r + 1] - prefix[leftToRight[l] + 1] := the number of valid
+        // substrings ending in [leftToRight[l] + 1..r].
+        final int sz = leftToRight[l] - l + 1;
+        numValidSubstrings = (sz * (sz + 1)) / 2 + (prefix[r + 1] - prefix[leftToRight[l] + 1]);
+      } else {
+        final int sz = r - l + 1;
+        numValidSubstrings = (sz * (long) (sz + 1)) / 2;
+      }
+      ans[i] = numValidSubstrings;
+    }
+
+    return ans;
+  }
+}
+
+
+or
+
+class Solution {
+    public long[] countKConstraintSubstrings(String s, int k, int[][] queries) {
+      int n=s.length();
+      int[] left=new int[n];
+      int[] right=new int[n];
+      int i=0;
+      int j=0;
+       Map<Character, Integer> mp = new HashMap<>();
+       while(j<n)
+       {
+         mp.put(s.charAt(j), mp.getOrDefault(s.charAt(j), 0) + 1);
+         while(mp.getOrDefault('0', 0) > k && mp.getOrDefault('1', 0) > k)
+         {
+           mp.put(s.charAt(i), mp.get(s.charAt(i)) - 1);
+                i++;
+         }
+         left[j]=i;
+         j++;
+       }
+       mp.clear();
+        i = n - 1;
+        j = n - 1;
+        while(j>=0)
+        {
+           mp.put(s.charAt(j), mp.getOrDefault(s.charAt(j), 0) + 1);
+           while(mp.getOrDefault('0', 0) > k && mp.getOrDefault('1', 0) > k)
+           {
+             mp.put(s.charAt(i), mp.get(s.charAt(i)) - 1);
+                i--;
+           }
+           right[j]=i;
+           j--;
+        }
+        int[] temp=new int[n];
+        for(j=0;j<n;j++)
+        {
+          temp[j]=j-left[j]+1;
+
+        }
+        long[] cumsum=new long[n];
+        cumsum[0]=temp[0];
+        for (i = 1; i < n; i++) {
+            cumsum[i] = cumsum[i - 1] + temp[i];
+        }
+           long[] result = new long[queries.length];
+              for (i = 0; i < queries.length; i++)
+              {
+                    int low = queries[i][0];
+            int high = queries[i][1];
+            int valid=Math.min(high,right[low]);
+            long length=valid-low+1;
+            long res=length*(length+1)/2;
+            if(valid<high)
+            {
+              res+=cumsum[high]-cumsum[valid];
+            }
+            result[i]=res;
+              }
+              return result;
+    }
+}
+
+
+
+or
+
+// sliding window + prefix sum
+
+
+class Solution {
+
+    private long[] findStringsAtEveryIndex(String s,int k){
+        int l=0,r=0;
+        int cntOnes=0,cntZeros=0;
+        long[] kConstraintStringCntAtEveryIndex = new long[s.length()];
+
+        while(r<s.length()){
+            if(s.charAt(r)=='1') cntOnes++;
+            else cntZeros++;
+
+            while(cntOnes>k && cntZeros>k){
+                if(s.charAt(l)=='1') cntOnes--;
+                else cntZeros--;
+                l++;
+            }
+            kConstraintStringCntAtEveryIndex[r] = r-l+1;
+            r++;
+        }
+
+        return kConstraintStringCntAtEveryIndex;
+    }
+
+    public long[] countKConstraintSubstrings(String s, int k, int[][] queries) {
+        long[] kConstraintStringCntAtEveryIndex = findStringsAtEveryIndex(s,k);
+
+        long[] prefixSum = new long[s.length()+1];
+        for(int i=0;i<s.length();i++){
+            prefixSum[i+1] = prefixSum[i]+kConstraintStringCntAtEveryIndex[i];
+        }
+
+        long[] res = new long[queries.length];
+        for(int i=0;i<queries.length;i++){
+            int l = queries[i][0];
+            int r = queries[i][1];
+
+            for(int j=l;j<=r;j++){
+                int curLen = j-l+1;
+                if(kConstraintStringCntAtEveryIndex[j]<=curLen){
+                    res[i] += prefixSum[r+1]-prefixSum[j];
+                    break;
+                }else{
+                    res[i] += curLen;
+                }
+            }
+        }
+
+        return res;
+
+    }
+
+    
+}
+
+
+or
+
+//  BinarySearch + Sliding Window + PrefixSum
+
+class Solution {
+    public int binarySearch(
+            final int[] prev, 
+            final int[] query) {
+        int l = query[0], r = query[1];
+
+        while(l < r) {
+            final int mid = (l + r) / 2;
+
+            if (prev[mid] < query[0]) l = mid + 1;
+            else r = mid;
+        }
+
+        return prev[l] < query[0] ? l + 1 : l;
+    }
+
+    public long[] countKConstraintSubstrings(
+            final String s,
+            final int k,
+            final int[][] queries) {
+        final int n = s.length();
+        final int m = queries.length;
+
+        final int[] prev = new int[n];
+        final long[] subCount = new long[n];
+
+        int l = 0, ones = 0, zeroes = 0;
+
+        for (int i = 0; i < n; i++) {
+            if (s.charAt(i) == '0') zeroes++;
+            else ones++;
+
+            while(ones > k && zeroes > k) {
+                if (s.charAt(l) == '0') zeroes--;
+                else ones--;
+
+                l++;
+            }
+
+            prev[i] = l;
+            subCount[i] = (i - l + 1);
+        }
+
+        final long[] pref = new long[n + 1];
+
+        for (int i = 1; i <= n; i++) {
+            pref[i] = pref[i - 1] + subCount[i - 1];
+        }
+
+        final long[] ans = new long[m];
+
+        for (int i = 0; i < m; i++) {
+            final int ind = binarySearch(prev, queries[i]);
+            final long diff = ind - queries[i][0];
+
+            ans[i] = (pref[queries[i][1] + 1] - pref[ind]) + (diff * (diff + 1) / 2);
+        }
+
+        return ans;
+    }
+}
+
+or
+
+
+//  Using Prefix Sum | Sliding window
+
+
+class Solution {
+    public long[] countKConstraintSubstrings(String s, int k, int[][] queries) {
+        int n=s.length();
+        long ans[]=new long[queries.length];
+        long preSum[]=new long[n];
+        long arr[]=new long[n];
+
+
+
+        int l=0;
+        int r=0;
+        int zero=0;
+        int one=0;
+       while(r<n){
+        if(s.charAt(r)=='1'){
+          one++;
+        }else {
+            zero++;
+        }
+        while(zero>k && one>k){
+            if(s.charAt(l)=='1')one--;
+            else zero--;
+            l++;
+        }
+        arr[r]=r-l+1;
+        r++;
+       }
+
+       preSum[0]=arr[0];
+       for(int i=1;i<n;i++){
+           preSum[i]=preSum[i-1]+arr[i];
+        }
+
+       for(int i=0;i<queries.length;i++){
+        l=queries[i][0];
+        r=queries[i][1];
+        long count=0;
+        long val=0;
+        for(int j=l;j<=r;j++){
+            val++;
+            if(arr[j] <=val){
+                long temp=j-1>0 ? preSum[j-1] : 0;
+                 count=count+preSum[r]-temp;
+                break;
+            }else {
+                count+=val;
+            }
+        }
+        ans[i]=count;
+
+
+       }
+       return ans;
+
+    }
+}
