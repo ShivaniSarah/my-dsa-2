@@ -1,0 +1,156 @@
+https://leetcode.com/problems/minimum-time-to-eat-all-grains/description/
+
+2604. Minimum Time to Eat All Grains
+Description
+There are n hens and m grains on a line. You are given the initial positions of the hens and the grains in two integer arrays hens and grains of size n and m respectively.
+
+Any hen can eat a grain if they are on the same position. The time taken for this is negligible. One hen can also eat multiple grains.
+
+In 1 second, a hen can move right or left by 1 unit. The hens can move simultaneously and independently of each other.
+
+Return the minimum time to eat all grains if the hens act optimally.
+
+ 
+
+Example 1:
+
+Input: hens = [3,6,7], grains = [2,4,7,9]
+Output: 2
+Explanation: 
+One of the ways hens eat all grains in 2 seconds is described below:
+- The first hen eats the grain at position 2 in 1 second. 
+- The second hen eats the grain at position 4 in 2 seconds. 
+- The third hen eats the grains at positions 7 and 9 in 2 seconds. 
+So, the maximum time needed is 2.
+It can be proven that the hens cannot eat all grains before 2 seconds.
+Example 2:
+
+Input: hens = [4,6,109,111,213,215], grains = [5,110,214]
+Output: 1
+Explanation: 
+One of the ways hens eat all grains in 1 second is described below:
+- The first hen eats the grain at position 5 in 1 second. 
+- The fourth hen eats the grain at position 110 in 1 second.
+- The sixth hen eats the grain at position 214 in 1 second. 
+- The other hens do not move. 
+So, the maximum time needed is 1.
+ 
+
+Constraints:
+
+1 <= hens.length, grains.length <= 2*104
+0 <= hens[i], grains[j] <= 109
+
+
+
+# java
+
+# Sorting + Binary Search
+
+class Solution {
+    private int[] hens;
+    private int[] grains;
+    private int m;
+
+    public int minimumTime(int[] hens, int[] grains) {
+        m = grains.length;
+        this.hens = hens;
+        this.grains = grains;
+        Arrays.sort(hens);
+        Arrays.sort(grains);
+        int l = 0;
+        int r = Math.abs(hens[0] - grains[0]) + grains[m - 1] - grains[0];
+        while (l < r) {
+            int mid = (l + r) >> 1;
+            if (check(mid)) {
+                r = mid;
+            } else {
+                l = mid + 1;
+            }
+        }
+        return l;
+    }
+
+    private boolean check(int t) {
+        int j = 0;
+        for (int x : hens) {
+            if (j == m) {
+                return true;
+            }
+            int y = grains[j];
+            if (y <= x) {
+                int d = x - y;
+                if (d > t) {
+                    return false;
+                }
+                while (j < m && grains[j] <= x) {
+                    ++j;
+                }
+                while (j < m && Math.min(d, grains[j] - x) + grains[j] - y <= t) {
+                    ++j;
+                }
+            } else {
+                while (j < m && grains[j] - x <= t) {
+                    ++j;
+                }
+            }
+        }
+        return j == m;
+    }
+}
+
+
+or
+
+
+class Solution {
+  public int minimumTime(int[] hens, int[] grains) {
+    Arrays.sort(hens);
+    Arrays.sort(grains);
+
+    final int maxPosition = Math.max(Arrays.stream(hens).max().getAsInt(), //
+                                     Arrays.stream(grains).max().getAsInt());
+    final int minPosition = Math.min(Arrays.stream(hens).min().getAsInt(), //
+                                     Arrays.stream(grains).min().getAsInt());
+    int l = 0;
+    int r = (int) (1.5 * (maxPosition - minPosition));
+
+    while (l < r) {
+      final int m = (int) ((l + (long) r) / 2);
+      if (canEat(hens, grains, m))
+        r = m;
+      else
+        l = m + 1;
+    }
+
+    return (int) l;
+  }
+
+  // Returns true if `hens` can eat all `grains` within `time`.
+  private boolean canEat(int[] hens, int[] grains, int time) {
+    int i = 0; // grains[i] := next grain to be ate
+    for (final int hen : hens) {
+      int rightMoves = time;
+      if (grains[i] < hen) {
+        // `hen` needs go back to eat `grains[i]`.
+        final int leftMoves = hen - grains[i];
+        if (leftMoves > time)
+          return false;
+        final int leftThenRight = time - 2 * leftMoves;
+        final int rightThenLeft = (time - leftMoves) / 2;
+        rightMoves = Math.max(0, Math.max(leftThenRight, rightThenLeft));
+      }
+      i = firstGreater(grains, hen + rightMoves);
+      if (i == grains.length)
+        return true;
+    }
+    return false;
+  }
+
+  private int firstGreater(int[] arr, int target) {
+    final int i = Arrays.binarySearch(arr, target + 1);
+    return i < 0 ? -i - 1 : i;
+  }
+}
+
+
