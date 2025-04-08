@@ -26,8 +26,9 @@ Constraints:
 2 <= s.length <= 3 * 104
 s consists of lowercase English letters.
 
+# Binary search O(n log n) average with Rabin-Karp
 
- # java
+# java
 
 class Solution {
     private long[] p;
