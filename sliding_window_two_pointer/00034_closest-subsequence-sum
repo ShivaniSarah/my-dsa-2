@@ -1,0 +1,525 @@
+https://leetcode.com/problems/closest-subsequence-sum/
+
+1755. Closest Subsequence Sum
+Hard
+Topics
+Companies
+Hint
+You are given an integer array nums and an integer goal.
+
+You want to choose a subsequence of nums such that the sum of its elements is the closest possible to goal. That is, if the sum of the subsequence's elements is sum, then you want to minimize the absolute difference abs(sum - goal).
+
+Return the minimum possible value of abs(sum - goal).
+
+Note that a subsequence of an array is an array formed by removing some elements (possibly all or none) of the original array.
+
+ 
+
+Example 1:
+
+Input: nums = [5,-7,3,5], goal = 6
+Output: 0
+Explanation: Choose the whole array as a subsequence, with a sum of 6.
+This is equal to the goal, so the absolute difference is 0.
+Example 2:
+
+Input: nums = [7,-9,15,-2], goal = -5
+Output: 1
+Explanation: Choose the subsequence [7,-9,-2], with a sum of -4.
+The absolute difference is abs(-4 - (-5)) = abs(1) = 1, which is the minimum.
+Example 3:
+
+Input: nums = [1,2,3], goal = -7
+Output: 7
+ 
+
+Constraints:
+
+1 <= nums.length <= 40
+-107 <= nums[i] <= 107
+-109 <= goal <= 109
+
+# DFS + sliding window
+
+# java
+
+class Solution {
+    public int minAbsDifference(int[] nums, int goal) {
+        int n = nums.length;
+        List<Integer> lsum = new ArrayList<>();
+        List<Integer> rsum = new ArrayList<>();
+        dfs(nums, lsum, 0, n / 2, 0);
+        dfs(nums, rsum, n / 2, n, 0);
+
+        rsum.sort(Integer::compareTo);
+        int res = Integer.MAX_VALUE;
+
+        for (Integer x : lsum) {
+            int target = goal - x;
+            int left = 0, right = rsum.size();
+            while (left < right) {
+                int mid = (left + right) >> 1;
+                if (rsum.get(mid) < target) {
+                    left = mid + 1;
+                } else {
+                    right = mid;
+                }
+            }
+            if (left < rsum.size()) {
+                res = Math.min(res, Math.abs(target - rsum.get(left)));
+            }
+            if (left > 0) {
+                res = Math.min(res, Math.abs(target - rsum.get(left - 1)));
+            }
+        }
+
+        return res;
+    }
+
+    private void dfs(int[] nums, List<Integer> sum, int i, int n, int cur) {
+        if (i == n) {
+            sum.add(cur);
+            return;
+        }
+
+        dfs(nums, sum, i + 1, n, cur);
+        dfs(nums, sum, i + 1, n, cur + nums[i]);
+    }
+}
+
+or
+
+
+class Solution {
+  public int minAbsDifference(int[] nums, int goal) {
+    final int n = nums.length / 2;
+    final int[] lNums = Arrays.copyOfRange(nums, 0, n);
+    final int[] rNums = Arrays.copyOfRange(nums, n, nums.length);
+    int ans = Integer.MAX_VALUE;
+    List<Integer> lSums = new ArrayList<>();
+    List<Integer> rSums = new ArrayList<>();
+
+    dfs(lNums, 0, 0, lSums);
+    dfs(rNums, 0, 0, rSums);
+    Collections.sort(rSums);
+
+    for (final int lSum : lSums) {
+      final int i = firstGreaterEqual(rSums, goal - lSum);
+      if (i < rSums.size()) // 2^n
+        ans = Math.min(ans, Math.abs(goal - lSum - rSums.get(i)));
+      if (i > 0)
+        ans = Math.min(ans, Math.abs(goal - lSum - rSums.get(i - 1)));
+    }
+
+    return ans;
+  }
+
+  private void dfs(int[] arr, int i, int path, List<Integer> sums) {
+    if (i == arr.length) {
+      sums.add(path);
+      return;
+    }
+    dfs(arr, i + 1, path + arr[i], sums);
+    dfs(arr, i + 1, path, sums);
+  }
+
+  private int firstGreaterEqual(List<Integer> arr, int target) {
+    final int i = Collections.binarySearch(arr, target);
+    return i < 0 ? -i - 1 : i;
+  }
+}
+
+
+
+or
+
+//  meet in the middle
+
+class Solution {
+    int[] arr;
+    public int minAbsDifference(int[] nums, int goal) {
+        arr = nums;
+        int n = nums.length;
+        
+        
+        List<Integer> first = new ArrayList<>();
+        List<Integer> second = new ArrayList<>();
+        
+        generate(0,n/2,0, first); //generate all possible subset sums from half the array
+        generate(n/2, n , 0, second);//generate all possible subset sums from the second half of the array
+        
+        
+        Collections.sort(first);
+        int ans = Integer.MAX_VALUE;
+        
+        
+        for(int secondSetSum : second ) {
+            int left = goal - secondSetSum; // How far off are we from the desired goal?
+            
+            if(first.get(0) > left) { // all subset sums from first half are too big => Choose the smallest
+                ans = (int)(Math.min(ans, Math.abs((first.get(0) + secondSetSum) - goal)));
+                continue;
+            }
+            if(first.get(first.size() - 1) < left) { // all subset sums from first half are too small => Choose the largest
+                ans = (int)(Math.min(ans, Math.abs((first.get(first.size() - 1) + secondSetSum) - goal)));
+                continue;
+            }
+            int pos = Collections.binarySearch(first, left);
+            if(pos >= 0) // Exact match found! => first.get(pos) + secondSetSum == goal
+                return 0;
+            else        // If exact match not found, binarySearch in java returns (-(insertionPosition) - 1)
+                pos = -1 * (pos + 1);
+            int low = pos - 1;
+            ans = (int)Math.min(ans, Math.abs(secondSetSum + first.get(low) - goal)); // Checking for the floor value (largest sum < goal)
+            ans = (int)Math.min(ans, Math.abs(secondSetSum + first.get(pos) - goal)); //Checking for the ceiling value (smallest sum > goal)
+        }
+        return ans;
+    }
+
+    /**
+    * Generating all possible subset sums. 2 choices at each index,i -> pick vs do not pick 
+    */
+    void generate(int i, int end, int sum, List<Integer> set) {
+        if (i == end) {
+            set.add(sum); //add
+            return;
+        }
+        generate(i + 1, end, sum + arr[i], set);
+        generate(i + 1, end, sum, set);
+        
+    }
+}
+
+or
+
+
+class Solution {
+    public int minAbsDifference(int[] nums, int goal)
+    {
+         //splitting the array , nums, into 2 parts
+    	int part1[] = new int[nums.length/2];
+    	int part2[] = new int[nums.length-part1.length];
+    	int k = 0;
+    	for(int i=0;i<part1.length;i++)
+    	{
+    		part1[i] = nums[i];
+    		k++;
+    	}
+    	for(int i=0 ; i<part2.length ; i++)
+    	{
+    		part2[i] = nums[k];
+    		k++;
+    	}
+    	ArrayList<Integer> sum1=new ArrayList<>(); // stores the sum of all subseq of part1
+    	ArrayList<Integer> sum2=new ArrayList<>(); //stores the sum of all subseq of part2
+    	//fills sum1 & sum2 ,  i.e add the sum of elements of all possible subseq of part1 into sum1 &
+    	//add the sum of elements of all possible subseq of part2 into sum2
+        addSum(sum1,part1,0,0);
+        addSum(sum2,part2,0,0);
+        //sorting the two lists 
+        Collections.sort(sum1);
+        Collections.sort(sum2);
+        
+        int low  = 0;
+        int high = sum2.size()-1;
+        int res = Integer.MAX_VALUE;
+        while(low < sum1.size() && high >= 0)
+        {
+             int sum = sum1.get(low)+sum2.get(high);
+             res = Math.min(res,Math.abs(sum-goal));
+              if(sum > goal)
+             {
+            	 high--;
+             }
+             else if(sum==goal)
+             {
+                 return 0;
+             }
+             else
+             {
+            	 low++;
+             }
+           
+        }
+        
+        return res;
+    }
+    private void addSum(ArrayList<Integer> sumlist, int[] part,int sum,int si) 
+	{
+		if(si>=part.length)
+		{
+			sumlist.add(sum);
+			return;
+		}
+		//include
+		addSum(sumlist,part,sum+part[si],si+1);
+		//exclude
+		addSum(sumlist,part,sum,si+1);
+	}
+}
+
+
+or
+
+
+class Solution {
+    public int minAbsDifference(int[] nums, int goal) {
+        int n = nums.length;
+        if(n==1){
+            return Math.min(Math.abs(0-goal),Math.abs(nums[0]-goal));
+        }
+        int mid = n/2;
+        
+        // Divide the array nums into two Arrays left and Right
+        
+        int[] left = new int[mid];
+        int[] right = new int[n-mid];
+        for(int i = 0; i<n; i++){
+            if(i<mid){
+                left[i] = nums[i];
+            } else{
+                right[i-mid] = nums[i];
+            }
+        }
+        // Make an ArrayList and fill the arraylist with sum of All the subsequences
+        // for left and right array
+        
+        // Arraylist for left array
+        ArrayList<Integer> leftSum = getAllSum(left,0,0); 
+        
+        // ArrayList for right Array
+        ArrayList<Integer> rightSum = getAllSum(right,0,0);
+        
+        // Sort the ArrayLists to use Two pointer Approach
+        Collections.sort(leftSum);
+        Collections.sort(rightSum);
+        
+        // Call the function to get min absolute diff Using two pointer Approach
+        return getMinVal(leftSum,rightSum,goal);
+    }
+    public int getMinVal(ArrayList<Integer> leftSum, ArrayList<Integer> rightSum, int tar){
+        
+        
+        // This function uses two pointer Approach
+        
+        // invoke a min having max int value
+        int min = Integer.MAX_VALUE;
+        
+        // i - index for left array
+        int i = 0;
+        
+        // j - index for right array
+        int j = rightSum.size()-1;
+        
+        
+        while(i<leftSum.size()&&j>=0){
+            int sum = leftSum.get(i)+rightSum.get(j);
+            min = Math.min(min,Math.abs(tar-sum));
+            
+            // if sum is less then target we need to increase sum
+            // we will increase index of left array as the left array is sorted
+            // by increasing we can get larger values
+            if(sum<tar){
+                i++;
+            }
+            // Similarly if sum > tar; decrease j to get smaller values;
+            else if(sum >tar){
+                j--;
+            }
+            // if sum == tar; it's the min diff; so return 0;
+            else{
+                return 0;
+            }
+        }
+        return min;
+    }
+    
+    public ArrayList<Integer> getAllSum(int[] part, int idx, int sum){
+        int n = part.length;
+        if(idx==n){
+            ArrayList<Integer> exc = new ArrayList<Integer>();
+            exc.add(0);
+            return exc;
+        }
+        // make an arraylist;
+        // fill arraylist excluding current element;
+        ArrayList<Integer> exc = getAllSum(part, idx+1, sum);
+        
+        int len = exc.size();
+        // fill same array list by adding curr element into all the elements of 
+        //arraylists;
+        for(int i =0; i<len; i++){
+            exc.add(part[idx]+exc.get(i));
+        }
+        return exc;
+    }
+    
+    
+}
+
+
+
+or
+
+
+
+class Solution {
+    int minPossible = Integer.MAX_VALUE;
+    public void findAllSubsetSums(ArrayList<Integer> lst, int start, int end, int sum, int[] nums){
+
+        if(start == end) {
+            lst.add(sum);
+            return;
+        }
+       
+       findAllSubsetSums(lst, start + 1, end, sum + nums[start], nums);
+       findAllSubsetSums(lst, start + 1, end, sum, nums);
+    }
+
+    public int minAbsDifference(int[] nums, int goal) {
+        int n = nums.length;
+        ArrayList<Integer> firstHalf = new ArrayList<>();
+        ArrayList<Integer> secondHalf = new ArrayList<>();
+
+
+        findAllSubsetSums(firstHalf, 0, n / 2, 0, nums);
+        findAllSubsetSums(secondHalf, n / 2, n, 0, nums);
+        Collections.sort(firstHalf);
+
+        for(int x : secondHalf) {
+            int diff = goal - x;
+            int currIndex = binarySearch(diff, firstHalf);
+            if (currIndex < firstHalf.size()) {
+                minPossible = Math.min(minPossible, Math.abs(diff - firstHalf.get(currIndex)));
+            }
+            if (currIndex > 0) {
+                minPossible = Math.min(minPossible, Math.abs(diff - firstHalf.get(currIndex - 1)));
+            }
+        }
+
+        return minPossible;
+    }
+
+    public int binarySearch(int x, List<Integer> lst) {
+        int low = 0, high = lst.size() - 1;
+
+        while (low < high) {
+            int mid = low + (high - low) / 2;
+            if (x == lst.get(mid))
+                return mid;
+            if (x > lst.get(mid))
+                low = mid + 1;
+            else
+                high = mid;
+        }
+        return low;
+    }
+}
+
+
+or
+
+// optimised
+
+class Solution {
+    int[] arr;
+
+    public void fun(int s, int e, int sum, List<Integer> ls) {
+        if (s > e) {
+            ls.add(sum);
+            return;
+        }
+        fun(s + 1, e, sum + arr[s], ls);
+        fun(s + 1, e, sum, ls);
+    }
+
+    public int minAbsDifference(int[] nums, int goal) {
+        arr = nums;
+        int n = nums.length;
+
+        // Generate subset sums for both halves
+        List<Integer> first = new ArrayList<>();
+        List<Integer> last = new ArrayList<>();
+        fun(0, n / 2, 0, first);
+        fun(n / 2 + 1, n - 1, 0, last);
+
+        // Sort the second half's subset sums for binary search
+        Collections.sort(last);
+        int ans = Integer.MAX_VALUE;
+
+        // Find the closest sum using binary search
+        for (int el : first) {
+            int res = goal - el;
+
+            if (res < last.get(0)) {
+                ans = Math.min(ans, Math.abs(goal - (el + last.get(0))));
+                continue;
+            }
+            if (res > last.get(last.size() - 1)) {
+                ans = Math.min(ans, Math.abs(goal - (el + last.get(last.size() - 1))));
+                continue;
+            } else {
+                int pos = Collections.binarySearch(last, res);
+
+                if (pos >= 0) {
+                    return 0; // Exact match found
+                }
+
+                pos = -1 * (pos + 1); // Convert to insertion point
+                int low = pos - 1;
+
+                ans = Math.min(ans, Math.abs(goal - (el + last.get(low))));
+                ans = Math.min(ans, Math.abs(goal - (el + last.get(low + 1))));
+            }
+        }
+        return ans;
+    }
+}
+
+
+or
+
+// Meet in the middle + bitmask when n==40
+
+class Solution {
+    public int minAbsDifference(int[] nums, int goal) {
+        int n=nums.length, l=n/2, r=n-l;
+        int[] dpl=new int[1<<l], dpr=new int[1<<r];
+        for(int i=1;i<(1<<l);i++){
+            for(int j=0;j<n/2;j++){
+                if((i>>j&1)>0){
+                    dpl[i]=dpl[i-(1<<j)]+nums[j];
+                    break;
+                }
+            }
+        }
+        for(int i=1;i<(1<<r);i++){
+            for(int j=l;j<n;j++){
+                if((i>>(j-l)&1)>0){
+                    dpr[i]=dpr[i-(1<<(j-l))]+nums[j];
+                    break;
+                }
+            }
+        }
+        Arrays.sort(dpl);
+        Arrays.sort(dpr);
+
+        int res=Integer.MAX_VALUE;
+        for(int num:dpl) res=Math.min(res,Math.abs(num-goal));
+        for(int num:dpr) res=Math.min(res,Math.abs(num-goal));
+
+        for(int i=0,j=(1<<r)-1;i<(1<<l) && j>=0;){
+            if(dpl[i]+dpr[j]==goal){
+                return 0;
+            }else if(dpl[i]+dpr[j]>goal){
+                res=Math.min(res,Math.abs(dpl[i]+dpr[j]-goal));
+                j--;
+            }else{
+                res=Math.min(res,Math.abs(dpl[i]+dpr[j]-goal));
+                i++;
+            }
+        }
+        return res;
+    }
+}
+
