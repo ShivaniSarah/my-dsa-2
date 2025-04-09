@@ -1,0 +1,195 @@
+https://leetcode.com/problems/minimum-number-of-moves-to-make-palindrome/description/
+
+
+2193. Minimum Number of Moves to Make Palindrome
+Hard
+Topics
+Companies
+Hint
+You are given a string s consisting only of lowercase English letters.
+
+In one move, you can select any two adjacent characters of s and swap them.
+
+Return the minimum number of moves needed to make s a palindrome.
+
+Note that the input will be generated such that s can always be converted to a palindrome.
+
+ 
+
+Example 1:
+
+Input: s = "aabb"
+Output: 2
+Explanation:
+We can obtain two palindromes from s, "abba" and "baab". 
+- We can obtain "abba" from s in 2 moves: "aabb" -> "abab" -> "abba".
+- We can obtain "baab" from s in 2 moves: "aabb" -> "abab" -> "baab".
+Thus, the minimum number of moves needed to make s a palindrome is 2.
+Example 2:
+
+Input: s = "letelt"
+Output: 2
+Explanation:
+One of the palindromes we can obtain from s in 2 moves is "lettel".
+One of the ways we can obtain it is "letelt" -> "letetl" -> "lettel".
+Other palindromes such as "tleelt" can also be obtained in 2 moves.
+It can be shown that it is not possible to obtain a palindrome in less than 2 moves.
+ 
+
+Constraints:
+
+1 <= s.length <= 2000
+s consists only of lowercase English letters.
+s can be converted to a palindrome using a finite number of moves.
+
+
+# java
+
+
+class Solution {
+    public int minMovesToMakePalindrome(String s) {
+        int n = s.length();
+        int ans = 0;
+        char[] cs = s.toCharArray();
+        for (int i = 0, j = n - 1; i < j; ++i) {
+            boolean even = false;
+            for (int k = j; k != i; --k) {
+                if (cs[i] == cs[k]) {
+                    even = true;
+                    for (; k < j; ++k) {
+                        char t = cs[k];
+                        cs[k] = cs[k + 1];
+                        cs[k + 1] = t;
+                        ++ans;
+                    }
+                    --j;
+                    break;
+                }
+            }
+            if (!even) {
+                ans += n / 2 - i;
+            }
+        }
+        return ans;
+    }
+}
+
+
+or
+
+class Solution {
+  public int minMovesToMakePalindrome(String s) {
+    int ans = 0;
+    StringBuilder sb = new StringBuilder(s);
+
+    while (sb.length() > 1) {
+      // Greedily match the last digit.
+      final int i = sb.indexOf(sb.substring(sb.length() - 1));
+      if (i == sb.length() - 1) {
+        // s[i] is the middle letter.
+        ans += i / 2;
+      } else {
+        sb.deleteCharAt(i);
+        ans += i; // Swap the matched letter to the left.
+      }
+      sb.deleteCharAt(sb.length() - 1);
+    }
+
+    return ans;
+  }
+}
+
+or
+
+
+class Solution {
+    public int minMovesToMakePalindrome(String s) {
+        int count = 0;
+        
+        while(s.length() > 2) {
+            char ch1 = s.charAt(0);
+            int len = s.length();
+            char ch2 = s.charAt(len - 1);
+            
+            if (ch1 == ch2) {
+                s = s.substring(1, len - 1);
+            } else {
+                int id1 = s.lastIndexOf(ch1);
+                int id2 = s.indexOf(ch2);
+                
+                int steps1 = len - id1 - 1;
+                int steps2 = id2;
+                
+                StringBuilder sb = new StringBuilder();
+                
+                if (steps1 > steps2) {
+                    count += steps2;
+                    sb.append(s.substring(0, id2));
+                    sb.append(s.substring(id2 + 1, len - 1));
+                } else {
+                    count += steps1;
+                    sb.append(s.substring(1, id1));
+                    sb.append(s.substring(id1 + 1));
+                }
+                
+                s = sb.toString();
+            }
+        }
+        
+        return count;
+    }
+}
+
+or
+
+
+class Solution {
+
+	public int minMovesToMakePalindrome(String s) {
+		int len = s.length();
+		char[] strArr = s.toCharArray();        
+		int steps = 0;
+		int l = 0, r = len-1;                                           // use two pointers l for left and r for right. 
+
+		while(l < r){            
+			if(strArr[l] == strArr[r]){                                 // Both characters are equal. so keep going futher.
+				l++; r--;
+			}else{                                                      // Both characters are not equal.    
+				int k = r;
+				k = findKthIndexMatchingwithLthIndex(strArr, l, k);     // loop through k, until char at index k = char at index l              
+
+				if(k == l){                                             // we did not find any char at k = char at index l    
+					swap(strArr, l);
+					steps++;   
+				}else{                                                  
+					while(k < r){                                           
+						swap(strArr, k);
+						steps++;
+						k++;
+					}
+					l++; r--;
+				}                
+			}// end of else
+
+		}   // end of while
+		System.out.println("palindrome: "+String.valueOf(strArr));
+		return steps;
+
+	}
+
+	public int findKthIndexMatchingwithLthIndex(char[] strArr, int l, int k){
+		while(k > l){
+			if(strArr[k] == strArr[l]){  return k;  }                    
+			k--;
+		}
+		return k;
+	}
+
+	public void swap(char[] strArr, int l){
+		if(l+1 < strArr.length){
+			char tempCh = strArr[l];
+			strArr[l] = strArr[l+1];
+			strArr[l+1] = tempCh;
+		}
+	}
+}
