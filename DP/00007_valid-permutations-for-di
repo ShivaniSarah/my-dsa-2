@@ -1,0 +1,146 @@
+https://leetcode.com/problems/valid-permutations-for-di-sequence/description/
+
+903. Valid Permutations for DI Sequence
+Hard
+Topics
+Companies
+You are given a string s of length n where s[i] is either:
+
+'D' means decreasing, or
+'I' means increasing.
+A permutation perm of n + 1 integers of all the integers in the range [0, n] is called a valid permutation if for all valid i:
+
+If s[i] == 'D', then perm[i] > perm[i + 1], and
+If s[i] == 'I', then perm[i] < perm[i + 1].
+Return the number of valid permutations perm. Since the answer may be large, return it modulo 109 + 7.
+
+ 
+
+Example 1:
+
+Input: s = "DID"
+Output: 5
+Explanation: The 5 valid permutations of (0, 1, 2, 3) are:
+(1, 0, 3, 2)
+(2, 0, 3, 1)
+(2, 1, 3, 0)
+(3, 0, 2, 1)
+(3, 1, 2, 0)
+Example 2:
+
+Input: s = "D"
+Output: 1
+ 
+
+Constraints:
+
+n == s.length
+1 <= n <= 200
+s[i] is either 'I' or 'D'.
+
+
+# java
+
+
+class Solution {
+    public int numPermsDISequence(String s) {
+        final int mod = (int) 1e9 + 7;
+        int n = s.length();
+        int[] f = new int[n + 1];
+        f[0] = 1;
+        for (int i = 1; i <= n; ++i) {
+            int pre = 0;
+            int[] g = new int[n + 1];
+            if (s.charAt(i - 1) == 'D') {
+                for (int j = i; j >= 0; --j) {
+                    pre = (pre + f[j]) % mod;
+                    g[j] = pre;
+                }
+            } else {
+                for (int j = 0; j <= i; ++j) {
+                    g[j] = pre;
+                    pre = (pre + f[j]) % mod;
+                }
+            }
+            f = g;
+        }
+        int ans = 0;
+        for (int j = 0; j <= n; ++j) {
+            ans = (ans + f[j]) % mod;
+        }
+        return ans;
+    }
+}
+
+
+or
+
+class Solution {
+  public int numPermsDISequence(String s) {
+    final int MOD = 1_000_000_007;
+    final int n = s.length();
+    // dp[i][j] := the number of valid permutations with i + 1 digits, where s[i] is j-th
+    // Digit of remaining digits
+    int[][] dp = new int[n + 1][n + 1];
+
+    // When there's only one digit, the number of permutations is 1.
+    for (int j = 0; j <= n; ++j)
+      dp[0][j] = 1;
+
+    for (int i = 1; i <= n; ++i)
+      if (s.charAt(i - 1) == 'I') { // s[i - 1] == 'I'
+        // Calculate the postfix sum to prevent duplicate calculation.
+        int postfixsum = 0;
+        for (int j = n - i; j >= 0; --j) {
+          postfixsum = (postfixsum + dp[i - 1][j + 1]) % MOD;
+          dp[i][j] = postfixsum;
+        }
+      } else { // s[i - 1] == 'D'
+        // Calculate the prefix sum to prevent duplicate calculation.
+        int prefix = 0;
+        for (int j = 0; j <= n - i; ++j) {
+          prefix = (prefix + dp[i - 1][j]) % MOD;
+          dp[i][j] = prefix;
+        }
+      }
+
+    return dp[n][0];
+  }
+}
+
+or
+
+
+class Solution {
+  public int numPermsDISequence(String s) {
+    final int MOD = 1_000_000_007;
+    final int n = s.length();
+    int[] dp = new int[n + 1];
+
+    // When there's only one digit, the number of permutations is 1.
+    for (int j = 0; j <= n; ++j)
+      dp[j] = 1;
+
+    for (int i = 1; i <= n; ++i) {
+      int[] newDp = new int[n + 1];
+      if (s.charAt(i - 1) == 'I') { // s[i - 1] == 'I'
+        // Calculate the postfix sum to prevent duplicate calculation.
+        int postfixsum = 0;
+        for (int j = n - i; j >= 0; --j) {
+          postfixsum = (postfixsum + dp[j + 1]) % MOD;
+          newDp[j] = postfixsum;
+        }
+      } else { // s[i - 1] == 'D'
+        // Calculate the prefix sum to prevent duplicate calculation.
+        int prefix = 0;
+        for (int j = 0; j <= n - i; ++j) {
+          prefix = (prefix + dp[j]) % MOD;
+          newDp[j] = prefix;
+        }
+      }
+      dp = newDp;
+    }
+
+    return dp[0];
+  }
+}
