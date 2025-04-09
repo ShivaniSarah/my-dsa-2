@@ -1,0 +1,251 @@
+https://leetcode.com/problems/recover-the-original-array/description/
+
+2122. Recover the Original Array
+Hard
+Topics
+Companies
+Hint
+Alice had a 0-indexed array arr consisting of n positive integers. She chose an arbitrary positive integer k and created two new 0-indexed integer arrays lower and higher in the following manner:
+
+lower[i] = arr[i] - k, for every index i where 0 <= i < n
+higher[i] = arr[i] + k, for every index i where 0 <= i < n
+Unfortunately, Alice lost all three arrays. However, she remembers the integers that were present in the arrays lower and higher, but not the array each integer belonged to. Help Alice and recover the original array.
+
+Given an array nums consisting of 2n integers, where exactly n of the integers were present in lower and the remaining in higher, return the original array arr. In case the answer is not unique, return any valid array.
+
+Note: The test cases are generated such that there exists at least one valid array arr.
+
+ 
+
+Example 1:
+
+Input: nums = [2,10,6,4,8,12]
+Output: [3,7,11]
+Explanation:
+If arr = [3,7,11] and k = 1, we get lower = [2,6,10] and higher = [4,8,12].
+Combining lower and higher gives us [2,6,10,4,8,12], which is a permutation of nums.
+Another valid possibility is that arr = [5,7,9] and k = 3. In that case, lower = [2,4,6] and higher = [8,10,12]. 
+Example 2:
+
+Input: nums = [1,1,3,3]
+Output: [2,2]
+Explanation:
+If arr = [2,2] and k = 1, we get lower = [1,1] and higher = [3,3].
+Combining lower and higher gives us [1,1,3,3], which is equal to nums.
+Note that arr cannot be [1,3] because in that case, the only possible way to obtain [1,1,3,3] is with k = 0.
+This is invalid since k must be positive.
+Example 3:
+
+Input: nums = [5,435]
+Output: [220]
+Explanation:
+The only possible combination is arr = [220] and k = 215. Using them, we get lower = [5] and higher = [435].
+ 
+
+Constraints:
+
+2 * n == nums.length
+1 <= n <= 1000
+1 <= nums[i] <= 109
+The test cases are generated such that there exists at least one valid array arr.
+
+
+
+# java
+
+
+class Solution {
+    public int[] recoverArray(int[] nums) {
+        Arrays.sort(nums);
+        for (int i = 1, n = nums.length; i < n; ++i) {
+            int d = nums[i] - nums[0];
+            if (d == 0 || d % 2 == 1) {
+                continue;
+            }
+            boolean[] vis = new boolean[n];
+            vis[i] = true;
+            List<Integer> t = new ArrayList<>();
+            t.add((nums[0] + nums[i]) >> 1);
+            for (int l = 1, r = i + 1; r < n; ++l, ++r) {
+                while (l < n && vis[l]) {
+                    ++l;
+                }
+                while (r < n && nums[r] - nums[l] < d) {
+                    ++r;
+                }
+                if (r == n || nums[r] - nums[l] > d) {
+                    break;
+                }
+                vis[r] = true;
+                t.add((nums[l] + nums[r]) >> 1);
+            }
+            if (t.size() == (n >> 1)) {
+                int[] ans = new int[t.size()];
+                int idx = 0;
+                for (int e : t) {
+                    ans[idx++] = e;
+                }
+                return ans;
+            }
+        }
+        return null;
+    }
+}
+
+
+or
+
+
+class Solution {
+    public int[] recoverArray(int[] nums) {
+        int N = nums.length;
+        Arrays.sort(nums);
+        List<Integer> diffList = new ArrayList<>();
+        for (int i = 1; i < N; i++) {
+            int diff = Math.abs(nums[i] - nums[0]);
+            if (diff % 2 == 0 && diff > 0) diffList.add(diff / 2);
+        }
+        Map<Integer, Integer> map1 = new HashMap<>();
+        for (int i = 0; i < N; i++)
+            map1.put(nums[i], map1.getOrDefault(nums[i], 0) + 1);
+        for (int diff : diffList) {
+            Map<Integer, Integer> map = new HashMap<>(map1);
+            List<Integer> tmp = new ArrayList<>();
+            for (int i = 0; i < N; i++) {
+			    if (tmp.size() == N / 2) break;
+                int low = nums[i];
+                int high = low + 2 * diff;
+                if (map.containsKey(low) && map.containsKey(high)) {
+                    tmp.add(low + diff);
+                    map.put(low, map.get(low) - 1); 
+                    map.put(high, map.get(high) - 1);
+                    if (map.get(low) == 0) map.remove(low);
+                    if (map.get(high) == 0) map.remove(high);
+                }
+            }
+            if (tmp.size() == N / 2) return tmp.stream().mapToInt(i -> i).toArray();
+        }
+        return null;
+    }
+}
+
+
+or
+
+
+import java.util.*;
+
+class Solution {
+    public int[] recoverArray(int[] nums) {
+        Arrays.sort(nums);
+        int n2 = nums.length;
+        int n = n2 / 2;
+        List<Integer> v1 = new ArrayList<>(n);
+        List<Integer> v2 = new ArrayList<>(n);
+
+        int a = nums[0];
+
+        for (int i = 1; i < n2; i++) {
+            int k = nums[i] - a;
+            if (k % 2 == 1 || k == 0 || nums[i] == nums[i - 1]) continue;
+
+            v1.clear();
+            v2.clear();
+            v1.add(a);
+            int x = 0;
+
+            for (int j = 1; j < n2; j++) {
+                if (x < v1.size() && nums[j] == v1.get(x) + k) {
+                    v2.add(nums[j]);
+                    x++;
+                } else {
+                    v1.add(nums[j]);
+                }
+
+                if (v1.size() > n || v2.size() > n) break;
+            }
+
+            if (v1.size() != n || v2.size() != n) continue;
+
+            int[] ans = new int[n];
+            for (int idx = 0; idx < n; idx++) {
+                ans[idx] = (v1.get(idx) + v2.get(idx)) / 2;
+            }
+            return ans;
+        }
+
+        return new int[0];
+    }
+}
+
+
+or
+
+
+import java.util.*;
+
+class Solution {
+    private List<Integer> canMakeIt(TreeMap<Integer, Integer> st, int k) {
+        if (k <= 0) return Collections.singletonList(-1);
+
+        TreeMap<Integer, Integer> erased = new TreeMap<>();
+        List<Integer> ans = new ArrayList<>();
+        TreeMap<Integer, Integer> copy = new TreeMap<>(st);
+
+        while (!copy.isEmpty()) {
+            int val = copy.firstKey();
+            int org = val + k;
+            decrement(copy, val);
+            increment(erased, val);
+
+            int paired = org + k;
+            if (copy.containsKey(paired)) {
+                ans.add(org);
+                decrement(copy, paired);
+                increment(erased, paired);
+            } else {
+                for (Map.Entry<Integer, Integer> entry : erased.entrySet()) {
+                    int key = entry.getKey();
+                    int count = entry.getValue();
+                    st.put(key, st.getOrDefault(key, 0) + count);
+                }
+                return Collections.singletonList(-1);
+            }
+        }
+        return ans;
+    }
+
+    public int[] recoverArray(int[] nums) {
+        Arrays.sort(nums);
+        TreeMap<Integer, Integer> st = new TreeMap<>();
+        for (int num : nums) {
+            st.put(num, st.getOrDefault(num, 0) + 1);
+        }
+
+        int smallest = nums[0];
+        for (int j = 1; j < nums.length; j++) {
+            int addi = smallest + nums[j];
+            if (addi % 2 == 0) {
+                int org = addi / 2;
+                int k = nums[j] - org;
+                TreeMap<Integer, Integer> temp = new TreeMap<>(st);
+                List<Integer> ans = canMakeIt(temp, k);
+                if (ans.get(0) != -1) {
+                    int[] result = new int[ans.size()];
+                    for (int i = 0; i < ans.size(); i++) result[i] = ans.get(i);
+                    return result;
+                }
+            }
+        }
+        return new int[]{-1};
+    }
+
+    private void decrement(TreeMap<Integer, Integer> map, int key) {
+        map.put(key, map.get(key) - 1);
+        if (map.get(key) == 0) map.remove(key);
+    }
+
+    private void increment(TreeMap<Integer, Integer> map, int key) {
+        map.put(key, map.getOrDefault(key, 0) + 1);
+    }
+}
