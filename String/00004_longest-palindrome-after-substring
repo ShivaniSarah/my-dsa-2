@@ -1,0 +1,425 @@
+https://leetcode.com/problems/longest-palindrome-after-substring-concatenation-ii/description/
+
+
+3504. Longest Palindrome After Substring Concatenation II
+Hard
+Topics
+Companies
+Hint
+You are given two strings, s and t.
+
+You can create a new string by selecting a substring from s (possibly empty) and a substring from t (possibly empty), then concatenating them in order.
+
+Return the length of the longest palindrome that can be formed this way.
+
+ 
+
+Example 1:
+
+Input: s = "a", t = "a"
+
+Output: 2
+
+Explanation:
+
+Concatenating "a" from s and "a" from t results in "aa", which is a palindrome of length 2.
+
+Example 2:
+
+Input: s = "abc", t = "def"
+
+Output: 1
+
+Explanation:
+
+Since all characters are different, the longest palindrome is any single character, so the answer is 1.
+
+Example 3:
+
+Input: s = "b", t = "aaaa"
+
+Output: 4
+
+Explanation:
+
+Selecting "aaaa" from t is the longest palindrome, so the answer is 4.
+
+Example 4:
+
+Input: s = "abcde", t = "ecdba"
+
+Output: 5
+
+Explanation:
+
+Concatenating "abc" from s and "ba" from t results in "abcba", which is a palindrome of length 5.
+
+ 
+
+Constraints:
+
+1 <= s.length, t.length <= 1000
+s and t consist of lowercase English letters.
+
+
+
+# java
+
+class Solution {
+  // 3503. Longest Palindrome After Substring Concatenation I
+  public int longestPalindrome(String s, String t) {
+    final int m = s.length();
+    final int n = t.length();
+    int[] suffix = getPalindromeLengths(s, true);
+    int[] prefix = getPalindromeLengths(t, false);
+    int ans = Math.max(Arrays.stream(suffix).max().getAsInt(), //
+                       Arrays.stream(prefix).max().getAsInt());
+    // dp[i][j] := the longest length of palindrome starting in s[i] and ending
+    // in t[j]
+    int[][] dp = new int[m][n];
+
+    for (int i = 0; i < m; ++i)
+      for (int j = n - 1; j >= 0; --j)
+        if (s.charAt(i) == t.charAt(j)) {
+          dp[i][j] = 2 + (i > 0 && j < n - 1 ? dp[i - 1][j + 1] : 0);
+          final int extend = Math.max(i + 1 < m ? suffix[i + 1] : 0, j > 0 ? prefix[j - 1] : 0);
+          ans = Math.max(ans, dp[i][j] + extend);
+        }
+
+    return ans;
+  }
+
+  private int[] getPalindromeLengths(String s, boolean isSuffix) {
+    final int n = s.length();
+    // dp[i][j] := True if s[i..j] is a palindrome
+    boolean[][] dp = new boolean[n][n];
+    // lengths[i] := length of longest palindrome in s[i..n - 1]
+    int[] lengths = new int[n];
+    for (int i = n - 1; i >= 0; --i)
+      for (int j = i; j < n; ++j)
+        if (s.charAt(i) == s.charAt(j) && (j - i < 2 || dp[i + 1][j - 1])) {
+          dp[i][j] = true;
+          final int index = isSuffix ? i : j;
+          lengths[index] = Math.max(lengths[index], j - i + 1);
+        }
+    return lengths;
+  }
+}
+
+
+
+
+or
+
+
+// kmp + z algorithm
+
+class Solution {
+    public int longestPalindrome(String s, String t) {
+        String r=reverse(t);
+        int[]l1=new int[s.length()];
+        int[]l2=new int[r.length()];
+        for(int i=0;i<s.length();i++){
+            l1[i]=f1(s.substring(i,s.length()));
+        }
+         for(int i=0;i<r.length();i++){
+            l2[i]=f1(r.substring(i,r.length()));
+        }
+        int ans=0;
+        for(int i=0;i<s.length();i++){
+            String pp=s.substring(i,s.length());
+            int[] z=f(pp+"#"+r);
+            for(int j=pp.length()+1;j<pp.length()+1+r.length();j++){
+              int idx=j-pp.length()-1;
+              int ll=z[j];
+                int ll1=0;
+                int ll2=0;
+                if(i+ll<s.length())ll1=l1[i+ll];
+                if(idx+ll<r.length())ll2=l2[idx+ll];
+              ans=Math.max(ans,ll*2+Math.max(ll1,ll2));
+            }
+        }
+        return ans;
+    }
+  public String reverse(String s){
+        String ans="";
+        for(char ch:s.toCharArray()){
+            ans=ch+ans;
+        }
+        return ans;
+    }
+
+    public int[] f(String s) {
+        int n = s.length();
+        int[] Z = new int[n];
+        int L = 0, R = 0; 
+
+        for (int i = 1; i < n; i++) {
+            if (i <= R) {
+                Z[i] = Math.min(R - i + 1, Z[i - L]); 
+            }
+            while (i + Z[i] < n && s.charAt(Z[i]) == s.charAt(i + Z[i])) {
+                Z[i]++; 
+            }
+            if (i + Z[i] - 1 > R) { 
+                L = i;
+                R = i + Z[i] - 1;
+            }
+        }
+        return Z;
+}
+       public int f1(String s){
+            if (s == null || s.length() == 0) return 0;
+
+        String rev = new StringBuilder(s).reverse().toString();
+        String combined = s + "#" + rev;
+
+        int n = combined.length();
+        int[] lps = new int[n]; 
+        for (int i = 1, j = 0; i < n; i++) {
+            while (j > 0 && combined.charAt(i) != combined.charAt(j)) {
+                j = lps[j - 1];
+            }
+            if (combined.charAt(i) == combined.charAt(j)) {
+                j++;
+                lps[i] = j;
+            }
+        }
+
+       
+        return lps[n - 1];
+    }
+
+}
+
+or
+
+
+// trie + dp
+
+
+class Solution {
+    class Node {
+        Node[] children;
+        int len;
+        Node() {
+            children = new Node[26];
+        }
+    }
+
+
+    public int[] compute1(String s, int n) {
+        int[] res = new int[n];
+        boolean[][] dp = new boolean[n][n]; 
+
+        for (int i = 0; i < n; i++) {
+            dp[i][i] = true;
+        }
+
+        for (int i = 0; i < n - 1; i++) {
+            dp[i][i + 1] = (s.charAt(i) == s.charAt(i + 1));
+        }
+
+        for (int len = 3; len <= n; len++) {
+            for (int i = 0; i <= n - len; i++) {
+                int j = i + len - 1;
+                dp[i][j] = (s.charAt(i) == s.charAt(j) && dp[i + 1][j - 1]);
+            }
+        }
+
+        for (int i = 0; i < n; i++) {
+            int maxLength = 0;
+            for (int j = i; j < n; j++) {
+                if (dp[i][j]) {
+                    maxLength = Math.max(maxLength, j - i + 1);
+                }
+            }
+            res[i] = maxLength;
+        }
+
+        return res;
+    }
+
+    public int[] compute2(String s, int n) {
+        int[] res = new int[n];
+        boolean[][] dp = new boolean[n][n];
+
+        for (int i = 0; i < n; i++) {
+            dp[i][i] = true;
+        }
+
+        for (int i = 0; i < n - 1; i++) {
+            dp[i][i + 1] = (s.charAt(i) == s.charAt(i + 1));
+        }
+
+        for (int len = 3; len <= n; len++) {
+            for (int i = 0; i <= n - len; i++) {
+                int j = i + len - 1;
+                dp[i][j] = (s.charAt(i) == s.charAt(j) && dp[i + 1][j - 1]);
+            }
+        }
+
+        for (int i = 0; i < n; i++) {
+            int maxLength = 0;
+            for (int j = 0; j <= i; j++) {
+                if (dp[j][i]) {
+                    maxLength = Math.max(maxLength, i - j + 1);
+                }
+            }
+            res[i] = maxLength;
+        }
+
+        return res;
+    }
+
+    public void insertIntoTrie(Node trie, String s, int start, int end, int[] palindrome1) {
+        final int n = palindrome1.length;
+        
+        for(int i=end; i>=start; i--) {
+            char ch = s.charAt(i);
+            int index = ch - 'a';
+            if(trie.children[index] == null) {
+                trie.children[index] = new Node();
+            }
+            trie = trie.children[index];
+            trie.len = Math.max(trie.len, end < n - 1 ? palindrome1[end + 1] : 0);
+        }
+    }
+
+    public int findMaxPalindrome(Node trie, String t, int start, int[] palindrome1, int[] palindrome2) {
+        final int n = palindrome1.length; 
+        final int m = palindrome2.length;
+        
+        int len = 0;
+        int length = 0;
+        
+        for(int i=start; i<m; i++) {
+            int idx = t.charAt(i) - 'a';
+            if(trie.children[idx] != null) {
+                len += 2;
+                trie = trie.children[idx];
+                length = trie.len;
+            } else {
+                break;
+            }
+        } 
+
+        len += Math.max(
+            length,
+            (start > 0) ? palindrome2[start - 1] : 0
+        );
+
+        return len;
+    }
+
+    
+    
+    public int longestPalindrome(String s, String t) {
+        Node trie = new Node();
+
+        final int n = s.length();
+        final int m = t.length();
+
+        int[] palindrome1 = compute1(s, n); // ith index stores max palindrome length from index i
+        int[] palindrome2 = compute2(t, m); // ith index stores max palindrome length till index i
+
+        for(int i=0; i<n; i++) {
+            insertIntoTrie(trie, s, 0, i, palindrome1); // insert in reverse order
+        }
+
+        int ans = 0;
+        for(int i=0; i<m; i++) {
+            ans = Math.max(ans, findMaxPalindrome(trie, t, i, palindrome1, palindrome2));
+        }
+
+        for(int len: palindrome1) ans = Math.max(ans, len);
+        for(int len: palindrome2) ans = Math.max(ans, len);
+        
+        return ans;
+    }
+}
+
+// dp
+
+import java.util.*;
+
+class Solution {
+    public int longestPalindrome(String s, String t) {
+        String tReversed = new StringBuilder(t).reverse().toString();
+
+        List<int[]> sameSections = new ArrayList<>();
+        for (int i = 0; i < s.length(); i++) {
+            int k = i;
+            for (int j = 0; j < tReversed.length(); j++) {
+                if (k < s.length() && tReversed.charAt(j) == s.charAt(k)) k++;
+                else {
+                    if (k > i) sameSections.add(new int[]{i, j - (k - i), k - i});
+                    k = i;
+                    if (tReversed.charAt(j) == s.charAt(k)) k++;
+                }
+            }
+            if (k > i) sameSections.add(new int[]{i, tReversed.length() - (k - i), k - i});
+        }
+
+        boolean[][] dpS = new boolean[s.length()][s.length()];
+        boolean[][] dpT = new boolean[tReversed.length()][tReversed.length()];
+        fillPalindromeDp(dpS, s);
+        fillPalindromeDp(dpT, tReversed);
+        int[] longestPalS = new int[s.length()];
+        int[] longestPalT = new int[tReversed.length()];
+
+        for (int i = 0; i < dpS.length; i++) {
+            if (dpS[i][dpS.length - 1]) longestPalS[i] = dpS.length - i;
+            else {
+                for (int j = i; j < dpS.length; j++) {
+                    if (dpS[i][j]) {
+                        longestPalS[i] = j - i + 1;
+                    }
+                }
+            }
+        }
+
+        for (int i = 0; i < dpT.length; i++) {
+            if (dpT[i][dpT.length - 1]) longestPalT[i] = dpT.length - i;
+            else {
+                for (int j = i; j < dpT.length; j++) {
+                    if (dpT[i][j]) {
+                        longestPalT[i] = j - i + 1;
+                    }
+                }
+            }
+        }
+
+        int ans = 0;
+        for (int[] section : sameSections) {
+            int start1 = section[0];
+            int start2 = section[1];
+            int len = section[2];
+
+            int lenPalAfterS = start1 + len >= longestPalS.length ? 0 : longestPalS[start1 + len];
+            int lenPalAfterT = start2 + len >= longestPalT.length ? 0 : longestPalT[start2 + len];
+
+            ans = Math.max(ans, Math.max(lenPalAfterS, lenPalAfterT) + len * 2);
+        }
+
+        for (int i = 0; i < longestPalS.length; i++) ans = Math.max(ans, longestPalS[i]);
+        for (int i = 0; i < longestPalT.length; i++) ans = Math.max(ans, longestPalT[i]);
+
+        return ans;
+    }
+
+    void fillPalindromeDp(boolean[][] dp, String s) {
+        for (int i = 0; i < s.length(); i++) dp[i][i] = true;
+        for (int i = 0; i < s.length() - 1; i++) {
+            if (s.charAt(i) == s.charAt(i + 1)) dp[i][i + 1] = true;
+        }
+
+        for (int diff = 2; diff < s.length(); diff++) {
+            for (int i = 0; i + diff < s.length(); i++) {
+                if (s.charAt(i) == s.charAt(i + diff) && dp[i + 1][i + diff - 1]) {
+                    dp[i][i + diff] = true;
+                }
+            }
+        }
+    }
+}
