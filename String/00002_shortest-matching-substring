@@ -1,0 +1,248 @@
+https://leetcode.com/problems/shortest-matching-substring/description/
+
+
+3455. Shortest Matching Substring
+Hard
+Topics
+Companies
+Hint
+You are given a string s and a pattern string p, where p contains exactly two '*' characters.
+
+The '*' in p matches any sequence of zero or more characters.
+
+Return the length of the shortest substring in s that matches p. If there is no such substring, return -1.
+
+Note: The empty substring is considered valid.
+ 
+
+Example 1:
+
+Input: s = "abaacbaecebce", p = "ba*c*ce"
+
+Output: 8
+
+Explanation:
+
+The shortest matching substring of p in s is "baecebce".
+
+Example 2:
+
+Input: s = "baccbaadbc", p = "cc*baa*adb"
+
+Output: -1
+
+Explanation:
+
+There is no matching substring in s.
+
+Example 3:
+
+Input: s = "a", p = "**"
+
+Output: 0
+
+Explanation:
+
+The empty substring is the shortest matching substring.
+
+Example 4:
+
+Input: s = "madlogic", p = "*adlogi*"
+
+Output: 6
+
+Explanation:
+
+The shortest matching substring of p in s is "adlogi".
+
+ 
+
+Constraints:
+
+1 <= s.length <= 105
+2 <= p.length <= 105
+s contains only lowercase English letters.
+p contains only lowercase English letters and exactly two '*'.
+
+
+
+# java
+
+class Solution {
+  public int shortestMatchingSubstring(String s, String p) {
+    final String[] parts = split(p);
+    final String a = parts[0];
+    final String b = parts[1];
+    final String c = parts[2];
+    final int ns = s.length();
+    final int na = a.length();
+    final int nb = b.length();
+    final int nc = c.length();
+    int[] lpsA = getLPS(a + "#" + s);
+    int[] lpsB = getLPS(b + "#" + s);
+    int[] lpsC = getLPS(c + "#" + s);
+    int ans = Integer.MAX_VALUE;
+
+    for (int i = 0, j = 0, k = 0; i + nb + nc < ns; ++i) {
+      while (i < ns && lpsA[na + 1 + i] != na)
+        ++i;
+      while (j < ns && (j < i + nb || lpsB[nb + 1 + j] != nb))
+        ++j;
+      while (k < ns && (k < j + nc || lpsC[nc + 1 + k] != nc))
+        ++k;
+      if (k == ns)
+        break;
+      ans = Math.min(ans, k - i + na);
+    }
+
+    return ans == Integer.MAX_VALUE ? -1 : ans;
+  }
+
+  // Returns the lps array, where lps[i] is the length of the longest prefix of
+  // pattern[0..i] which is also a suffix of this substring.
+  private int[] getLPS(String pattern) {
+    int[] lps = new int[pattern.length()];
+    for (int i = 1, j = 0; i < pattern.length(); ++i) {
+      while (j > 0 && pattern.charAt(j) != pattern.charAt(i))
+        j = lps[j - 1];
+      if (pattern.charAt(i) == pattern.charAt(j))
+        lps[i] = ++j;
+    }
+    return lps;
+  }
+
+  private String[] split(final String p) {
+    final int i = p.indexOf('*');
+    final int j = p.indexOf('*', i + 1);
+    return new String[] {p.substring(0, i), p.substring(i + 1, j), p.substring(j + 1)};
+  }
+}
+
+
+or
+
+// KMP
+
+class Solution {
+    public int shortestMatchingSubstring(String str, String p) {
+        char[] s = str.toCharArray();
+        if (p.length() == 2) return 0;
+        String[] temp = p.split("\\*");
+        char[][] sub = new char[3][];
+        for (int i=0; i<3; i++) {
+            if (i<temp.length) {
+                sub[i] = temp[i].toCharArray();
+            } else {
+                sub[i] = new char[]{};
+            }
+        }
+        int[][] dp = new int[3][];
+        for (int i=0; i<3; i++) {
+            dp[i] = new int[sub[i].length];
+            for (int j=1; j<sub[i].length; j++) {
+                int t = dp[i][j-1];
+                while (t > 0 && sub[i][t] != sub[i][j]) {
+                    t = dp[i][t - 1];
+                }
+                if (sub[i][t] == sub[i][j]) t++;
+                dp[i][j] = t;
+            }
+        }
+        int[][] pos = new int[3][s.length];
+        int index[] = new int[3];
+        for (int i=0; i<3; i++) {
+            if (sub[i].length == 0) {
+                index[i]++;
+            }
+        }
+        int idx1 = 0, idx2 = 0, idx3 = 0;
+        for(int i=0; i < s.length; i++) {
+            if (index[0]>0 && index[1]>0 && sub[2].length!=0) {
+                int t = idx3;
+                while (t >0 && s[i] != sub[2][t]) {
+                    t = dp[2][t-1];
+                }
+                if (s[i] == sub[2][t]) {
+                    t++;
+                }
+                idx3 = t;
+                if (idx3 == sub[2].length) {
+                    pos[2][index[2]++] = i-sub[2].length+1;
+                    idx3 = dp[2][idx3-1];
+                }
+            }
+            if (index[0]>0 && sub[1].length !=0) {
+                int t = idx2;
+                while (t >0 && s[i] != sub[1][t]) {
+                    t = dp[1][t-1];
+                }
+                if (s[i] == sub[1][t]) {
+                    t++;
+                }
+                idx2 = t;
+                if (idx2 == sub[1].length) {
+                    pos[1][index[1]++] = i - sub[1].length+1;
+                    idx2 = dp[1][idx2 - 1];
+                }
+            }
+            if (sub[0].length !=0) {
+                int t = idx1;
+                while (t > 0 && s[i] != sub[0][t]) {
+                    t = dp[0][t - 1];
+                }
+                if (s[i] == sub[0][t]) {
+                    t++;
+                }
+                idx1 = t;
+                if (idx1 == sub[0].length) {
+                    pos[0][index[0]++] = i - sub[0].length+1;
+                    idx1 = dp[0][idx1 - 1];
+                }
+            }
+        }
+        if (sub[1].length == 0 && sub[2].length == 0) return index[0] == 0 ? -1 : sub[0].length;
+        if (sub[0].length == 0 && sub[2].length == 0) return index[1] == 0 ? -1 : sub[1].length;
+        if (sub[0].length == 0 && sub[1].length == 0) return index[2] == 0 ? -1 : sub[2].length;
+        int result = Integer.MAX_VALUE;
+        idx1 = 0;
+        idx2 = 0;
+        if (sub[0].length == 0) {
+            for (int i=0; i<index[1]; i++) {
+                while (idx2 < index[2] && pos[2][idx2]<pos[1][i]+sub[1].length) {
+                    idx2++;
+                }
+                if (idx2 < index[2] && pos[2][idx2]>=pos[1][i]+sub[1].length) {
+                    result = Math.min(result, pos[2][idx2]+sub[2].length-pos[1][i]);
+                }
+            }
+            return result < Integer.MAX_VALUE ? result : -1;
+        }
+        for (int i=0; i<index[0]; i++) {
+            if (sub[1].length == 0) {
+                while (idx2 < index[2] && pos[2][idx2]<pos[0][i] + sub[0].length) {
+                    idx2++;
+                }
+                if (idx2 < index[2] && pos[2][idx2]>=pos[0][i] + sub[0].length) {
+                    result = Math.min(result, pos[2][idx2]+sub[2].length-pos[0][i]);
+                }
+            } else {
+                while (idx1 < index[1] && pos[1][idx1]<pos[0][i]+sub[0].length) {
+                    idx1++;
+                }
+                if (sub[2].length == 0) {
+                    if (idx1 < index[1] && pos[1][idx1]>=pos[0][i]+sub[0].length) {
+                        result = Math.min(result, pos[1][idx1]+sub[1].length-pos[0][i]);
+                    }
+                } else if (idx1 < index[1]) {
+                    while (idx2 < index[2] && pos[2][idx2] < pos[1][idx1] + sub[1].length) {
+                        idx2++;
+                    }
+                    if (idx2 < index[2] && pos[2][idx2] >= pos[1][idx1] + sub[1].length) {
+                        result = Math.min(result, pos[2][idx2] + sub[2].length - pos[0][i]);
+                    }
+                }
+            }
+        }
+        return result < Integer.MAX_VALUE ? result : -1;
+    }
+}
