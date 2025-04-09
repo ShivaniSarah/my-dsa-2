@@ -1,0 +1,308 @@
+https://leetcode.com/problems/maximum-total-beauty-of-the-gardens/description/
+
+2234. Maximum Total Beauty of the Gardens
+Hard
+Topics
+Companies
+Hint
+Alice is a caretaker of n gardens and she wants to plant flowers to maximize the total beauty of all her gardens.
+
+You are given a 0-indexed integer array flowers of size n, where flowers[i] is the number of flowers already planted in the ith garden. Flowers that are already planted cannot be removed. You are then given another integer newFlowers, which is the maximum number of flowers that Alice can additionally plant. You are also given the integers target, full, and partial.
+
+A garden is considered complete if it has at least target flowers. The total beauty of the gardens is then determined as the sum of the following:
+
+The number of complete gardens multiplied by full.
+The minimum number of flowers in any of the incomplete gardens multiplied by partial. If there are no incomplete gardens, then this value will be 0.
+Return the maximum total beauty that Alice can obtain after planting at most newFlowers flowers.
+
+ 
+
+Example 1:
+
+Input: flowers = [1,3,1,1], newFlowers = 7, target = 6, full = 12, partial = 1
+Output: 14
+Explanation: Alice can plant
+- 2 flowers in the 0th garden
+- 3 flowers in the 1st garden
+- 1 flower in the 2nd garden
+- 1 flower in the 3rd garden
+The gardens will then be [3,6,2,2]. She planted a total of 2 + 3 + 1 + 1 = 7 flowers.
+There is 1 garden that is complete.
+The minimum number of flowers in the incomplete gardens is 2.
+Thus, the total beauty is 1 * 12 + 2 * 1 = 12 + 2 = 14.
+No other way of planting flowers can obtain a total beauty higher than 14.
+Example 2:
+
+Input: flowers = [2,4,5,3], newFlowers = 10, target = 5, full = 2, partial = 6
+Output: 30
+Explanation: Alice can plant
+- 3 flowers in the 0th garden
+- 0 flowers in the 1st garden
+- 0 flowers in the 2nd garden
+- 2 flowers in the 3rd garden
+The gardens will then be [5,4,5,5]. She planted a total of 3 + 0 + 0 + 2 = 5 flowers.
+There are 3 gardens that are complete.
+The minimum number of flowers in the incomplete gardens is 4.
+Thus, the total beauty is 3 * 2 + 4 * 6 = 6 + 24 = 30.
+No other way of planting flowers can obtain a total beauty higher than 30.
+Note that Alice could make all the gardens complete but in this case, she would obtain a lower total beauty.
+ 
+
+Constraints:
+
+1 <= flowers.length <= 105
+1 <= flowers[i], target <= 105
+1 <= newFlowers <= 1010
+1 <= full, partial <= 105
+
+
+
+# java
+
+class Solution {
+    public long maximumBeauty(int[] flowers, long newFlowers, int target, int full, int partial) {
+        Arrays.sort(flowers);
+        int n = flowers.length;
+        long[] s = new long[n + 1];
+        for (int i = 0; i < n; ++i) {
+            s[i + 1] = s[i] + flowers[i];
+        }
+        long ans = 0;
+        int x = 0;
+        for (int v : flowers) {
+            if (v >= target) {
+                ++x;
+            }
+        }
+        for (; x <= n; ++x) {
+            newFlowers -= (x == 0 ? 0 : Math.max(target - flowers[n - x], 0));
+            if (newFlowers < 0) {
+                break;
+            }
+            int l = 0, r = n - x - 1;
+            while (l < r) {
+                int mid = (l + r + 1) >> 1;
+                if ((long) flowers[mid] * (mid + 1) - s[mid + 1] <= newFlowers) {
+                    l = mid;
+                } else {
+                    r = mid - 1;
+                }
+            }
+            long y = 0;
+            if (r != -1) {
+                long cost = (long) flowers[l] * (l + 1) - s[l + 1];
+                y = Math.min(flowers[l] + (newFlowers - cost) / (l + 1), target - 1);
+            }
+            ans = Math.max(ans, (long) x * full + y * partial);
+        }
+        return ans;
+    }
+}
+
+
+or
+
+
+class Solution {
+  public long maximumBeauty(int[] flowers, long newFlowers, int target, int full, int partial) {
+    final int n = flowers.length;
+
+    // If a garden is already complete, clamp it to the target.
+    for (int i = 0; i < n; ++i)
+      flowers[i] = Math.min(flowers[i], target);
+    Arrays.sort(flowers);
+
+    // All gardens are complete, so nothing we can do.
+    if (flowers[0] == target)
+      return (long) n * full;
+
+    // Having many new flowers maximizes the beauty value.
+    if (newFlowers >= (long) n * target - Arrays.stream(flowers).asLongStream().sum())
+      return Math.max((long) n * full, (n - 1L) * full + (target - 1L) * partial);
+
+    long ans = 0;
+    long leftFlowers = newFlowers;
+    // cost[i] := the cost to make flowers[0..i] the same
+    long[] cost = new long[flowers.length];
+
+    for (int i = 1; i < flowers.length; ++i)
+      // Plant (flowers[i] - flowers[i - 1]) flowers for flowers[0..i - 1].
+      cost[i] = cost[i - 1] + i * (flowers[i] - flowers[i - 1]);
+
+    int i = flowers.length - 1; // flowers' index (flowers[i + 1..n) are complete)
+    while (flowers[i] == target)
+      --i;
+
+    for (; leftFlowers >= 0; --i) {
+      // To maximize the minimum number of incomplete flowers, we find the first
+      // index j that we can't make flowers[0..j] equal to flowers[j], then we
+      // know we can make flowers[0..j - 1] equal to flowers[j - 1]. In the
+      // meantime, evenly increase each of them to seek a bigger minimum value.
+      final int j = firstGreater(cost, i, leftFlowers);
+      final long minIncomplete = flowers[j - 1] + (leftFlowers - cost[j - 1]) / j;
+      ans = Math.max(ans, (n - 1L - i) * full + (long) minIncomplete * partial);
+      leftFlowers -= Math.max(0, target - flowers[i]);
+    }
+
+    return ans;
+  }
+
+  private int firstGreater(long[] A, int maxIndex, long target) {
+    final int i = Arrays.binarySearch(A, 0, maxIndex + 1, target + 1);
+    return i < 0 ? -i - 1 : i;
+  }
+}
+
+or
+
+
+import java.util.*;
+
+class Solution {
+    public long maximumBeauty(int[] flowers, long newFlowers, int target, int full, int partial) {
+        int n = flowers.length;
+        Arrays.sort(flowers);
+        long maxBeauty = 0;
+        int maxComplete = 0, minComplete = 0;
+
+        long tempNewFlowers = newFlowers;
+
+        for (int i = n - 1; i >= 0; i--) {
+            if (flowers[i] >= target) {
+                minComplete++;
+                maxComplete++;
+            } else if (target - flowers[i] <= tempNewFlowers) {
+                maxComplete++;
+                tempNewFlowers -= target - flowers[i];
+            } else {
+                break;
+            }
+        }
+
+        int[] extendedFlowers = Arrays.copyOf(flowers, n + 1);
+        extendedFlowers[n] = target - 1;
+
+        long[] preDif = new long[n + 1];
+        for (int i = 1; i < n; i++) {
+            preDif[i] = (long) i * (extendedFlowers[i] - extendedFlowers[i - 1]) + preDif[i - 1];
+        }
+
+        int right = n - 1;
+        while (right >= 0 && flowers[right] >= target) {
+            right--;
+        }
+
+        if (right >= 0) {
+            extendedFlowers[right + 1] = target - 1;
+            preDif[right + 1] = preDif[right] + (long) (right + 1) * (extendedFlowers[right + 1] - extendedFlowers[right]);
+        }
+
+        long[] minFlower = new long[maxComplete + 1];
+        long nf = newFlowers;
+        for (int complete = minComplete; complete <= maxComplete && right >= 0; complete++) {
+            int pos = upperBound(preDif, right + 1, nf) - 1;
+            minFlower[complete] = Math.min(target - 1L, extendedFlowers[pos] + (nf - preDif[pos]) / (pos + 1));
+
+            nf -= (target - flowers[right]);
+            right--;
+
+            if (right >= 0) {
+                extendedFlowers[right + 1] = target - 1;
+                preDif[right + 1] = preDif[right] + (long) (right + 1) * (extendedFlowers[right + 1] - extendedFlowers[right]);
+            }
+        }
+
+        for (int complete = minComplete; complete <= maxComplete; complete++) {
+            long beauty = (long) complete * full + minFlower[complete] * partial;
+            maxBeauty = Math.max(maxBeauty, beauty);
+        }
+
+        return maxBeauty;
+    }
+
+    private int upperBound(long[] arr, int end, long value) {
+        int low = 0, high = end;
+        while (low < high) {
+            int mid = (low + high) >>> 1;
+            if (arr[mid] <= value) low = mid + 1;
+            else high = mid;
+        }
+        return low;
+    }
+}
+
+
+or
+
+
+import java.util.*;
+
+class Solution {
+    public long maximumBeauty(int[] flowers, long newFlowers, int target, int full, int partial) {
+        int n = flowers.length;
+        if (n == 0) return 0;
+
+        Arrays.sort(flowers);
+
+        long[] pref = new long[n];
+        pref[0] = flowers[0];
+        for (int i = 1; i < n; i++) {
+            pref[i] = pref[i - 1] + flowers[i];
+        }
+
+        long ans = 0;
+
+        for (int i = n; i >= 0; i--) {
+            if (i < n) {
+                int toAdd = Math.max(0, target - flowers[i]);
+                if (newFlowers < toAdd) {
+                    break;
+                }
+                newFlowers -= toAdd;
+            }
+
+            long beautyForFullCase = (long)(n - i) * full;
+
+            int l = 0, r = target - 1;
+            long beautyForPartialCase = 0;
+
+            while (l <= r) {
+                int mid = l + (r - l) / 2;
+
+                int pos = upperBound(flowers, 0, i, mid);
+
+                if (pos == 0) {
+                    l = mid + 1;
+                } else {
+                    long len = pos;
+                    long sum = pref[pos - 1];
+                    long needed = mid * len - sum;
+
+                    if (needed <= newFlowers) {
+                        l = mid + 1;
+                        beautyForPartialCase = (long) mid * partial;
+                    } else {
+                        r = mid - 1;
+                    }
+                }
+            }
+
+            ans = Math.max(ans, beautyForFullCase + beautyForPartialCase);
+        }
+
+        return ans;
+    }
+
+    private int upperBound(int[] arr, int from, int to, int val) {
+        int low = from, high = to;
+        while (low < high) {
+            int mid = (low + high) / 2;
+            if (arr[mid] <= val) {
+                low = mid + 1;
+            } else {
+                high = mid;
+            }
+        }
+        return low;
+    }
+}
