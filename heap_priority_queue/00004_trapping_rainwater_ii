@@ -19,6 +19,8 @@ Output: 10
 
 # java
 
+# dijikstra
+
 import java.util.PriorityQueue;
  
 class Solution {
