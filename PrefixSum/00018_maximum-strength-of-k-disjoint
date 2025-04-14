@@ -1,0 +1,152 @@
+https://leetcode.com/problems/maximum-strength-of-k-disjoint-subarrays/description/
+
+3077. Maximum Strength of K Disjoint Subarrays
+Hard
+Topics
+Companies
+Hint
+You are given an array of integers nums with length n, and a positive odd integer k.
+
+Select exactly k disjoint subarrays sub1, sub2, ..., subk from nums such that the last element of subi appears before the first element of sub{i+1} for all 1 <= i <= k-1. The goal is to maximize their combined strength.
+
+The strength of the selected subarrays is defined as:
+
+strength = k * sum(sub1)- (k - 1) * sum(sub2) + (k - 2) * sum(sub3) - ... - 2 * sum(sub{k-1}) + sum(subk)
+
+where sum(subi) is the sum of the elements in the i-th subarray.
+
+Return the maximum possible strength that can be obtained from selecting exactly k disjoint subarrays from nums.
+
+Note that the chosen subarrays don't need to cover the entire array.
+
+ 
+
+Example 1:
+
+Input: nums = [1,2,3,-1,2], k = 3
+
+Output: 22
+
+Explanation:
+
+The best possible way to select 3 subarrays is: nums[0..2], nums[3..3], and nums[4..4]. The strength is calculated as follows:
+
+strength = 3 * (1 + 2 + 3) - 2 * (-1) + 2 = 22
+
+ 
+
+Example 2:
+
+Input: nums = [12,-2,-2,-2,-2], k = 5
+
+Output: 64
+
+Explanation:
+
+The only possible way to select 5 disjoint subarrays is: nums[0..0], nums[1..1], nums[2..2], nums[3..3], and nums[4..4]. The strength is calculated as follows:
+
+strength = 5 * 12 - 4 * (-2) + 3 * (-2) - 2 * (-2) + (-2) = 64
+
+Example 3:
+
+Input: nums = [-1,-2,-3], k = 1
+
+Output: -1
+
+Explanation:
+
+The best possible way to select 1 subarray is: nums[0..0]. The strength is -1.
+
+ 
+
+Constraints:
+
+1 <= n <= 104
+-109 <= nums[i] <= 109
+1 <= k <= n
+1 <= n * k <= 106
+k is odd.
+
+
+# java
+
+class Solution {
+    public long maximumStrength(int[] nums, int k) {
+        int n = nums.length;
+        long[][][] f = new long[n + 1][k + 1][2];
+        for (int i = 0; i <= n; i++) {
+            for (int j = 0; j <= k; j++) {
+                Arrays.fill(f[i][j], Long.MIN_VALUE / 2);
+            }
+        }
+        f[0][0][0] = 0;
+        for (int i = 1; i <= n; i++) {
+            int x = nums[i - 1];
+            for (int j = 0; j <= k; j++) {
+                long sign = (j & 1) == 1 ? 1 : -1;
+                long val = sign * x * (k - j + 1);
+                f[i][j][0] = Math.max(f[i - 1][j][0], f[i - 1][j][1]);
+                f[i][j][1] = Math.max(f[i][j][1], f[i - 1][j][1] + val);
+                if (j > 0) {
+                    long t = Math.max(f[i - 1][j - 1][0], f[i - 1][j - 1][1]) + val;
+                    f[i][j][1] = Math.max(f[i][j][1], t);
+                }
+            }
+        }
+        return Math.max(f[n][k][0], f[n][k][1]);
+    }
+}
+
+or
+
+
+class Solution {
+  public long maximumStrength(int[] nums, int k) {
+    Long[][][] mem = new Long[nums.length][k + 1][2];
+    return maximumStrength(nums, 0, k, /*fresh=*/true, mem);
+  }
+
+  private static final long MIN = Long.MIN_VALUE / 2;
+
+  // Returns the maximum strength of nums[i..n) with k operations left, where
+  // `fresh` means we're starting a new subarray.
+  private long maximumStrength(int[] nums, int i, int k, boolean fresh, Long[][][] mem) {
+    if (nums.length - i < k)
+      return MIN;
+    if (k == 0)
+      return 0;
+    if (i == nums.length)
+      return k == 0 ? 0 : MIN;
+    if (mem[i][k][fresh ? 1 : 0] != null)
+      return mem[i][k][fresh ? 1 : 0];
+    // If it's not fresh, we can't skip the current number and consider it as a
+    // fresh start, since the case where it's fresh is already covered by
+    // `includeAndFreshStart`.
+    final long skip = fresh ? maximumStrength(nums, i + 1, k, true, mem) : MIN;
+    final long gain = (k % 2 == 0 ? -1 : 1) * 1L * nums[i] * k;
+    final long includeAndContinue = maximumStrength(nums, i + 1, k, false, mem) + gain;
+    final long includeAndFreshStart = maximumStrength(nums, i + 1, k - 1, true, mem) + gain;
+    return mem[i][k][fresh ? 1 : 0] =
+               Math.max(skip, Math.max(includeAndContinue, includeAndFreshStart));
+  }
+}
+
+or
+
+
+class Solution {
+    public long maximumStrength(int[] nums, int k) {
+        long[][] dp = new long[k + 1][nums.length + 1];
+        for (int i = 1; i <= k; i++) {
+            long maxSum = Long.MIN_VALUE /2;
+            long curr = Long.MIN_VALUE/2;
+            long multiplier = (i % 2 == 1) ? (k + 1 - i) : (i - 1 - k);
+            for (int j = i - 1; j < nums.length; j++) {
+                curr = Math.max(curr + nums[j] * multiplier, dp[i - 1][j] + nums[j] * multiplier);
+                maxSum = Math.max(maxSum, curr);
+                dp[i][j + 1] = maxSum;
+            }
+        }
+        return dp[k][nums.length];
+    }
+}
