@@ -1,0 +1,239 @@
+https://leetcode.com/problems/minimum-cost-to-divide-array-into-subarrays/
+
+3500. Minimum Cost to Divide Array Into Subarrays
+Solved
+Hard
+Topics
+Companies
+Hint
+You are given two integer arrays, nums and cost, of the same size, and an integer k.
+
+You can divide nums into subarrays. The cost of the ith subarray consisting of elements nums[l..r] is:
+
+(nums[0] + nums[1] + ... + nums[r] + k * i) * (cost[l] + cost[l + 1] + ... + cost[r]).
+Note that i represents the order of the subarray: 1 for the first subarray, 2 for the second, and so on.
+
+Return the minimum total cost possible from any valid division.
+
+ 
+
+Example 1:
+
+Input: nums = [3,1,4], cost = [4,6,6], k = 1
+
+Output: 110
+
+Explanation:
+
+The minimum total cost possible can be achieved by dividing nums into subarrays [3, 1] and [4].
+The cost of the first subarray [3,1] is (3 + 1 + 1 * 1) * (4 + 6) = 50.
+The cost of the second subarray [4] is (3 + 1 + 4 + 1 * 2) * 6 = 60.
+Example 2:
+
+Input: nums = [4,8,5,1,14,2,2,12,1], cost = [7,2,8,4,2,2,1,1,2], k = 7
+
+Output: 985
+
+Explanation:
+
+The minimum total cost possible can be achieved by dividing nums into subarrays [4, 8, 5, 1], [14, 2, 2], and [12, 1].
+The cost of the first subarray [4, 8, 5, 1] is (4 + 8 + 5 + 1 + 7 * 1) * (7 + 2 + 8 + 4) = 525.
+The cost of the second subarray [14, 2, 2] is (4 + 8 + 5 + 1 + 14 + 2 + 2 + 7 * 2) * (2 + 2 + 1) = 250.
+The cost of the third subarray [12, 1] is (4 + 8 + 5 + 1 + 14 + 2 + 2 + 12 + 1 + 7 * 3) * (1 + 2) = 210.
+ 
+
+Constraints:
+
+1 <= nums.length <= 1000
+cost.length == nums.length
+1 <= nums[i], cost[i] <= 1000
+1 <= k <= 1000
+
+
+# java
+
+
+class Solution {
+    public long minimumCost(int[] nums, int[] cost, int k) {
+        int n = nums.length;
+        long[] prefixNums = new long[n];
+        long[] prefixCosts = new long[n];
+        prefixNums[0] = nums[0];
+        for (int i = 1; i < n; i++) {
+            prefixNums[i] = prefixNums[i - 1] + nums[i];
+        }
+
+        prefixCosts[0] = cost[0];
+        for (int i = 1; i < n; i++) {
+            prefixCosts[i] = prefixCosts[i - 1] + cost[i];
+        }
+
+        Long[][] dp = new Long[n][n];
+        long ans = solve(0, 0, k, prefixNums, prefixCosts, dp);
+        return ans;
+    }
+
+    public long solve(int start, int end, int k, long[] prefixNums, long[] prefixCosts, Long[][] dp) {
+        int n = prefixNums.length;
+        if (end == n) {
+            if (start == n) return 0;
+            return Long.MAX_VALUE;
+        }
+        
+        if (dp[start][end] != null) return dp[start][end];
+
+        long currentNumsSum = prefixNums[end], currentCostSum = prefixCosts[n - 1];
+
+        if (start != 0){
+            currentNumsSum = prefixNums[end] - prefixNums[start - 1];
+            currentCostSum = prefixCosts[n - 1] - prefixCosts[start - 1];
+        }
+
+        long currentSubarrayCost = (currentNumsSum + k) * currentCostSum;
+
+        long costIfCutHere = currentSubarrayCost + solve(end + 1, end + 1, k, prefixNums, prefixCosts, dp);
+        long costIfExtend = solve(start, end + 1, k, prefixNums, prefixCosts, dp);
+
+        return dp[start][end] = Math.min(costIfCutHere, costIfExtend);
+    }
+}
+
+
+or
+
+// Convex Hull Trick
+
+class Solution {
+
+    // Represents a line: y = m * x + c
+    record Line(long slope, long intercept) {
+        public long evaluate(long x) {
+            return slope * x + intercept;
+        }
+    }
+
+    // Convex Hull Trick for dynamic programming optimization
+    // Convex Hull Trick for dynamic programming optimization
+    class ConvexHullTrick {
+        // Store lines in the convex hull as mx + c
+        private final List<Line> hull = new ArrayList<>();
+
+        // Pointer for efficient queries
+        private int pointer = 0;
+
+        // Returns x-coordinate of intersection between two lines
+        private double intersectionX(Line line1, Line line2) {
+            return (double) (line2.intercept - line1.intercept) / (line1.slope - line2.slope);
+        }
+
+        // Add a new line to the convex hull (only if it's not dominated)
+        public void addLine(Line newLine) {
+            while (hull.size() >= 2) {
+                Line last = hull.get(hull.size() - 1);
+                Line secondLast = hull.get(hull.size() - 2);
+
+                // If newLine makes last line redundant, remove last line
+                if (intersectionX(secondLast, newLine) <= intersectionX(secondLast, last)) {
+                    hull.remove(hull.size() - 1);
+                } else {
+                    break;
+                }
+            }
+            hull.add(newLine);
+        }
+
+        // Get minimum y-value at x among all lines in hull
+        public long query(long x) {
+            if (hull.isEmpty())
+                return Integer.MAX_VALUE;
+            // Ensures the pointer stays in bounds for the last line.
+            if (pointer >= hull.size()) {
+                pointer = hull.size() - 1;
+            }
+            // Move pointer forward if next line gives a smaller value at x
+            while (pointer < hull.size() - 1 &&
+                    hull.get(pointer + 1).evaluate(x) < hull.get(pointer).evaluate(x)) {
+                pointer++;
+            }
+            return hull.get(pointer).evaluate(x);
+        }
+
+        // query method using binary search for non-monotonic queries)
+        public long queryBinary(long x) {
+            if (hull.isEmpty())
+                return Integer.MAX_VALUE;
+            int lo = 0, hi = hull.size() - 1;
+            while (lo < hi) {
+                int mid = (lo + hi) / 2;
+                // Compare intersection of hull[mid] and hull[mid+1] with x
+                if (intersectionX(hull.get(mid), hull.get(mid + 1)) < x) {
+                    lo = mid + 1;
+                } else {
+                    hi = mid;
+                }
+            }
+            return hull.get(lo).evaluate(x);
+        }
+    }
+
+    public long minimumCost(int[] nums, int[] cost, int k) {
+        int n = nums.length;
+
+        // Precompute prefix sums of nums and cost arrays
+        long[] prefixSumNums = new long[n];
+        long[] prefixSumCost = new long[n];
+        prefixSumNums[0] = nums[0];
+        prefixSumCost[0] = cost[0];
+
+        for (int i = 1; i < n; i++) {
+            prefixSumNums[i] = prefixSumNums[i - 1] + nums[i];
+            prefixSumCost[i] = prefixSumCost[i - 1] + cost[i];
+        }
+
+        long INF = Long.MAX_VALUE / 2;
+        long[][] dp = new long[n + 1][n];
+
+        // Initialize DP with INF
+        for (int j = 0; j <= n; j++) {
+            Arrays.fill(dp[j], INF);
+        }
+
+        // Base case: 1 group
+        for (int i = 0; i < n; i++) {
+            long x = prefixSumNums[i] + (long) k * 1;
+            dp[1][i] = x * prefixSumCost[i];
+        }
+
+        // Fill DP using Convex Hull Trick
+       
+        for (int groupCount = 2; groupCount <= n; groupCount++) {
+            ConvexHullTrick cht = new ConvexHullTrick();
+            int insertIdx = groupCount - 2;
+            for (int i = groupCount - 1; i < n; i++) {
+
+                // Add lines to CHT from previous group
+                while (insertIdx < i) {
+                    long slope = -prefixSumCost[insertIdx];
+                    long intercept = dp[groupCount - 1][insertIdx];
+                    cht.addLine(new Line(slope, intercept));
+                    insertIdx++;
+                }
+
+                // Query optimal line at current x
+                long x = prefixSumNums[i] + (long) k * groupCount;
+                long minValue = cht.query(x);
+
+                // Compute DP value
+                dp[groupCount][i] = x * prefixSumCost[i] + minValue;
+            }
+        }
+
+        // Get minimum cost among all possible group counts
+        long result = INF;
+        for (int groupCount = 1; groupCount <= n; groupCount++) {
+            result = Math.min(result, dp[groupCount][n - 1]);
+        }
+
+        return result;
+    }
+}
