@@ -1,0 +1,237 @@
+https://leetcode.com/problems/count-beautiful-substrings-ii/description/
+
+2949. Count Beautiful Substrings II
+Hard
+Topics
+Companies
+Hint
+You are given a string s and a positive integer k.
+
+Let vowels and consonants be the number of vowels and consonants in a string.
+
+A string is beautiful if:
+
+vowels == consonants.
+(vowels * consonants) % k == 0, in other terms the multiplication of vowels and consonants is divisible by k.
+Return the number of non-empty beautiful substrings in the given string s.
+
+A substring is a contiguous sequence of characters in a string.
+
+Vowel letters in English are 'a', 'e', 'i', 'o', and 'u'.
+
+Consonant letters in English are every letter except vowels.
+
+ 
+
+Example 1:
+
+Input: s = "baeyh", k = 2
+Output: 2
+Explanation: There are 2 beautiful substrings in the given string.
+- Substring "baeyh", vowels = 2 (["a",e"]), consonants = 2 (["y","h"]).
+You can see that string "aeyh" is beautiful as vowels == consonants and vowels * consonants % k == 0.
+- Substring "baeyh", vowels = 2 (["a",e"]), consonants = 2 (["b","y"]).
+You can see that string "baey" is beautiful as vowels == consonants and vowels * consonants % k == 0.
+It can be shown that there are only 2 beautiful substrings in the given string.
+Example 2:
+
+Input: s = "abba", k = 1
+Output: 3
+Explanation: There are 3 beautiful substrings in the given string.
+- Substring "abba", vowels = 1 (["a"]), consonants = 1 (["b"]).
+- Substring "abba", vowels = 1 (["a"]), consonants = 1 (["b"]).
+- Substring "abba", vowels = 2 (["a","a"]), consonants = 2 (["b","b"]).
+It can be shown that there are only 3 beautiful substrings in the given string.
+Example 3:
+
+Input: s = "bcdf", k = 1
+Output: 0
+Explanation: There are no beautiful substrings in the given string.
+ 
+
+Constraints:
+
+1 <= s.length <= 5 * 104
+1 <= k <= 1000
+s consists of only English lowercase letters.
+
+# java
+
+class Solution {
+  // Same as 2947. Count Beautiful Substrings I
+  public int beautifulSubstrings(String s, int k) {
+    final int root = getRoot(k);
+    int ans = 0;
+    int vowels = 0;
+    int vowelsMinusConsonants = 0;
+    // {(vowels, vowelsMinusConsonants): count}
+    Map<Pair<Integer, Integer>, Integer> prefixCount = new HashMap<>();
+    prefixCount.put(new Pair<>(0, 0), 1);
+
+    for (final char c : s.toCharArray()) {
+      if (isVowel(c)) {
+        vowels = (vowels + 1) % root;
+        ++vowelsMinusConsonants;
+      } else {
+        --vowelsMinusConsonants;
+      }
+      Pair<Integer, Integer> prefix = new Pair<>(vowels, vowelsMinusConsonants);
+      ans += prefixCount.getOrDefault(prefix, 0);
+      prefixCount.merge(prefix, 1, Integer::sum);
+    }
+
+    return ans;
+  }
+
+  private boolean isVowel(char c) {
+    return "aeiou".indexOf(c) != -1;
+  }
+
+  private int getRoot(int k) {
+    for (int i = 1; i <= k; ++i)
+      if (i * i % k == 0)
+        return i;
+    throw new IllegalArgumentException();
+  }
+}
+
+or
+
+class Solution {
+
+    private static final int[] PRIMES_UP_TO_SQRT_1000 = new int[] {
+        2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31
+    };
+
+    public long beautifulSubstrings(String s, int k) {
+        final int[] vowelsAfter = new int[1 + s.length()];
+        for (int i = 0; i < s.length(); ++i) {
+            final char ch = s.charAt(i);
+            final boolean vowel;
+            if (ch == 'a' || ch == 'e' || ch == 'i' || ch == 'o' || ch == 'u') {
+                vowelsAfter[i + 1] = vowelsAfter[i] + 1;
+            } else {
+                vowelsAfter[i + 1] = vowelsAfter[i];
+            }
+        }
+        final int multiples = computeMultiples(k); // sqrt(m)
+        final int step = (multiples << 1);
+        long answer = 0;
+        for (int i = 0; i < s.length(); ++i) {
+            for (int j = (i + step); j <= s.length(); j += step) {
+                final int length = j - i;
+                final int vowels = vowelsAfter[j] - vowelsAfter[i];
+                final int consonants = length - vowels;
+                if (vowels == consonants) {
+                    answer++;
+                }
+            }
+        }
+        return answer;
+    }
+
+    private int computeMultiples(int k) {
+        int squared = 1;
+        int remainder = k;
+        int i = 0;
+        while (remainder > 1 && i < PRIMES_UP_TO_SQRT_1000.length && remainder >= PRIMES_UP_TO_SQRT_1000[i]) {
+            final int factor = PRIMES_UP_TO_SQRT_1000[i++];
+            boolean changed = false;
+            while ((remainder % factor) == 0) {
+                squared *= factor;
+                remainder /= factor;
+                changed = true;
+            }
+            if (changed && !isSquare(squared)) {
+                squared *= factor; // each prime factor must have even power
+            }
+        }
+        // remainder effectively squared as well to have even power
+        return remainder * (int) Math.sqrt(squared);
+    }
+
+    private boolean isSquare(int value) {
+        final int a = (int) Math.sqrt(value);
+        return ((a * a) == value);
+    }
+
+}
+
+or
+
+
+class Solution {
+    public long beautifulSubstrings(String s, int k) {
+        
+        // calculate the periodicity
+        int p = 1;
+        int n = s.length();
+        while(p < n) {
+            if ((p * p) % k == 0) {
+                break;
+            }
+            ++p;
+        }
+
+        int vmc = 0;
+        int vow = 0;
+        Set<Character> vowels = new HashSet<>(Arrays.asList('a', 'e', 'i','o', 'u'));
+        long result = 0;
+        Map<Pair, Integer> map = new HashMap<>();
+        map.put(new Pair(0, 0), 1);
+
+        for (int i = 0; i < n; ++i) {
+            char ch = s.charAt(i);
+            if (vowels.contains(ch)) {
+                vmc += 1;
+                vow = (vow + 1) % p;
+            }
+            else {
+                vmc -= 1;
+            }
+
+            Pair searchKey = new Pair(vmc, vow);
+            result += map.getOrDefault(searchKey, 0);
+            map.put(searchKey, map.getOrDefault(searchKey, 0) + 1);
+        }
+        return result;
+    }
+}
+
+or
+
+
+class Solution {
+    static class pair{
+        long first , second;
+        pair(long first ,long second){
+            this.first=first;
+            this.second=second;
+        }
+    }
+    private boolean isVowel(char ch){
+        return ch=='a'||ch=='e'||ch=='i'||ch=='o'||ch=='u';
+    }
+
+    public long beautifulSubstrings(String s, int k) {
+        long a=0,b=0,ans=0;
+        Map<Long,Map<Long,Long>> map=new HashMap<>();
+        map.put(0L,new HashMap<>());
+        map.get(0L).put(0L,1L);
+
+        for(char ch :s.toCharArray()){
+            a += isVowel(ch) ? 1:0;
+            b+=isVowel(ch) ?0:1;
+
+            for(Map.Entry<Long,Long>entry:map.getOrDefault(a-b, new HashMap<>()).entrySet()){
+                long z=entry.getKey();
+                long count=entry.getValue();
+                if((a-z)*(a-z) % k==0){
+                    ans+=count;
+                }
+            }
+            map.computeIfAbsent(a-b,key-> new HashMap<>()).merge(a%k,1L,Long::sum);
+        }
+        return ans;
+    }
+}
