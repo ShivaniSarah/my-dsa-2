@@ -1,0 +1,179 @@
+https://leetcode.com/problems/find-the-count-of-monotonic-pairs-i/description/
+
+3250. Find the Count of Monotonic Pairs I
+Hard
+Topics
+Companies
+Hint
+You are given an array of positive integers nums of length n.
+
+We call a pair of non-negative integer arrays (arr1, arr2) monotonic if:
+
+The lengths of both arrays are n.
+arr1 is monotonically non-decreasing, in other words, arr1[0] <= arr1[1] <= ... <= arr1[n - 1].
+arr2 is monotonically non-increasing, in other words, arr2[0] >= arr2[1] >= ... >= arr2[n - 1].
+arr1[i] + arr2[i] == nums[i] for all 0 <= i <= n - 1.
+Return the count of monotonic pairs.
+
+Since the answer may be very large, return it modulo 109 + 7.
+
+ 
+
+Example 1:
+
+Input: nums = [2,3,2]
+
+Output: 4
+
+Explanation:
+
+The good pairs are:
+
+([0, 1, 1], [2, 2, 1])
+([0, 1, 2], [2, 2, 0])
+([0, 2, 2], [2, 1, 0])
+([1, 2, 2], [1, 1, 0])
+Example 2:
+
+Input: nums = [5,5,5,5]
+
+Output: 126
+
+ 
+
+Constraints:
+
+1 <= n == nums.length <= 2000
+1 <= nums[i] <= 50
+
+
+# java
+
+class Solution {
+    public int countOfPairs(int[] nums) {
+        final int mod = (int) 1e9 + 7;
+        int n = nums.length;
+        int m = Arrays.stream(nums).max().getAsInt();
+        int[][] f = new int[n][m + 1];
+        for (int j = 0; j <= nums[0]; ++j) {
+            f[0][j] = 1;
+        }
+        int[] g = new int[m + 1];
+        for (int i = 1; i < n; ++i) {
+            g[0] = f[i - 1][0];
+            for (int j = 1; j <= m; ++j) {
+                g[j] = (g[j - 1] + f[i - 1][j]) % mod;
+            }
+            for (int j = 0; j <= nums[i]; ++j) {
+                int k = Math.min(j, j + nums[i - 1] - nums[i]);
+                if (k >= 0) {
+                    f[i][j] = g[k];
+                }
+            }
+        }
+        int ans = 0;
+        for (int j = 0; j <= nums[n - 1]; ++j) {
+            ans = (ans + f[n - 1][j]) % mod;
+        }
+        return ans;
+    }
+}
+
+
+or
+
+class Solution {
+
+    int dp[][][];
+    int count(int nums[], int i, int prev1, int prev2){
+        if(i>=nums.length) return 1;
+
+        if(dp[i][prev1][prev2]!=-1) return dp[i][prev1][prev2];
+
+        int ans=0;
+        for(int j=0;j<=nums[i];j++){
+            int x = j; int y = nums[i]-j;
+            if (x>=prev1 && y<=prev2) 
+                ans =(ans + count(nums,i+1,x,y))%1000000007;
+        }
+
+        dp[i][prev1][prev2] = ans;
+        return ans;
+    }
+
+    public int countOfPairs(int[] nums) {
+        int n = nums.length;
+        dp = new int[n][51][51];
+        for(int i=0;i<n;i++){
+            for(int j=0;j<51;j++) Arrays.fill(dp[i][j],-1);
+        }
+        return count(nums,0,0,50);
+    }
+}
+
+
+or
+
+class Solution {
+  public int countOfPairs(int[] nums) {
+    final int MOD = 1_000_000_007;
+    final int MAX = 1000;
+    final int n = nums.length;
+    int ans = 0;
+    // dp[i][num] := the number of valid ways to fill the arrays up to index i
+    // with arr1[i] = num
+    int[][] dp = new int[n][MAX + 1];
+
+    for (int num = 0; num <= nums[0]; ++num)
+      dp[0][num] = 1;
+
+    for (int i = 1; i < n; ++i) {
+      int ways = 0;
+      int prevNum = 0;
+      // To satisfy arr1, prevNum <= num.
+      // To satisfy arr2, nums[i - 1] - prevNum >= nums[i] - num.
+      //               => prevNum <= min(num, num - (nums[i] - nums[i - 1])).
+      // As we move from `num` to `num + 1`, the range of valid `prevNum` values
+      // becomes prevNum <= min(num + 1, num + 1 - (nums[i] - nums[i - 1])).
+      // Since the range of `prevNum` can only increase by at most 1, there's
+      // no need to iterate through all possible values of `prevNum`. We can
+      // simply increment `prevNum` by 1 if it meets the condition.
+      for (int num = 0; num <= nums[i]; ++num) {
+        if (prevNum <= Math.min(num, num - (nums[i] - nums[i - 1]))) {
+          ways = (ways + dp[i - 1][prevNum]) % MOD;
+          ++prevNum;
+        }
+        dp[i][num] = ways;
+      }
+    }
+
+    for (int i = 0; i <= MAX; ++i)
+      ans = (ans + dp[n - 1][i]) % MOD;
+
+    return ans;
+  }
+}
+
+
+or
+
+
+class Solution {
+      public int countOfPairs(int[] A) {
+        int n = A.length, m = 1001, mod = 1000000007, dp[] = new int[m];
+        Arrays.fill(dp, 1);
+
+        for (int i = 1; i < n; ++i) {
+            int d = Math.max(0, A[i] - A[i - 1]), dp2[] = new int[m];
+            for (int j = d; j < A[i] + 1; ++j) {
+                dp2[j] = ((j > 0 ? dp2[j - 1] : 0) + dp[j - d]) % mod;
+            }
+            dp = dp2;
+        }
+
+        int res = 0;
+        for (int j = 0; j <= A[n - 1]; ++j)
+            res = (res + dp[j]) % mod;
+        return res;
+    }
+}
