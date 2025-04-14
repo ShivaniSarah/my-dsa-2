@@ -1,0 +1,158 @@
+https://leetcode.com/problems/longest-special-path-ii/description/
+
+
+
+
+3486. Longest Special Path II
+Solved
+Hard
+Topics
+Companies
+Hint
+You are given an undirected tree rooted at node 0, with n nodes numbered from 0 to n - 1. This is represented by a 2D array edges of length n - 1, where edges[i] = [ui, vi, lengthi] indicates an edge between nodes ui and vi with length lengthi. You are also given an integer array nums, where nums[i] represents the value at node i.
+
+A special path is defined as a downward path from an ancestor node to a descendant node in which all node values are distinct, except for at most one value that may appear twice.
+
+Return an array result of size 2, where result[0] is the length of the longest special path, and result[1] is the minimum number of nodes in all possible longest special paths.
+
+ 
+
+Example 1:
+
+Input: edges = [[0,1,1],[1,2,3],[1,3,1],[2,4,6],[4,7,2],[3,5,2],[3,6,5],[6,8,3]], nums = [1,1,0,3,1,2,1,1,0]
+
+Output: [9,3]
+
+Explanation:
+
+In the image below, nodes are colored by their corresponding values in nums.
+
+
+
+The longest special paths are 1 -> 2 -> 4 and 1 -> 3 -> 6 -> 8, both having a length of 9. The minimum number of nodes across all longest special paths is 3.
+
+Example 2:
+
+Input: edges = [[1,0,3],[0,2,4],[0,3,5]], nums = [1,1,0,2]
+
+Output: [5,2]
+
+Explanation:
+
+
+
+The longest path is 0 -> 3 consisting of 2 nodes with a length of 5.
+
+ 
+
+Constraints:
+
+2 <= n <= 5 * 104
+edges.length == n - 1
+edges[i].length == 3
+0 <= ui, vi < n
+1 <= lengthi <= 103
+nums.length == n
+0 <= nums[i] <= 5 * 104
+The input is generated such that edges represents a valid tree.
+
+
+
+# java
+
+
+import java.util.AbstractMap;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+class Edge {
+    int len;
+    int node;
+
+    public Edge(int len, int node) {
+        this.len = len;
+        this.node = node;
+    }
+}
+
+class Solution {
+    int a = 0, b = 1;
+    int[] nn;
+    HashMap<Integer, List<Edge>> adjList;
+    public int[] longestSpecialPath(int[][] edges, int[] nn) {
+        adjList = new HashMap<>();
+        this.nn = nn;
+
+        for (int[] edge : edges) {
+            int u = edge[0], v = edge[1], len = edge[2];
+            if (!adjList.containsKey(u)) adjList.put(u, new ArrayList<>());
+            if (!adjList.containsKey(v)) adjList.put(v, new ArrayList<>());
+
+            adjList.get(u).add(new Edge(len, v));
+            adjList.get(v).add(new Edge(len, u));
+        }
+
+        dfs(0, 0, -1, 0, new HashMap<>(), -1, 0, -1);
+        return new int[]{a, b};
+    }
+
+    // i is the incrementing visit index
+    // ni is the current node index
+    // parent is the index of the parent node, -1 initially
+    // len is the path length from root to current node, 0 initially
+    // lastIndexLen is a color to stack map. Each stack holds several entries where each entry is a <length, index> pair of a color visit.
+    // lastIndex is the index of last node that makes our current path valid, -1 initially
+    // lastLen is the length of the path from root until last index node, 0 initially
+    // twiceColor is the current color we have twice. -1 if all are unique.
+    void dfs(int i, int ni, int parent, int len, Map<Integer, ArrayDeque<Map.Entry<Integer, Integer>>> lastIndexLen, int lastIndex, int lastLen, int twiceColor) {
+        int color = nn[ni];
+
+        if (lastIndexLen.get(color) != null && !lastIndexLen.get(color).isEmpty()) {
+            if (twiceColor == - 1) twiceColor = color;
+            else {
+                // check which color is prior
+                // if color is, remove color and keep twiceColor.
+                // else remove twiceColor and replace twiceColor with color
+                // note that we need to check the node
+                // before top element for twiceColor because we need to remove one before the last one
+                Map.Entry<Integer, Integer> t = lastIndexLen.get(twiceColor).pop();
+                Map.Entry<Integer, Integer> e = lastIndexLen.get(twiceColor).peek();
+
+                Map.Entry<Integer, Integer> e2 = lastIndexLen.get(color).peek();
+                lastIndexLen.get(twiceColor).push(t);
+
+                if (e2.getKey() > e.getKey()) {
+                    lastIndex = Math.max(e.getKey(), lastIndex);
+                    lastLen = Math.max(lastLen, e.getValue());
+                    twiceColor = color;
+                } else {
+                    lastIndex = Math.max(e2.getKey(), lastIndex);
+                    lastLen = Math.max(lastLen, e2.getValue());
+                }
+            }
+        }
+
+        if (len - lastLen == a) {
+            b = Math.min(b, i - lastIndex);
+        }
+
+        if (len - lastLen > a) {
+            a = len - lastLen;
+            b = i - lastIndex;
+        }
+
+        List<Edge> edges = adjList.getOrDefault(ni, new ArrayList<>());
+        for (Edge edge: edges) {
+            if (edge.node != parent) {
+                if (!lastIndexLen.containsKey(color)) lastIndexLen.put(color, new ArrayDeque<>());
+                lastIndexLen.get(color).push(new AbstractMap.SimpleEntry<>(i, len + edge.len));
+                dfs(i + 1, edge.node, ni, len + edge.len, lastIndexLen, lastIndex, lastLen, twiceColor);
+                lastIndexLen.get(color).pop();
+            }
+        }
+    }
+}
+
