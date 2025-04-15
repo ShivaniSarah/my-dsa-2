@@ -1,0 +1,181 @@
+https://leetcode.com/problems/numbers-at-most-n-given-digit-set/description/
+
+902. Numbers At Most N Given Digit Set
+Hard
+Topics
+Companies
+Given an array of digits which is sorted in non-decreasing order. You can write numbers using each digits[i] as many times as we want. For example, if digits = ['1','3','5'], we may write numbers such as '13', '551', and '1351315'.
+
+Return the number of positive integers that can be generated that are less than or equal to a given integer n.
+
+ 
+
+Example 1:
+
+Input: digits = ["1","3","5","7"], n = 100
+Output: 20
+Explanation: 
+The 20 numbers that can be written are:
+1, 3, 5, 7, 11, 13, 15, 17, 31, 33, 35, 37, 51, 53, 55, 57, 71, 73, 75, 77.
+Example 2:
+
+Input: digits = ["1","4","9"], n = 1000000000
+Output: 29523
+Explanation: 
+We can write 3 one digit numbers, 9 two digit numbers, 27 three digit numbers,
+81 four digit numbers, 243 five digit numbers, 729 six digit numbers,
+2187 seven digit numbers, 6561 eight digit numbers, and 19683 nine digit numbers.
+In total, this is 29523 integers that can be written using the digits array.
+Example 3:
+
+Input: digits = ["7"], n = 8
+Output: 1
+ 
+
+Constraints:
+
+1 <= digits.length <= 9
+digits[i].length == 1
+digits[i] is a digit from '1' to '9'.
+All the values in digits are unique.
+digits is sorted in non-decreasing order.
+1 <= n <= 109
+
+
+# java
+
+
+class Solution {
+    private int[] a = new int[12];
+    private int[][] dp = new int[12][2];
+    private Set<Integer> s = new HashSet<>();
+
+    public int atMostNGivenDigitSet(String[] digits, int n) {
+        for (var e : dp) {
+            Arrays.fill(e, -1);
+        }
+        for (String d : digits) {
+            s.add(Integer.parseInt(d));
+        }
+        int len = 0;
+        while (n > 0) {
+            a[++len] = n % 10;
+            n /= 10;
+        }
+        return dfs(len, 1, true);
+    }
+
+    private int dfs(int pos, int lead, boolean limit) {
+        if (pos <= 0) {
+            return lead ^ 1;
+        }
+        if (!limit && lead != 1 && dp[pos][lead] != -1) {
+            return dp[pos][lead];
+        }
+        int ans = 0;
+        int up = limit ? a[pos] : 9;
+        for (int i = 0; i <= up; ++i) {
+            if (i == 0 && lead == 1) {
+                ans += dfs(pos - 1, lead, limit && i == up);
+            } else if (s.contains(i)) {
+                ans += dfs(pos - 1, 0, limit && i == up);
+            }
+        }
+        if (!limit && lead == 0) {
+            dp[pos][lead] = ans;
+        }
+        return ans;
+    }
+}
+
+
+or
+
+
+class Solution {
+  public int atMostNGivenDigitSet(String[] digits, int n) {
+    int ans = 0;
+    final String num = String.valueOf(n);
+
+    for (int i = 1; i < num.length(); ++i)
+      ans += (int) Math.pow(digits.length, i);
+
+    for (int i = 0; i < num.length(); ++i) {
+      boolean dHasSameNum = false;
+      for (final String digit : digits) {
+        if (digit.charAt(0) < num.charAt(i))
+          ans += (int) Math.pow(digits.length, num.length() - i - 1);
+        else if (digit.charAt(0) == num.charAt(i))
+          dHasSameNum = true;
+      }
+      if (!dHasSameNum)
+        return ans;
+    }
+
+    return ans + 1;
+  }
+}
+
+
+or
+
+
+class Solution {
+    public int atMostNGivenDigitSet(String[] digits, int n) {
+        String N =  String.valueOf(n);
+        int k =  N.length();
+        int numsLen =digits.length;
+        
+        int count = 0;
+        
+		// all 1 to  k-1 digit number smaller than k digits number , can be made by using all digit 
+        for(int i=1;i<k;i++){
+            count += Math.pow(numsLen,i);
+        }
+        
+        
+        for(int i=0;i<k;i++){// iterate for digit in N
+            int d =  N.charAt(i)-'0';
+            boolean equal = false;
+            for(int j=0;j < numsLen ;j++ ){
+                if( Integer.valueOf(digits[j]) < d ){                     
+                    count += Math.pow(numsLen,k-i-1);    
+
+                }
+                else if(Integer.valueOf(digits[j]) == d){
+                    equal =  true;                    
+                }
+            }
+            if(!equal){
+                return count;
+            }                       
+        }
+        
+        return count+1;
+           
+    }
+}
+
+or
+
+
+class Solution {
+    public int atMostNGivenDigitSet(String[] digits, int n) {
+        char[] N = String.valueOf(n).toCharArray();
+        int len = N.length;
+        int res = 1, pres = 1, smaller = -1;
+        
+        for(int i = 1, m = 1; i <= len; i++, m *= digits.length) {
+            pres = res;
+            res = 0;
+            int x = N[len-i] - '0';
+            for(String d: digits) {
+                if(Integer.valueOf(d) < x) res += m;
+                else if(Integer.valueOf(d) == x) res += pres;
+            }
+            smaller += m;
+        }
+        
+        return res + smaller;
+    }
+}
