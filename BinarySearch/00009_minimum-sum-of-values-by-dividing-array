@@ -1,0 +1,429 @@
+https://leetcode.com/problems/minimum-sum-of-values-by-dividing-array/description/
+
+3117. Minimum Sum of Values by Dividing Array
+Hard
+Topics
+Companies
+Hint
+You are given two arrays nums and andValues of length n and m respectively.
+
+The value of an array is equal to the last element of that array.
+
+You have to divide nums into m disjoint contiguous subarrays such that for the ith subarray [li, ri], the bitwise AND of the subarray elements is equal to andValues[i], in other words, nums[li] & nums[li + 1] & ... & nums[ri] == andValues[i] for all 1 <= i <= m, where & represents the bitwise AND operator.
+
+Return the minimum possible sum of the values of the m subarrays nums is divided into. If it is not possible to divide nums into m subarrays satisfying these conditions, return -1.
+
+ 
+
+Example 1:
+
+Input: nums = [1,4,3,3,2], andValues = [0,3,3,2]
+
+Output: 12
+
+Explanation:
+
+The only possible way to divide nums is:
+
+[1,4] as 1 & 4 == 0.
+[3] as the bitwise AND of a single element subarray is that element itself.
+[3] as the bitwise AND of a single element subarray is that element itself.
+[2] as the bitwise AND of a single element subarray is that element itself.
+The sum of the values for these subarrays is 4 + 3 + 3 + 2 = 12.
+
+Example 2:
+
+Input: nums = [2,3,5,7,7,7,5], andValues = [0,7,5]
+
+Output: 17
+
+Explanation:
+
+There are three ways to divide nums:
+
+[[2,3,5],[7,7,7],[5]] with the sum of the values 5 + 7 + 5 == 17.
+[[2,3,5,7],[7,7],[5]] with the sum of the values 7 + 7 + 5 == 19.
+[[2,3,5,7,7],[7],[5]] with the sum of the values 7 + 7 + 5 == 19.
+The minimum possible sum of the values is 17.
+
+Example 3:
+
+Input: nums = [1,2,3,4], andValues = [2]
+
+Output: -1
+
+Explanation:
+
+The bitwise AND of the entire array nums is 0. As there is no possible way to divide nums into a single subarray to have the bitwise AND of elements 2, return -1.
+
+ 
+
+Constraints:
+
+1 <= n == nums.length <= 104
+1 <= m == andValues.length <= min(n, 10)
+1 <= nums[i] < 105
+0 <= andValues[j] < 105
+
+
+# java
+
+
+class Solution {
+    private int[] nums;
+    private int[] andValues;
+    private final int inf = 1 << 29;
+    private Map<Long, Integer> f = new HashMap<>();
+
+    public int minimumValueSum(int[] nums, int[] andValues) {
+        this.nums = nums;
+        this.andValues = andValues;
+        int ans = dfs(0, 0, -1);
+        return ans >= inf ? -1 : ans;
+    }
+
+    private int dfs(int i, int j, int a) {
+        if (nums.length - i < andValues.length - j) {
+            return inf;
+        }
+        if (j == andValues.length) {
+            return i == nums.length ? 0 : inf;
+        }
+        a &= nums[i];
+        if (a < andValues[j]) {
+            return inf;
+        }
+        long key = (long) i << 36 | (long) j << 32 | a;
+        if (f.containsKey(key)) {
+            return f.get(key);
+        }
+
+        int ans = dfs(i + 1, j, a);
+        if (a == andValues[j]) {
+            ans = Math.min(ans, dfs(i + 1, j + 1, -1) + nums[i]);
+        }
+        f.put(key, ans);
+        return ans;
+    }
+}
+
+or
+
+
+class Solution {
+  public int minimumValueSum(int[] nums, int[] andValues) {
+    Map<Integer, Integer>[][] mem = new Map[nums.length][andValues.length];
+    Arrays.stream(mem).forEach(A -> Arrays.setAll(A, j -> new HashMap<>()));
+    final int ans = minimumValueSum(nums, andValues, 0, 0, FULL_MASK, mem);
+    return ans == INF ? -1 : ans;
+  }
+
+  private static final int INF = 1_000_000_000;
+  private static final int FULL_MASK = (1 << 17) - 1;
+
+  // Returns the minimum value sum of nums[i..n) and andValues[j..m), where
+  // `mask` is the running value of the current subarray.
+  private int minimumValueSum(int[] nums, int[] andValues, int i, int j, int mask,
+                              Map<Integer, Integer>[][] mem) {
+    if (i == nums.length && j == andValues.length)
+      return 0;
+    if (i == nums.length || j == andValues.length)
+      return INF;
+    if (mem[i][j].containsKey(mask))
+      return mem[i][j].get(mask);
+    mask &= nums[i];
+    if (mask < andValues[j]) {
+      mem[i][j].put(mask, INF);
+      return INF;
+    }
+    if (mask == andValues[j]) {
+      // 1. Keep going.
+      // 2. End the subarray here and pick nums[i], then fresh start.
+      final int res =
+          Math.min(minimumValueSum(nums, andValues, i + 1, j, mask, mem),
+                   nums[i] + minimumValueSum(nums, andValues, i + 1, j + 1, FULL_MASK, mem));
+      mem[i][j].put(mask, res);
+      return res;
+    }
+    // Keep going.
+    final int res = minimumValueSum(nums, andValues, i + 1, j, mask, mem);
+    mem[i][j].put(mask, res);
+    return res;
+  }
+}
+
+or
+
+
+class Solution {
+    public int inf = 10000000;
+    Map<String,Integer> map=new HashMap<>();
+    public int minimumValueSum(int[] nums, int[] andValues) {
+         int re= f(0,0,nums,andValues,-1);
+         return re == inf ?-1:re;
+    }
+    int f(int i,int j,int[] num,int[] andValue,int val){
+        if(j==andValue.length && i==num.length){
+            System.out.println(val);
+            return 0;
+        }
+        if(j==andValue.length || i==num.length){
+            return inf;
+        }
+        val &=num[i];
+        String key=i+"*"+j+"*"+val;
+        if(map.containsKey(key)){
+            return map.get(key);
+        }
+        if((val & andValue[j] ) <andValue[j])return inf;
+        
+        if(val!=andValue[j]){
+            int nopick= f(i+1,j,num,andValue,val);
+            map.put(key,nopick);
+            return nopick;
+        }
+        int pick= Math.min(num[i]+f(i+1,j+1,num,andValue,-1),f(i+1,j,num,andValue,val));
+        map.put(key,pick);
+        return pick;
+    }
+
+}
+
+or
+
+public class Solution {
+    // 3D dp for "nums index", "andValues index" as row & cols, and  "calculated AND value" as key of HashMap
+    private HashMap<Integer, Integer>[][] dp;
+    int allBitsSet = (1 << 30) - 1;
+    int n, m;
+    int maxVal = (int)1e9;
+
+    public int minimumValueSum(int[] nums, int[] andValues) {
+        n = nums.length;
+        m = andValues.length;
+        dp = new HashMap[n][m];
+
+        // Initialize the calculation with all bits set to 1 in the mask
+        int ans = CalculateMinSum(nums, andValues, allBitsSet, 0, 0);
+
+        // Return the result if it's finite, otherwise return -1
+        return ans < maxVal ? ans : -1;
+    }
+
+    // Define a recursive function to calculate the minimum sum
+    private int CalculateMinSum(int[] nums, int[] andValues, int mask, int n1, int m1) {
+        // if both arrays are exhausted
+        if (m1 == m && n1 == n) return 0;
+        // if either array is exhausted
+        if (m1 == m || n1 == n) return maxVal;
+
+        // Check if the result is already calculated and cached
+        if (dp[n1][m1] != null && dp[n1][m1].containsKey(mask))
+            return dp[n1][m1].get(mask);
+
+        // Update the mask with bitwise AND operation
+        mask &= nums[n1];
+
+        // If the updated mask is less than the corresponding and_value, it's not possible to get the expected value
+        // because the AND value can only decrease if we add more numbers to it
+        if (mask < andValues[m1])
+            return maxVal;
+
+        // If the updated mask equals the corresponding and_value
+        // then try to split the array at this point
+        var split = maxVal;
+        if (mask == andValues[m1])
+            // Add nums[n1] to the sum and increment both n1 and m1
+            split = nums[n1] + CalculateMinSum(nums, andValues, allBitsSet, n1 + 1, m1 + 1);
+
+        // find out the case when we don't split
+        // Increment n1 to move to the next element in nums
+        var notSplit = CalculateMinSum(nums, andValues, mask, n1 + 1, m1);
+
+        // Return the minimum of two cases
+        var result = Math.min(notSplit, split);
+        if (dp[n1][m1] == null) dp[n1][m1] = new HashMap<>();
+        dp[n1][m1].put(mask, result);
+        return result;
+    }
+}
+
+
+or
+
+class Solution {
+     
+     public int minimumValueSum(int[] nums, int[] andValues) {
+
+        
+        int dp[][] = new int[nums.length][andValues.length];
+        for(int i = 0; i < dp.length; i++) {
+            for(int j = 0; j < dp[i].length; j++) {
+                dp[i][j] = Integer.MAX_VALUE;
+            }
+        }
+
+        int tree[] = makeTree(nums);
+
+        List<List<int[]>> list = new ArrayList<List<int[]>>();
+        for(int i = 0; i < andValues.length; i++) list.add(new ArrayList<int[]>());
+        
+        int bitwiseAnd = nums[0];
+        for(int i = 0; i < nums.length; i++) {
+            bitwiseAnd &= nums[i];
+            if ( bitwiseAnd == andValues[0]) {
+                dp[i][0] = nums[i];
+                int idx = binarySearchUpper(list.get(0), nums[i]);
+                list.get(0).add(idx, new int[]{nums[i],i});
+            }
+        }
+
+
+        for(int i = 1; i < nums.length; i++) {
+            for(int j = 1; j < andValues.length; j++) {
+                
+                for(int a = 0; a < list.get(j-1).size(); a++) {
+                    
+                    bitwiseAnd = getBitwiseAnd(tree, list.get(j-1).get(a)[1]+1+tree.length/2, i+tree.length/2);
+                    
+                    // System.out.println(bitwiseAnd + " " + dp[list.get(j-1).get(a)][j-1] );
+
+                    if ( bitwiseAnd == andValues[j]) {
+                        dp[i][j] = Math.min(dp[i][j], dp[list.get(j-1).get(a)[1]][j-1] + nums[i]);
+                        
+                        int idx = binarySearchUpper(list.get(j), dp[i][j]);
+                        list.get(j).add(idx, new int[]{dp[i][j], i});
+                        break;
+                    } else if ( bitwiseAnd < andValues[j] ) {
+                        list.get(j-1).remove(a);
+                        a--;
+                    }
+                }
+                
+            }
+
+        }
+
+        
+        // System.out.println(list);
+
+
+        // for(int i = 0; i < dp.length; i++) {
+        //     for(int j = 0; j < dp[i].length; j++) {
+        //         System.out.print(dp[i][j] + " ");
+        //     }
+        //     System.out.println();
+        // }
+
+
+        return dp[nums.length-1][andValues.length-1]==Integer.MAX_VALUE?-1:dp[nums.length-1][andValues.length-1];
+    }
+
+    private int binarySearchUpper(List<int[]> list, int target) {
+        int start = 0;
+        int end = list.size();
+        int mid;
+
+         while( start < end) {
+            mid = (start+end)/2;
+            if ( list.get(mid)[0] > target ) {
+                end = mid;
+            } else{
+                start = mid+1;
+            }
+         }
+
+         return end;
+    }
+
+
+    private int[] makeTree(int[] nums) {
+        
+        int len = 1;
+        while(len < nums.length*2) {
+            len = len << 1;
+        }
+        
+        int tree[] = new int[len];
+        int treeIdx = len/2;
+        for(int i = 0; i < nums.length; i++) {
+            tree[treeIdx] = nums[i];
+            treeIdx++;
+        }
+        
+        // for(int i = 0; i < tree.length; i++) System.out.print(tree[i] + " "); System.out.println();
+        
+        for(int i = len/2-1; i >= 1; i-- ) {
+            tree[i] = tree[i*2] & tree[i*2+1];
+        }
+                               
+        // for(int i = 0; i < tree.length; i++) System.out.print(tree[i] + " "); System.out.println();
+        
+        // System.out.println(len);
+            
+        return tree;
+        
+    }
+
+    private int getBitwiseAnd(int tree[], int start, int end) {
+        
+        // System.out.println(start + " aa " + end);
+        int bitwiseAnd = Integer.MAX_VALUE;
+        while(start < end) {
+            
+            if (start % 2 == 1 ){
+                bitwiseAnd &= tree[start];
+                start++;
+            }
+            if ( end % 2 == 0 ) {
+                bitwiseAnd &= tree[end];
+                end--;
+            }
+            
+            if ( end < start) break;
+            
+            start /= 2;
+            end /= 2;
+        }
+        if ( start == end ) bitwiseAnd &= tree[start];
+        
+        // System.out.println(start + " dd " + end + " " + bitwiseAnd);
+        
+        return bitwiseAnd;
+    }
+}
+
+
+or
+
+
+class Solution {
+    Map<Integer,Integer>[][]dp;
+    public int helper(int i,int j,int curr,int nums[],int and[]){
+        int m=nums.length,n=and.length;
+        if(i>=m){
+            if(j>=n){
+                return 0;
+            }
+            return 1000_000_000;
+        }
+        if(j>=n){
+            return 1000_000_000;
+        }
+        if(dp[i][j]!=null && dp[i][j].containsKey(curr)) return dp[i][j].get(curr);
+        int take=1000_000_000;
+        if((curr&nums[i])==and[j]){
+            take=nums[i]+helper(i+1,j+1,((1<<17)-1),nums,and);
+        }
+        int notTake=helper(i+1,j,(curr&nums[i]),nums,and);
+        int mini=Math.min(take,notTake);
+        if(dp[i][j]==null)dp[i][j]=new HashMap<>();
+        dp[i][j].put(curr,mini);
+        return mini;
+    }
+    public int minimumValueSum(int[] nums, int[] andValues) {
+        dp = new HashMap[nums.length+1][11];
+        int x=helper(0,0,((1<<17)-1),nums,andValues);
+        return x>=1000_000_000?-1:x;
+    }
+}
