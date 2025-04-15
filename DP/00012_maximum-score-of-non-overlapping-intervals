@@ -1,0 +1,615 @@
+https://leetcode.com/problems/maximum-score-of-non-overlapping-intervals/description/
+
+3414. Maximum Score of Non-overlapping Intervals
+Hard
+Topics
+Companies
+Hint
+You are given a 2D integer array intervals, where intervals[i] = [li, ri, weighti]. Interval i starts at position li and ends at ri, and has a weight of weighti. You can choose up to 4 non-overlapping intervals. The score of the chosen intervals is defined as the total sum of their weights.
+
+Return the lexicographically smallest array of at most 4 indices from intervals with maximum score, representing your choice of non-overlapping intervals.
+
+Two intervals are said to be non-overlapping if they do not share any points. In particular, intervals sharing a left or right boundary are considered overlapping.
+
+ 
+
+Example 1:
+
+Input: intervals = [[1,3,2],[4,5,2],[1,5,5],[6,9,3],[6,7,1],[8,9,1]]
+
+Output: [2,3]
+
+Explanation:
+
+You can choose the intervals with indices 2, and 3 with respective weights of 5, and 3.
+
+Example 2:
+
+Input: intervals = [[5,8,1],[6,7,7],[4,7,3],[9,10,6],[7,8,2],[11,14,3],[3,5,5]]
+
+Output: [1,3,5,6]
+
+Explanation:
+
+You can choose the intervals with indices 1, 3, 5, and 6 with respective weights of 7, 6, 3, and 5.
+
+ 
+
+Constraints:
+
+1 <= intevals.length <= 5 * 104
+intervals[i].length == 3
+intervals[i] = [li, ri, weighti]
+1 <= li <= ri <= 109
+1 <= weighti <= 109
+
+
+# java
+
+class Solution {
+  public int[] maximumWeight(List<List<Integer>> intervals) {
+    // Convert input to Interval objects
+    List<Interval> indexedIntervals = new ArrayList<>();
+    for (int i = 0; i < intervals.size(); ++i) {
+      List<Integer> interval = intervals.get(i);
+      indexedIntervals.add(new Interval(interval.get(0), interval.get(1), interval.get(2), i));
+    }
+    indexedIntervals.sort(Comparator.comparingInt(Interval::left));
+    T[][] memo = new T[indexedIntervals.size()][5];
+    return dp(indexedIntervals, memo, 0, 4).selected.stream().mapToInt(Integer::intValue).toArray();
+  }
+
+  private record T(long weight, List<Integer> selected) {}
+  private record Interval(int left, int right, int weight, int originalIndex) {}
+
+  private T dp(List<Interval> intervals, T[][] memo, int i, int quota) {
+    if (i == intervals.size() || quota == 0)
+      return new T(0, List.of());
+    if (memo[i][quota] != null)
+      return memo[i][quota];
+
+    T skip = dp(intervals, memo, i + 1, quota);
+
+    Interval interval = intervals.get(i);
+    final int j = findFirstGreater(intervals, i + 1, interval.right);
+    T nextRes = dp(intervals, memo, j, quota - 1);
+
+    List<Integer> newSelected = new ArrayList<>(nextRes.selected);
+    newSelected.add(interval.originalIndex);
+    Collections.sort(newSelected);
+    T pick = new T(interval.weight + nextRes.weight, newSelected);
+    return memo[i][quota] =
+               (pick.weight > skip.weight ||
+                (pick.weight == skip.weight && compareLists(pick.selected, skip.selected) < 0))
+                   ? pick
+                   : skip;
+  }
+
+  // Binary searches the first interval that starts after `rightBoundary`.
+  private int findFirstGreater(List<Interval> intervals, int startFrom, int rightBoundary) {
+    int l = startFrom;
+    int r = intervals.size();
+    while (l < r) {
+      final int m = (l + r) / 2;
+      if (intervals.get(m).left > rightBoundary)
+        r = m;
+      else
+        l = m + 1;
+    }
+    return l;
+  }
+
+  // Compares two lists of integers lexicographically.
+  private int compareLists(List<Integer> list1, List<Integer> list2) {
+    final int minSize = Math.min(list1.size(), list2.size());
+    for (int i = 0; i < minSize; ++i) {
+      final int comparison = Integer.compare(list1.get(i), list2.get(i));
+      if (comparison != 0)
+        return comparison;
+    }
+    return Integer.compare(list1.size(), list2.size());
+  }
+}
+
+
+or
+
+import java.util.*;
+
+class Solution {
+    class Node {
+        long result;
+        int[] index;
+        int size = 0;
+
+        public Node() {
+            index = new int[4];
+        }
+
+        public Node(Node node) {
+            index = new int[4];
+            result = node.result;
+            size = node.size;
+            for (int i = 0; i < size; i++) {
+                index[i] = node.index[i];
+            }
+        }
+
+        public Node(Node node, int newIndex, long result) {
+            index = new int[4];
+            this.result = result;
+            size = node.size;
+            if (size >= 0) System.arraycopy(node.index, 0, index, 0, size);
+            index[size++] = newIndex;
+            for (int i = size - 1; i > 0; i--) {
+                if (index[i] < index[i - 1]) {
+                    int a = index[i];
+                    index[i] = index[i - 1];
+                    index[i - 1] = a;
+                } else {
+                    break;
+                }
+            }
+        }
+    }
+
+    public int[] maximumWeight(List<List<Integer>> intervals) {
+        int n = intervals.size();
+        int[][] intervalsWithIndex = new int[n][4];
+        for (int i = 0; i < n; i++) {
+            intervalsWithIndex[i][0] = i;
+            intervalsWithIndex[i][1] = intervals.get(i).getFirst();
+            intervalsWithIndex[i][2] = intervals.get(i).get(1);
+            intervalsWithIndex[i][3] = intervals.get(i).getLast();
+        }
+
+        Arrays.sort(intervalsWithIndex, (a, b) -> Integer.compare(a[1], b[1]));
+        Node[][] dp = new Node[n][4];
+        for (int i = n - 1; i >= 0; i--) {
+            int nextIndex = findNextNoOverlappingInterval(i + 1, n - 1, intervalsWithIndex, intervalsWithIndex[i][2]);
+            for (int k = 0; k < 4; k++) {
+                Node notTake = (i < n - 1 ? dp[i + 1][k] : new Node());
+                Node take = (nextIndex < n && k > 0 ? dp[nextIndex][k - 1] : new Node());
+
+                long takeResult = take.result + intervalsWithIndex[i][3];
+                dp[i][k] = (notTake.result < takeResult ? new Node(take, intervalsWithIndex[i][0], takeResult) :
+                        (notTake.result > takeResult ? new Node(notTake) : lexicoSmallest(new Node(take, intervalsWithIndex[i][0], takeResult), new Node(notTake))));
+            }
+        }
+
+
+        Node node = dp[0][3];
+        int[] result = new int[node.size];
+        System.arraycopy(node.index, 0, result, 0, node.size);
+        return result;
+
+    }
+
+    private Node lexicoSmallest(Node node1, Node node2) {
+        int n1 = node1.size;
+        int n2 = node2.size;
+        int n = Math.min(n1, n2);
+        for (int i = 0; i < n; i++) {
+            if (node1.index[i] > node2.index[i]) {
+                return node2;
+            } else if (node1.index[i] < node2.index[i]) {
+                return node1;
+            }
+        }
+        return n1 <= n2 ? node1 : node2;
+    }
+
+    private int findNextNoOverlappingInterval(int l, int r, int[][] intervals, int val) {
+        int result = r + 1;
+        while (l <= r) {
+            int mid = (l + r) / 2;
+            if (intervals[mid][1] > val) {
+                result = mid;
+                r = mid - 1;
+            } else {
+                l = mid + 1;
+            }
+        }
+        return result;
+    }
+}
+
+or
+
+
+class Solution {
+    HashMap<String, DpAns> map;
+
+    public int[] maximumWeight(List<List<Integer>> intervals) {
+        int n = intervals.size(); 
+        map = new HashMap<>();
+
+        List<Pair> dintervals = new ArrayList<>();
+        for (int i = 0; i < n; i++) {
+            dintervals.add(new Pair(i, intervals.get(i)));
+        }
+        Collections.sort(dintervals);
+        DpAns result = solve(dintervals, 0, 4);
+        int[] ans = new int[result.list.size()];
+        for (int i = 0; i < ans.length; i++) {
+            ans[i] = result.list.get(i);
+        }
+        return ans;
+    }
+
+    public DpAns solve(List<Pair> intervals, int i, int k) {
+        if (k == 0 || i >= intervals.size()) {
+            return new DpAns(0, new ArrayList<>());
+        }
+        String key = i + "*" + k;
+        if (map.containsKey(key)) {
+            return map.get(key);
+        }
+        DpAns ans = solve(intervals, i + 1, k);
+        // Find the next interval that does not overlap with the current one
+        int nextIdx = findNextIndex(intervals, intervals.get(i).interval.get(1), i + 1, intervals.size());
+
+        // Compute the solution for taking the current interval
+        DpAns ans2 = solve(intervals, nextIdx, k - 1);
+
+        if (intervals.get(i).interval.get(2) + ans2.score > ans.score) {
+            long score = intervals.get(i).interval.get(2) + ans2.score;
+            List<Integer> list = new ArrayList<>(ans2.list);
+            list.add(intervals.get(i).idx); // Add current interval's index
+            Collections.sort(list); // Ensure the indices are sorted lexicographically
+            ans = new DpAns(score, list);
+        } else if (intervals.get(i).interval.get(2) + ans2.score == ans.score) {
+            long score = ans.score;
+            List<Integer> list1 = new ArrayList<>(ans.list);
+            List<Integer> list2 = new ArrayList<>(ans2.list);
+            list2.add(intervals.get(i).idx);
+            Collections.sort(list2);
+            List<Integer> list = lexiSmallerList(list1, list2);
+            ans = new DpAns(score, list);
+        }
+
+        // Cache the result for the current state
+        map.put(key, ans);
+        return ans;
+    }
+
+    // Binary search to find the next non-overlapping interval
+    public int findNextIndex(List<Pair> intervals, int val, int l, int r) {
+        while (l < r) {
+            int mid = (l + r) / 2;
+            int temp = intervals.get(mid).interval.get(0); // Start of the mid interval
+            if (temp > val) {
+                r = mid; // Search in the left half
+            } else {
+                l = mid + 1; // Search in the right half
+            }
+        }
+        return l;
+    }
+
+    // Compare two lists lexicographically
+    public List<Integer> lexiSmallerList(List<Integer> list1, List<Integer> list2) {
+        int n1 = list1.size();
+        int n2 = list2.size();
+        int minLength = Math.min(n1, n2);
+
+        // Compare element by element
+        for (int i = 0; i < minLength; i++) {
+            int val1 = list1.get(i);
+            int val2 = list2.get(i);
+            if (val1 < val2) {
+                return list1;
+            } else if (val1 > val2) {
+                return list2;
+            }
+        }
+
+        // If all elements are the same, the shorter list is lexicographically smaller
+        return n1 <= n2 ? list1 : list2;
+    }
+}
+
+// Helper class to store intervals with their indices
+class Pair implements Comparable<Pair> {
+    int idx; // Index of the interval in the input
+    List<Integer> interval; // The interval details [li, ri, weighti]
+
+    Pair(int idx, List<Integer> interval) {
+        this.idx = idx;
+        this.interval = interval;
+    }
+
+    // Sort pairs by their start point (li)
+    public int compareTo(Pair p) {
+        return this.interval.get(0) - p.interval.get(0);
+    }
+}
+
+// Helper class to store DP results
+class DpAns {
+    long score; // Maximum score for this state
+    List<Integer> list; // Indices of selected intervals
+
+    DpAns(long score, List<Integer> list) {
+        this.score = score;
+        this.list = list;
+    }
+}
+
+or
+
+
+class Solution {
+
+    static class Pair {
+        long ans;
+        List<Integer> indexes;
+
+        Pair(long ans, List<Integer> indexes) {
+            this.ans = ans;
+            this.indexes = indexes;
+        }
+
+        Pair copy() {
+            Pair pair = new Pair(ans, new ArrayList<>(indexes));
+            return pair;
+        }
+    }
+
+    Pair findBetter(Pair ans1, Pair ans2) {
+        if (ans1.ans < ans2.ans) {
+            return ans2;
+        } else if (ans1.ans > ans2.ans) {
+            return ans1;
+        } else {
+            Collections.sort(ans1.indexes);
+            Collections.sort(ans2.indexes);
+
+            List<Integer> al1 = ans1.indexes;
+            List<Integer> al2 = ans2.indexes;
+
+            for (int i = 0; i < Math.min(al1.size(), al2.size()); i++) {
+                if (al1.get(i) < al2.get(i)) {
+                    return ans1;
+                } else if (al2.get(i) < al1.get(i)) {
+                    return ans2;
+                }
+            }
+
+            if (al1.size() < al2.size()) {
+                return ans1;
+            }
+
+            return ans2;
+        }
+    }
+
+    int find(List<List<Integer>> intervals, List<Integer> al, int val) {
+        int start = 0;
+        int end = al.size() - 1;
+        int ans = al.size();
+
+        while (start <= end) {
+            int mid = (start + end) / 2;
+            int midIndex = al.get(mid);
+            int midVal = intervals.get(midIndex).get(0);
+
+            if (midVal == val) {
+                ans = mid;
+                end = mid - 1;
+            } else if (midVal < val) {
+                start = mid + 1;
+            } else {
+                ans = mid;
+                end = mid - 1;
+            }
+        }
+
+        return ans;
+    }
+
+    Pair dp[][];
+
+    Pair solve(List<List<Integer>> intervals, List<Integer> sorted, int sortIndex, int done) {
+        if (done >= 4 || sortIndex >= intervals.size()) {
+            return new Pair(0, new ArrayList<>());
+        }
+
+        if (dp[sortIndex][done] != null) {
+            return dp[sortIndex][done].copy();
+        }
+
+        // don't include this
+        Pair ans1 = solve(intervals, sorted, sortIndex + 1, done);
+
+        int index = sorted.get(sortIndex);
+
+        // include this
+        List<Integer> interval = intervals.get(index);
+
+        Pair ans2 = solve(intervals, sorted, find(intervals, sorted, interval.get(1) + 1), done + 1);
+        ans2.ans = ans2.ans + interval.get(2);
+        ans2.indexes.add(index);
+
+        dp[sortIndex][done] = findBetter(ans1, ans2);
+
+        return dp[sortIndex][done].copy();
+    }
+
+    public int[] maximumWeight(List<List<Integer>> intervals) {
+        int n = intervals.size();
+
+        dp = new Pair[n][4];
+
+        List<Integer> al = new ArrayList<>();
+        for (int i = 0; i < n; i++) {
+            al.add(i);
+        }
+
+        Collections.sort(al, (a, b) -> {
+            return intervals.get(a).get(0) - intervals.get(b).get(0);
+        });
+
+        Pair ans = solve(intervals, al, 0, 0);
+
+        Collections.sort(ans.indexes);
+
+        int ansArr[] = new int[ans.indexes.size()];
+        for (int i = 0; i < ans.indexes.size(); i++) {
+            ansArr[i] = ans.indexes.get(i);
+        }
+
+        return ansArr;
+    }
+}
+
+or
+
+
+class Solution {
+    // Memoization map to store the result of states (i, k)
+    HashMap<String, DpAns> map;
+
+    public int[] maximumWeight(List<List<Integer>> intervals) {
+        int n = intervals.size(); // Number of intervals
+        map = new HashMap<>();
+
+        // Create a list of Pair objects to store intervals along with their indices
+        List<Pair> dintervals = new ArrayList<>();
+        for (int i = 0; i < n; i++) {
+            dintervals.add(new Pair(i, intervals.get(i)));
+        }
+
+        // Sort intervals based on their start points (li)
+        Collections.sort(dintervals);
+
+        // Find the best solution with at most 4 intervals
+        DpAns result = solve(dintervals, 0, 4);
+
+        // Convert the result list to an array for the final output
+        int[] ans = new int[result.list.size()];
+        for (int i = 0; i < ans.length; i++) {
+            ans[i] = result.list.get(i);
+        }
+        return ans;
+    }
+
+    // Recursive function to find the best solution for picking intervals
+    public DpAns solve(List<Pair> intervals, int i, int k) {
+        // Base case: no intervals left to pick or out of bounds
+        if (k == 0 || i >= intervals.size()) {
+            return new DpAns(0, new ArrayList<>());
+        }
+
+        // Generate a unique key for the current state (i, k)
+        String key = i + "*" + k;
+
+        // If this state has already been computed, return the cached result
+        if (map.containsKey(key)) {
+            return map.get(key);
+        }
+
+        // Choice 1: Skip the current interval
+        DpAns ans1 = solve(intervals, i + 1, k);
+
+        // Choice 2: Take the current interval
+        // Find the next interval that does not overlap with the current one
+        int nextIdx = findNextIndex(intervals, intervals.get(i).interval.get(1), i + 1, intervals.size() - 1);
+
+        // Compute the solution for taking the current interval
+        DpAns ans2 = solve(intervals, nextIdx, k - 1);
+
+        // Combine current interval's weight and indices with the solution of the rest
+        DpAns ans;
+        if (intervals.get(i).interval.get(2) + ans2.score > ans1.score) {
+            // If taking this interval gives a better score
+            long score = intervals.get(i).interval.get(2) + ans2.score;
+            List<Integer> list = new ArrayList<>(ans2.list);
+            list.add(intervals.get(i).idx); // Add current interval's index
+            Collections.sort(list); // Ensure the indices are sorted lexicographically
+            ans = new DpAns(score, list);
+        } else if (intervals.get(i).interval.get(2) + ans2.score < ans1.score) {
+            // If skipping gives a better score
+            long score = ans1.score;
+            List<Integer> list = new ArrayList<>(ans1.list);
+            ans = new DpAns(score, list);
+        } else {
+            // If scores are tied, pick the lexicographically smaller list
+            long score = ans1.score;
+            List<Integer> list1 = new ArrayList<>(ans1.list);
+            List<Integer> list2 = new ArrayList<>(ans2.list);
+            list2.add(intervals.get(i).idx);
+            Collections.sort(list2);
+            List<Integer> list = lexiSmallerList(list1, list2);
+            ans = new DpAns(score, list);
+        }
+
+        // Cache the result for the current state
+        map.put(key, ans);
+        return ans;
+    }
+
+    // Binary search to find the next non-overlapping interval
+    public int findNextIndex(List<Pair> intervals, int val, int l, int r) {
+        int ans = r + 1; // Default to out-of-bounds if no valid interval found
+        while (l <= r) {
+            int mid = (l + r) / 2;
+            int temp = intervals.get(mid).interval.get(0); // Start of the mid interval
+            if (temp > val) {
+                ans = mid; // Found a valid interval, update the answer
+                r = mid - 1; // Search in the left half
+            } else {
+                l = mid + 1; // Search in the right half
+            }
+        }
+        return ans;
+    }
+
+    // Compare two lists lexicographically
+    public List<Integer> lexiSmallerList(List<Integer> list1, List<Integer> list2) {
+        int n1 = list1.size();
+        int n2 = list2.size();
+        int minLength = Math.min(n1, n2);
+
+        // Compare element by element
+        for (int i = 0; i < minLength; i++) {
+            int val1 = list1.get(i);
+            int val2 = list2.get(i);
+            if (val1 < val2) {
+                return list1;
+            } else if (val1 > val2) {
+                return list2;
+            }
+        }
+
+        // If all elements are the same, the shorter list is lexicographically smaller
+        return n1 <= n2 ? list1 : list2;
+    }
+}
+
+// Helper class to store intervals with their indices
+class Pair implements Comparable<Pair> {
+    int idx; // Index of the interval in the input
+    List<Integer> interval; // The interval details [li, ri, weighti]
+
+    Pair(int idx, List<Integer> interval) {
+        this.idx = idx;
+        this.interval = interval;
+    }
+
+    // Sort pairs by their start point (li)
+    public int compareTo(Pair p) {
+        return this.interval.get(0) - p.interval.get(0);
+    }
+}
+
+// Helper class to store DP results
+class DpAns {
+    long score; // Maximum score for this state
+    List<Integer> list; // Indices of selected intervals
+
+    DpAns(long score, List<Integer> list) {
+        this.score = score;
+        this.list = list;
+    }
+}
