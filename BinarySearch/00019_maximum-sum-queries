@@ -1,0 +1,418 @@
+https://leetcode.com/problems/maximum-sum-queries/description/
+
+2736. Maximum Sum Queries
+Hard
+Topics
+Companies
+Hint
+You are given two 0-indexed integer arrays nums1 and nums2, each of length n, and a 1-indexed 2D array queries where queries[i] = [xi, yi].
+
+For the ith query, find the maximum value of nums1[j] + nums2[j] among all indices j (0 <= j < n), where nums1[j] >= xi and nums2[j] >= yi, or -1 if there is no j satisfying the constraints.
+
+Return an array answer where answer[i] is the answer to the ith query.
+
+ 
+
+Example 1:
+
+Input: nums1 = [4,3,1,2], nums2 = [2,4,9,5], queries = [[4,1],[1,3],[2,5]]
+Output: [6,10,7]
+Explanation: 
+For the 1st query xi = 4 and yi = 1, we can select index j = 0 since nums1[j] >= 4 and nums2[j] >= 1. The sum nums1[j] + nums2[j] is 6, and we can show that 6 is the maximum we can obtain.
+
+For the 2nd query xi = 1 and yi = 3, we can select index j = 2 since nums1[j] >= 1 and nums2[j] >= 3. The sum nums1[j] + nums2[j] is 10, and we can show that 10 is the maximum we can obtain. 
+
+For the 3rd query xi = 2 and yi = 5, we can select index j = 3 since nums1[j] >= 2 and nums2[j] >= 5. The sum nums1[j] + nums2[j] is 7, and we can show that 7 is the maximum we can obtain.
+
+Therefore, we return [6,10,7].
+Example 2:
+
+Input: nums1 = [3,2,5], nums2 = [2,3,4], queries = [[4,4],[3,2],[1,1]]
+Output: [9,9,9]
+Explanation: For this example, we can use index j = 2 for all the queries since it satisfies the constraints for each query.
+Example 3:
+
+Input: nums1 = [2,1], nums2 = [2,3], queries = [[3,3]]
+Output: [-1]
+Explanation: There is one query in this example with xi = 3 and yi = 3. For every index, j, either nums1[j] < xi or nums2[j] < yi. Hence, there is no solution. 
+ 
+
+Constraints:
+
+nums1.length == nums2.length 
+n == nums1.length 
+1 <= n <= 105
+1 <= nums1[i], nums2[i] <= 109 
+1 <= queries.length <= 105
+queries[i].length == 2
+xi == queries[i][1]
+yi == queries[i][2]
+1 <= xi, yi <= 109
+
+
+# java
+
+
+class BinaryIndexedTree {
+    private int n;
+    private int[] c;
+
+    public BinaryIndexedTree(int n) {
+        this.n = n;
+        c = new int[n + 1];
+        Arrays.fill(c, -1);
+    }
+
+    public void update(int x, int v) {
+        while (x <= n) {
+            c[x] = Math.max(c[x], v);
+            x += x & -x;
+        }
+    }
+
+    public int query(int x) {
+        int mx = -1;
+        while (x > 0) {
+            mx = Math.max(mx, c[x]);
+            x -= x & -x;
+        }
+        return mx;
+    }
+}
+
+class Solution {
+    public int[] maximumSumQueries(int[] nums1, int[] nums2, int[][] queries) {
+        int n = nums1.length;
+        int[][] nums = new int[n][0];
+        for (int i = 0; i < n; ++i) {
+            nums[i] = new int[] {nums1[i], nums2[i]};
+        }
+        Arrays.sort(nums, (a, b) -> b[0] - a[0]);
+        Arrays.sort(nums2);
+        int m = queries.length;
+        Integer[] idx = new Integer[m];
+        for (int i = 0; i < m; ++i) {
+            idx[i] = i;
+        }
+        Arrays.sort(idx, (i, j) -> queries[j][0] - queries[i][0]);
+        int[] ans = new int[m];
+        int j = 0;
+        BinaryIndexedTree tree = new BinaryIndexedTree(n);
+        for (int i : idx) {
+            int x = queries[i][0], y = queries[i][1];
+            for (; j < n && nums[j][0] >= x; ++j) {
+                int k = n - Arrays.binarySearch(nums2, nums[j][1]);
+                tree.update(k, nums[j][0] + nums[j][1]);
+            }
+            int p = Arrays.binarySearch(nums2, y);
+            int k = p >= 0 ? n - p : n + p + 1;
+            ans[i] = tree.query(k);
+        }
+        return ans;
+    }
+}
+
+or
+
+class Solution {
+  public int[] maximumSumQueries(int[] nums1, int[] nums2, int[][] queries) {
+    MyPair[] pairs = getPairs(nums1, nums2);
+    IndexedQuery[] indexedQueries = getIndexedQueries(queries);
+    int[] ans = new int[queries.length];
+    List<Pair<Integer, Integer>> stack = new ArrayList<>(); // [(y, x + y)]
+
+    int pairsIndex = 0;
+    for (IndexedQuery indexedQuery : indexedQueries) {
+      final int queryIndex = indexedQuery.queryIndex;
+      final int minX = indexedQuery.minX;
+      final int minY = indexedQuery.minY;
+      while (pairsIndex < pairs.length && pairs[pairsIndex].x >= minX) {
+        MyPair pair = pairs[pairsIndex++];
+        // x + y is a better candidate. Given that x is decreasing, the
+        // condition "x + y >=  stack.get(stack.size() - 1).getValue()" suggests
+        // that y is relatively larger, thereby making it a better candidate.
+        final int x = pair.x;
+        final int y = pair.y;
+        while (!stack.isEmpty() && x + y >= stack.get(stack.size() - 1).getValue())
+          stack.remove(stack.size() - 1);
+        if (stack.isEmpty() || y > stack.get(stack.size() - 1).getKey())
+          stack.add(new Pair<>(y, x + y));
+      }
+      final int j = firstGreaterEqual(stack, minY);
+      ans[queryIndex] = j == stack.size() ? -1 : stack.get(j).getValue();
+    }
+
+    return ans;
+  }
+
+  private record MyPair(int x, int y){};
+  private record IndexedQuery(int queryIndex, int minX, int minY){};
+
+  private int firstGreaterEqual(List<Pair<Integer, Integer>> A, int target) {
+    int l = 0;
+    int r = A.size();
+    while (l < r) {
+      final int m = (l + r) / 2;
+      if (A.get(m).getKey() >= target)
+        r = m;
+      else
+        l = m + 1;
+    }
+    return l;
+  }
+
+  private MyPair[] getPairs(int[] nums1, int[] nums2) {
+    MyPair[] pairs = new MyPair[nums1.length];
+    for (int i = 0; i < nums1.length; ++i)
+      pairs[i] = new MyPair(nums1[i], nums2[i]);
+    Arrays.sort(pairs, Comparator.comparing(MyPair::x, Comparator.reverseOrder()));
+    return pairs;
+  }
+
+  private IndexedQuery[] getIndexedQueries(int[][] queries) {
+    IndexedQuery[] indexedQueries = new IndexedQuery[queries.length];
+    for (int i = 0; i < queries.length; ++i)
+      indexedQueries[i] = new IndexedQuery(i, queries[i][0], queries[i][1]);
+    Arrays.sort(indexedQueries,
+                Comparator.comparing(IndexedQuery::minX, Comparator.reverseOrder()));
+    return indexedQueries;
+  }
+}
+
+
+or
+
+class Solution {
+    class Pair{
+        int x,  y;
+        Pair(int x, int y){
+            this.x = x;
+            this.y = y;
+        }
+        public String toString(){
+            return "[ " + this.x + ", " + this.y+ " ]";
+        }
+    }
+    public int[] maximumSumQueries(int[] nums1, int[] nums2, int[][] queries) {
+        int n = nums1.length;
+        Pair[] arr = new Pair[n];
+        Integer[] qrr = new Integer[queries.length];
+        for(int i = 0; i < n; i++){
+            arr[i] = new Pair(nums1[i], nums2[i]);
+        }
+        for(int i = 0; i < queries.length; i++){
+            qrr[i] =i;
+        }
+        Arrays.sort(arr,(a,b)->a.x- b.x);
+        Arrays.sort(qrr,(a,b)-> Integer.compare(queries[b][0] , queries[a][0]));
+
+        int i = 0, j = arr.length -1;
+        // System.out.println(Arrays.toString(arr));
+        int[] ans = new int[queries.length];
+        TreeMap<Integer,Integer> map = new TreeMap<>();
+
+        for(i = 0; i < queries.length; i++){
+            for(;j >= 0 && queries[qrr[i]][0] <= arr[j].x; j--){
+                update(map,arr[j].y, arr[j].x + arr[j].y);
+            }
+            // System.out.println(map);
+            ans[qrr[i]] = query(map,queries[qrr[i]][1]);
+        }
+        return ans;
+    }
+
+    static void update(TreeMap<Integer,Integer> map, int y, int sum){
+        Map.Entry<Integer,Integer> ceil = map.ceilingEntry(y);
+        if(ceil != null && ceil.getValue() >= sum){
+            return;
+        }
+        // int val = t;
+        // TreeMap tailmap = map.tailMap(y);
+        while(map.floorEntry(y) != null){
+            Map.Entry<Integer,Integer> floor = map.floorEntry(y);
+            if(floor.getValue() <= sum){
+                map.remove(floor.getKey());
+            }else{
+                break;
+            }
+        }
+        map.put(y,sum);
+    }
+    static int query(TreeMap<Integer,Integer> map , int y){
+        Map.Entry<Integer,Integer> entry = map.ceilingEntry(y);
+        if(entry == null){
+            return -1;
+        }
+        return entry.getValue();
+    }
+}
+
+
+or
+
+
+class Solution {
+    public int[] maximumSumQueries(int[] nums1, int[] nums2, int[][] queries) {
+
+        
+        int queriesWithIdx[][] = new int[queries.length][3];
+
+        for(int i = 0; i < queries.length; i++) {
+            queriesWithIdx[i][0] = queries[i][0];
+            queriesWithIdx[i][1] = queries[i][1];
+            queriesWithIdx[i][2] = i;
+        }
+        
+        Arrays.sort(queriesWithIdx, new Comparator<int[]>() {
+
+            @Override
+            public int compare(int[] arg0, int[] arg1) {
+                return arg1[0]==arg0[0]?arg1[1]-arg0[1]:arg1[0]-arg0[0];
+            }
+            
+        });
+
+        int n = nums1.length;
+        int nums1WithIdx[][] = new int[n][2];
+
+        for(int i = 0; i < n; i++) {
+            nums1WithIdx[i][0] = nums1[i];
+            nums1WithIdx[i][1] = i;
+        }
+
+        Arrays.sort(nums1WithIdx, new Comparator<int[]>() {
+            @Override
+            public int compare(int[] arg0, int[] arg1) {
+                return arg1[0]-arg0[0];
+            }
+        });
+
+
+        int result[] = new int[queries.length];
+        int nums1idx = 0;
+
+        List<int[]> list = new ArrayList<int[]>();
+
+        for(int i = 0; i < queriesWithIdx.length; i++) {
+           int x = queriesWithIdx[i][0];
+           int y = queriesWithIdx[i][1];
+           int originIdx = queriesWithIdx[i][2];
+
+            while(nums1idx < nums1WithIdx.length) {
+                
+                if ( nums1WithIdx[nums1idx][0] >= x ) {
+                    int insertY = nums2[nums1WithIdx[nums1idx][1]];
+                    int sum = nums1WithIdx[nums1idx][0] + insertY;
+                    
+                    int removeIdx = 0;
+                    while(list.size() > 0 && removeIdx < list.size() ) {
+                        if ( list.get(removeIdx)[1] < sum ) list.remove(removeIdx);
+                        else {
+                            removeIdx++;
+                        }
+                    }
+
+                    int idx = binarySearchUpper(list, insertY);
+                    if ( list.size() == idx ) {
+                        list.add(idx, new int[]{insertY, sum});
+                    } else{
+                        if ( list.get(idx)[1] < sum ) {
+                            if ( list.get(idx)[0] == insertY) {
+                                list.set(idx, new int[]{insertY, sum});
+                            } else{
+                                list.add(idx, new int[]{insertY, sum});
+                            }
+                            
+                        }
+                    }
+                    
+                } else {
+                    break;
+                }
+                nums1idx++;
+            }
+            int idx = binarySearchUpper(list, y);
+
+            if ( idx == list.size() ) result[originIdx] = -1;
+            else {
+                result[originIdx] = list.get(idx)[1];
+            }
+        }
+
+
+        // for(int i = 0; i < result.length; i++) System.out.print(result[i] + " "); System.out.println();
+
+        return result;
+    }
+
+    private int binarySearchUpper(List<int[]> list, int target) {
+        int start = 0;
+        int end = list.size();
+        int mid;
+        
+        while(start < end) {
+            mid = (start+end)/2;
+
+            if ( list.get(mid)[0] >= target) {
+                end = mid;
+            } else{
+                start = mid+1;
+            }
+        }
+
+        return end;
+    }
+}
+
+or
+
+
+class Solution {
+    public int[] maximumSumQueries(int[] nums1, int[] nums2, int[][] queries) {
+        int q2[][] = new int[queries.length][3], ans[] = new int[queries.length];
+        for (int i = 0; i < queries.length; ++i) {
+            q2[i][0] = queries[i][0];
+            q2[i][1] = queries[i][1];
+            q2[i][2] = i;
+        }
+        int nums[][] = new int[nums1.length][2];
+        for (int i = 0; i < nums1.length; ++i) {
+            nums[i][0] = nums1[i];
+            nums[i][1] = nums2[i];
+        }
+        Arrays.sort(nums, (a, b) -> Integer.compare(a[0], b[0]));
+        Arrays.sort(q2, (a, b) -> Integer.compare(a[0], b[0]));
+        // key -> y, value -> x + y
+        // y -> ascend, x + y -> descend
+        TreeMap<Integer, Integer> tm = new TreeMap<>();
+
+        int index = nums.length - 1;
+        for (int i = q2.length - 1; i >= 0; --i) {
+            while (index >= 0 && nums[index][0] >= q2[i][0]) {
+                insert(tm, nums[index][0], nums[index][1]);
+                index--;
+            }
+            var entry = tm.ceilingEntry(q2[i][1]);
+            if (entry == null) ans[q2[i][2]] = -1;
+            else ans[q2[i][2]] = entry.getValue();
+        }
+        return ans;
+    }
+
+    private void insert(TreeMap<Integer, Integer> tm, int x, int y) {
+        int sum = x + y;
+        if (tm.containsKey(y) && tm.get(y) >= sum) return;
+        Integer higher = tm.higherKey(y);
+        if (higher != null && tm.get(higher) >= sum) return;
+        
+        Set<Integer> hs = new HashSet<>();
+        Integer lower = tm.lowerKey(y);
+        while (lower != null) {
+            if (tm.get(lower) <= sum) hs.add(lower);
+            else break;
+            lower = tm.lowerKey(lower);
+        }
+        for (int i : hs) tm.remove(i);
+        tm.put(y, sum);
+    }
+}
