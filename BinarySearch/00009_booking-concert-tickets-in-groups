@@ -1,0 +1,853 @@
+https://leetcode.com/problems/booking-concert-tickets-in-groups/description/
+
+2286. Booking Concert Tickets in Groups
+Hard
+Topics
+Companies
+Hint
+A concert hall has n rows numbered from 0 to n - 1, each with m seats, numbered from 0 to m - 1. You need to design a ticketing system that can allocate seats in the following cases:
+
+If a group of k spectators can sit together in a row.
+If every member of a group of k spectators can get a seat. They may or may not sit together.
+Note that the spectators are very picky. Hence:
+
+They will book seats only if each member of their group can get a seat with row number less than or equal to maxRow. maxRow can vary from group to group.
+In case there are multiple rows to choose from, the row with the smallest number is chosen. If there are multiple seats to choose in the same row, the seat with the smallest number is chosen.
+Implement the BookMyShow class:
+
+BookMyShow(int n, int m) Initializes the object with n as number of rows and m as number of seats per row.
+int[] gather(int k, int maxRow) Returns an array of length 2 denoting the row and seat number (respectively) of the first seat being allocated to the k members of the group, who must sit together. In other words, it returns the smallest possible r and c such that all [c, c + k - 1] seats are valid and empty in row r, and r <= maxRow. Returns [] in case it is not possible to allocate seats to the group.
+boolean scatter(int k, int maxRow) Returns true if all k members of the group can be allocated seats in rows 0 to maxRow, who may or may not sit together. If the seats can be allocated, it allocates k seats to the group with the smallest row numbers, and the smallest possible seat numbers in each row. Otherwise, returns false.
+ 
+
+Example 1:
+
+Input
+["BookMyShow", "gather", "gather", "scatter", "scatter"]
+[[2, 5], [4, 0], [2, 0], [5, 1], [5, 1]]
+Output
+[null, [0, 0], [], true, false]
+
+Explanation
+BookMyShow bms = new BookMyShow(2, 5); // There are 2 rows with 5 seats each 
+bms.gather(4, 0); // return [0, 0]
+                  // The group books seats [0, 3] of row 0. 
+bms.gather(2, 0); // return []
+                  // There is only 1 seat left in row 0,
+                  // so it is not possible to book 2 consecutive seats. 
+bms.scatter(5, 1); // return True
+                   // The group books seat 4 of row 0 and seats [0, 3] of row 1. 
+bms.scatter(5, 1); // return False
+                   // There is only one seat left in the hall.
+ 
+
+Constraints:
+
+1 <= n <= 5 * 104
+1 <= m, k <= 109
+0 <= maxRow <= n - 1
+At most 5 * 104 calls in total will be made to gather and scatter.
+
+
+# java
+
+class Node {
+    int l, r;
+    long mx, s;
+}
+
+class SegmentTree {
+    private Node[] tr;
+    private int m;
+
+    public SegmentTree(int n, int m) {
+        this.m = m;
+        tr = new Node[n << 2];
+        for (int i = 0; i < tr.length; ++i) {
+            tr[i] = new Node();
+        }
+        build(1, 1, n);
+    }
+
+    private void build(int u, int l, int r) {
+        tr[u].l = l;
+        tr[u].r = r;
+        if (l == r) {
+            tr[u].s = m;
+            tr[u].mx = m;
+            return;
+        }
+        int mid = (l + r) >> 1;
+        build(u << 1, l, mid);
+        build(u << 1 | 1, mid + 1, r);
+        pushup(u);
+    }
+
+    public void modify(int u, int x, long v) {
+        if (tr[u].l == x && tr[u].r == x) {
+            tr[u].s = v;
+            tr[u].mx = v;
+            return;
+        }
+        int mid = (tr[u].l + tr[u].r) >> 1;
+        if (x <= mid) {
+            modify(u << 1, x, v);
+        } else {
+            modify(u << 1 | 1, x, v);
+        }
+        pushup(u);
+    }
+
+    public long querySum(int u, int l, int r) {
+        if (tr[u].l >= l && tr[u].r <= r) {
+            return tr[u].s;
+        }
+        int mid = (tr[u].l + tr[u].r) >> 1;
+        long v = 0;
+        if (l <= mid) {
+            v += querySum(u << 1, l, r);
+        }
+        if (r > mid) {
+            v += querySum(u << 1 | 1, l, r);
+        }
+        return v;
+    }
+
+    public int queryIdx(int u, int l, int r, int k) {
+        if (tr[u].mx < k) {
+            return 0;
+        }
+        if (tr[u].l == tr[u].r) {
+            return tr[u].l;
+        }
+        int mid = (tr[u].l + tr[u].r) >> 1;
+        if (tr[u << 1].mx >= k) {
+            return queryIdx(u << 1, l, r, k);
+        }
+        if (r > mid) {
+            return queryIdx(u << 1 | 1, l, r, k);
+        }
+        return 0;
+    }
+
+    private void pushup(int u) {
+        tr[u].s = tr[u << 1].s + tr[u << 1 | 1].s;
+        tr[u].mx = Math.max(tr[u << 1].mx, tr[u << 1 | 1].mx);
+    }
+}
+
+class BookMyShow {
+    private int n;
+    private int m;
+    private SegmentTree tree;
+
+    public BookMyShow(int n, int m) {
+        this.n = n;
+        this.m = m;
+        tree = new SegmentTree(n, m);
+    }
+
+    public int[] gather(int k, int maxRow) {
+        ++maxRow;
+        int i = tree.queryIdx(1, 1, maxRow, k);
+        if (i == 0) {
+            return new int[] {};
+        }
+        long s = tree.querySum(1, i, i);
+        tree.modify(1, i, s - k);
+        return new int[] {i - 1, (int) (m - s)};
+    }
+
+    public boolean scatter(int k, int maxRow) {
+        ++maxRow;
+        if (tree.querySum(1, 1, maxRow) < k) {
+            return false;
+        }
+        int i = tree.queryIdx(1, 1, maxRow, 1);
+        for (int j = i; j <= n; ++j) {
+            long s = tree.querySum(1, j, j);
+            if (s >= k) {
+                tree.modify(1, j, s - k);
+                return true;
+            }
+            k -= s;
+            tree.modify(1, j, 0);
+        }
+        return true;
+    }
+}
+
+/**
+ * Your BookMyShow object will be instantiated and called as such:
+ * BookMyShow obj = new BookMyShow(n, m);
+ * int[] param_1 = obj.gather(k,maxRow);
+ * boolean param_2 = obj.scatter(k,maxRow);
+ */
+
+
+or
+
+
+// Binary Search but TLE
+
+class BookMyShow {
+    private int[] seatsLeft;
+    private int m, seatStartsFrom;
+
+    public BookMyShow(int n, int m) {
+        this.m = m;
+        seatStartsFrom = 0;
+        seatsLeft = new int[n];
+        Arrays.fill(seatsLeft, m);
+    }
+    
+    public int[] gather(int k, int maxRow) {
+        for(int row= seatStartsFrom;row<=maxRow;row++){
+            if(seatsLeft[row]>=k){
+                seatsLeft[row] -= k;
+                return new int[]{row, m- seatsLeft[row]-k};
+            }
+        }
+        return new int[]{};
+        
+    }
+    
+    public boolean scatter(int k, int maxRow) {
+        int start = seatStartsFrom;
+        while(start<=maxRow && k > seatsLeft[start])
+            k = k - seatsLeft[start++];
+        if(start>maxRow && k>0) return false;
+        
+        seatsLeft[start] -= k;
+        seatStartsFrom = start;
+        return true;
+    }
+}
+
+
+or
+
+
+/*
+E.g. if 5 rows with 5 seats each, with 4 people on the first row, 2 people on the second row, and 4 people on the third row
+bookedByRow  maxGather  maxScatter
+ 4               1           1
+ 2               3           4
+ 4               3           5
+ 0               5          10
+ 0               5          15
+*/
+class BookMyShow {
+    private int m;
+    private int[] bookedByRow;
+    private int[] maxGather; // contains a lazy estimation of the max gather possible for each row
+    private long[] maxScatter; // contains a lazy estimation of the max scatter possible for each row
+
+    public BookMyShow(int n, int m) {
+        this.m = m;
+        bookedByRow = new int[n];
+        maxGather = new int[n];
+        Arrays.fill(maxGather, m);
+        
+        maxScatter = new long[n];
+        maxScatter[0] = m;
+        for (int i = 1; i < n; i ++) {
+            maxScatter[i] = maxScatter[i-1] + m;
+        }
+    }
+    
+    public int[] gather(int k, int maxRow) {
+        if (maxGather[maxRow] < k) { // saving a lot of time here
+            return new int[]{};
+        }
+        
+        for (int i = 0; i <= maxRow; i++) {
+            if (k <= m - bookedByRow[i]) {
+                int[] firstSeat = {i, bookedByRow[i]};
+                bookedByRow[i] += k;
+                return firstSeat;
+            }
+        }
+        
+        updateMaxGather(maxRow); // if failed to find seats, maxGather was not up to date
+        return new int[]{};
+    }
+    
+    private void updateMaxGather(int maxRow) {
+        maxGather[0] = m - bookedByRow[0];
+        for (int i = 1; i <= maxRow; i++) {
+            maxGather[i] = Math.max(maxGather[i-1], m - bookedByRow[i]);
+        }
+
+    }
+    
+    public boolean scatter(int k, int maxRow) {
+        if (maxScatter[maxRow] < k) { // saving a lot of time here
+            return false;
+        }
+        
+        if (! updateMaxScatter(k, maxRow)) {
+            return false;
+        }
+        
+        for (int i = 0; i <= maxRow && k > 0; i++) {
+            int toRemove = (int)Math.min(m - bookedByRow[i], (long)k);
+            bookedByRow[i] += toRemove;
+            k -= toRemove;
+        }
+        
+        return true;
+    }
+    
+    // update maxScatter until reaching k (returns true) or reaching max row (return false)
+    private boolean updateMaxScatter(int k, int maxRow) {
+        long maxScatterTmp = 0;
+        for (int i = 0; i <= maxRow; i++) {
+            maxScatterTmp += m - bookedByRow[i];
+            maxScatter[i] = maxScatterTmp;
+            if (maxScatterTmp >= k) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+
+or
+
+
+import java.util.ArrayDeque;
+import java.util.Arrays;
+import java.util.Deque;
+
+public class BookMyShow {
+    private final int n, m;    
+    private final int[] max;    
+    private final long[] total;
+    private final int[] numZerosRight, numZerosLeft;
+
+    public BookMyShow(int n, int m) {
+        this.n = nextPow2(n); 
+        this.m = m;
+        this.max = new int[this.n * 2 - 1]; 
+        this.total = new long[this.n * 2 - 1]; 
+        this.numZerosRight = new int[this.n + 2];
+        this.numZerosLeft = new int[this.n + 2];
+        Arrays.fill(max, this.n - 1, this.n + n - 1, m);
+        Arrays.fill(total, this.n - 1, this.n + n - 1, m);
+        for (int i = this.n - 2, i1 = i * 2 + 1, i2 = i * 2 + 2; i >= 0; i--, i1 -= 2, i2 -= 2) {
+            max[i] = Math.max(max[i1], max[i2]);
+            total[i] = total[i1] + total[i2];
+        }
+    }
+
+    public int[] gather(int k, int maxRow) {
+        int mostLeft = mostLeft(0, 0, n, k, maxRow + 1);
+        if (mostLeft == -1) return new int[0];
+        int v = n - 1 + mostLeft;
+        int[] ans = {mostLeft, m - max[v]};
+
+        max[v] -= k;
+        total[v] -= k;
+
+        while (v != 0) {
+            v = (v - 1) / 2;
+            max[v] = Math.max(max[v * 2 + 1], max[v * 2 + 2]);
+            total[v] = total[v * 2 + 1] + total[v * 2 + 2];
+        }
+        return ans;
+    }
+
+    private int mostLeft(int v, int l, int r, int k, int qr) {
+        if (l >= qr || max[v] < k) return -1;
+        if (l == r - 1) return l;
+        int mid = (l + r) / 2;
+        int left = mostLeft(v * 2 + 1, l, mid, k, qr);
+        if (left != -1) return left;
+        return mostLeft(v * 2 + 2, mid, r, k, qr);
+    }
+
+    public boolean scatter(int k, int maxRow) {
+        long sum = total(0, 0, n, maxRow + 1);
+        if (sum < k) return false;
+        int i = 0;
+
+        Deque<Integer> deque = new ArrayDeque<>();
+        while (k != 0) {
+            i = i + numZerosRight[i] + 1;
+            int v = n - 1 + i - 1;
+            int spent = Math.min(k, max[v]);
+            k -= spent;
+            max[v] -= spent;
+            total[v] -= spent;
+            if (max[v] == 0) {
+                numZerosRight[i - numZerosLeft[i] - 1] += numZerosRight[i] + 1;
+                numZerosLeft[i + numZerosRight[i] + 1] += numZerosLeft[i] + 1;
+            }
+            if (v != 0) {
+                v = (v - 1) / 2;
+                if (deque.isEmpty() || deque.peekLast() != v) deque.addLast(v);
+            }
+        }
+
+        while (!deque.isEmpty()) {
+            int v = deque.pollFirst();
+            max[v] = Math.max(max[v * 2 + 1], max[v * 2 + 2]);
+            total[v] = total[v * 2 + 1] + total[v * 2 + 2];
+            if (v != 0) {
+                v = (v - 1) / 2;
+                if (deque.isEmpty() || deque.peekLast() != v) deque.addLast(v);
+            }
+        }
+        return true;
+    }
+
+    private long total(int v, int l, int r, int qr) {
+        if (l >= qr) return 0;
+        if (r <= qr) return total[v];
+        int mid = (l + r) / 2;
+        return total(v * 2 + 1, l, mid, qr) + total(v * 2 + 2, mid, r, qr);
+    }
+
+    private static int nextPow2(int n) {
+        if ((n & (n - 1)) == 0) return n;
+        else return Integer.highestOneBit(n) << 1;
+    }
+}
+
+/**
+ * Your BookMyShow object will be instantiated and called as such:
+ * BookMyShow obj = new BookMyShow(n, m);
+ * int[] param_1 = obj.gather(k,maxRow);
+ * boolean param_2 = obj.scatter(k,maxRow);
+ */
+
+
+or
+
+
+// beats 97%
+
+class BookMyShow {
+    private IntervalTree tree;
+
+    public BookMyShow(int n, int m) {
+        tree = new IntervalTree(n - 1, m);
+    }
+
+    public int[] gather(int k, int maxRow) {
+        return tree.bookGather(k, maxRow);
+    }
+
+    public boolean scatter(int k, int maxRow) {
+        return tree.bookScatter(k, maxRow);
+    }
+}
+
+class IntervalTreeNode {
+    private int start;
+    private int end;
+    private int mid;
+    private int capacity;
+    private int max;
+    private long total;
+    private IntervalTreeNode left;
+    private IntervalTreeNode right;
+
+    public IntervalTreeNode(int start, int end, int capacity) {
+        this.start = start;
+        this.end = end;
+        this.mid = (start + end) / 2;
+        this.capacity = capacity;
+        this.max = capacity;
+        this.total = (end - start + 1L) * capacity;
+
+        if (start != end) {
+            this.left = new IntervalTreeNode(start, mid, capacity);
+            this.right = new IntervalTreeNode(mid + 1, end, capacity);
+        }
+    }
+
+    public int[] bookGather(int number, int maxRow) {
+        if (start == end) {
+            if (this.total >= number) {
+                int[] booking = { start, capacity - max };
+                this.max -= number;
+                this.total -= number;
+                return booking;
+            } else {
+                return new int[0];
+            }
+        }
+
+        int[] res = new int[0];
+        if (this.left.max >= number) {
+            res = this.left.bookGather(number, maxRow);
+        } else if (maxRow >= mid + 1 && this.right.max >= number) {
+            res = this.right.bookGather(number, maxRow);
+        }
+
+        if (res.length > 0) {
+            updateNode();
+        }
+
+        return res;
+    }
+
+    public long checkScatter(int maxRow) {
+        if (start == end || maxRow == end) {
+            return total;
+        }
+
+        if (maxRow <= mid) {
+            return left.checkScatter(maxRow);
+        }
+
+        return left.total + right.checkScatter(maxRow);
+    }
+
+    public void bookScatter(long number) {
+        if (start != end) {
+            if (this.left.total < number) {
+                this.right.bookScatter(number - this.left.total);
+            }
+            this.left.bookScatter(Math.min(this.left.total, number));
+            updateNode();
+        } else {
+            this.total -= number;
+            this.max -= number;
+        }
+    }
+
+    private void updateNode() {
+        this.total = left.total + right.total;
+        this.max = Math.max(left.max, right.max);
+    }
+}
+
+class IntervalTree {
+    private IntervalTreeNode root;
+
+    public IntervalTree(int end, int capacity) {
+        root = new IntervalTreeNode(0, end, capacity);
+    }
+
+    public int[] bookGather(int number, int maxRow) {
+        return root.bookGather(number, maxRow);
+    }
+
+    public boolean bookScatter(int number, int maxRow) {
+        if (root.checkScatter(maxRow) >= number) {
+            root.bookScatter(number);
+            return true;
+        }
+        return false;
+    }
+}
+
+
+or
+
+
+class BookMyShow {
+
+    int seatsInARow, arr[];
+    long overallSeatsLeft;
+    public BookMyShow(int n, int m) {
+        arr = new int[n];
+        seatsInARow = m;
+        overallSeatsLeft = (long) m * n;
+    }
+
+    public int[] gather(int k, int maxRow) {
+        if (k > seatsInARow) return new int[]{};
+        for (int r = 0; r <= maxRow; r++) {
+            if (seatsInARow - arr[r] >= k) {
+                int[] res = new int[]{r, arr[r]};
+                arr[r] += k;
+                overallSeatsLeft -= k;
+                return res;
+            }
+        }
+        return new int[]{};
+    }
+
+    public boolean scatter(int k, int maxRow) {
+        if (overallSeatsLeft >= k) {
+            int sum = 0;
+            for (int r = 0; r <= maxRow; r++) {
+                sum += seatsInARow - arr[r];
+                if (sum >= k) break;
+            }
+            if (sum >= k) {
+                overallSeatsLeft -= k;
+                for (int r = 0; r <= maxRow; r++) {
+                    if (k == 0) break;
+                    int left = seatsInARow - arr[r];
+                    if (k >= left) {
+                        k -= left;
+                        arr[r] = seatsInARow;
+                    } else {
+                        arr[r] += k;
+                        k = 0;
+                    }
+                }
+                return true;
+            } else {
+                return false;
+            }
+            
+        } else return false;
+    }
+}
+
+
+or
+
+
+// fastes
+
+class BookMyShow {
+    int n, m;
+    long[][] stree;
+
+    public BookMyShow(int n, int m) {
+        this.n = n;
+        this.m = m;
+        int sz = 1;
+        while (sz < n * 2)
+            sz <<= 1;
+        stree = new long[sz][2];
+        build(0, 0, n - 1);
+    }
+
+    void build(int i, int p, int q) {
+        if (p == q) {
+            stree[i][0] = m;
+            stree[i][1] = m;
+            return;
+        }
+        int r = (p + q) / 2;
+        stree[i][0] = m;
+        stree[i][1] = (long)(q - p + 1) * m;
+        build(2 * i + 1, p, r);
+        build(2 * i + 2, r + 1, q);
+    }
+
+    int[] query_max(int i, int p, int q, int k, int maxRow) {
+        if (p > maxRow)
+            return new int[0];
+        if (stree[i][0] < k)
+            return new int[0];
+        if (p == q)
+            return new int[]{p, (int)(m - stree[i][0])};
+        int r = (p + q) / 2;
+        int[] ret = query_max(2 * i + 1, p, r, k, maxRow);
+        if (ret.length > 0)
+            return ret;
+        return query_max(2 * i + 2, r + 1, q, k, maxRow);
+    }
+
+    void update_max(int i, int p, int q, int row, int k) {
+        if (p > row || q < row)
+            return;
+        if (p == q) {
+            stree[i][0] -= k;
+            stree[i][1] -= k;
+            return;
+        }
+        int r = (p + q) / 2;
+        stree[i][1] -= k;
+        update_max(2 * i + 1, p, r, row, k);
+        update_max(2 * i + 2, r + 1, q, row, k);
+        stree[i][0] = Math.max(stree[2 * i + 1][0], stree[2 * i + 2][0]);
+    }
+
+    long query_sum(int i, int p, int q, int maxRow) {
+        if (p > maxRow)
+            return 0;
+        if (q <= maxRow)
+            return stree[i][1];
+        int r = (p + q) / 2;
+        return query_sum(2 * i + 1, p, r, maxRow) + query_sum(2 * i + 2, r + 1, q, maxRow);
+    }
+
+    void update_sum(int i, int p, int q, int k, int maxRow) {
+        if (p > maxRow)
+            return;
+        if (p == q) {
+            stree[i][0] -= k;
+            stree[i][1] -= k;
+            return;
+        }
+        int r = (p + q) / 2;
+        stree[i][1] -= k;
+        if (r + 1 > maxRow || stree[2 * i + 1][1] >= k) {
+            update_sum(2 * i + 1, p, r, k, maxRow);
+        } else {
+            k -= stree[2 * i + 1][1];
+            update_sum(2 * i + 1, p, r, (int)stree[2 * i + 1][1], maxRow);
+            update_sum(2 * i + 2, r + 1, q, k, maxRow);
+        }
+        stree[i][0] = Math.max(stree[2 * i + 1][0], stree[2 * i + 2][0]);
+    }
+
+    public int[] gather(int k, int maxRow) {
+        int[] ret = query_max(0, 0, n - 1, k, maxRow);
+        if (ret.length > 0)
+            update_max(0, 0, n - 1, ret[0], k);
+        return ret;
+    }
+
+    public boolean scatter(int k, int maxRow) {
+        long cnt = query_sum(0, 0, n - 1, maxRow);
+        boolean ret = cnt >= k;
+        if (ret)
+            update_sum(0, 0, n - 1, k, maxRow);
+        return ret;
+    }
+}
+
+
+or
+
+
+class BookMyShow {
+    int n;
+    int m;
+    long[][] stree; 
+    public void build(int i, int p, int q) {
+        if (p == q) {
+            stree[i][0] = m;
+            stree[i][1] = m;
+            return;
+        }
+        int r = (p + q) / 2;
+        stree[i][0] = m;
+        stree[i][1] = (long)(q-p+1)*m;
+        build(2*i+1, p, r);
+        build(2*i+2, r+1, q);
+    }
+
+    public int[] query_max(int i, int p, int q, int k, int maxRow) {
+        if (p > maxRow)
+            return new int[0];
+        if (stree[i][0] < k)
+            return new int[0];
+        if (p == q)
+            return new int[]{p, (int)(m - stree[i][0])};
+        int r = (p + q) / 2;
+        int[] ret = query_max(2*i+1, p, r, k, maxRow);
+        if (ret.length > 0)
+            return ret;
+        return query_max(2*i+2, r+1, q, k, maxRow);
+    }
+
+    public void update_max(int i, int p, int q, int row, int k) {
+        if (p > row || q < row)
+            return;
+        if (p == q) {
+            stree[i][0] -= k;
+            stree[i][1] -= k;
+            
+            return;
+        }
+        int r = (p + q) / 2;
+        stree[i][1] -= k;
+        update_max(2*i+1, p, r, row, k);
+        update_max(2*i+2, r+1, q, row, k);
+        stree[i][0] = Math.max(stree[2*i+1][0], stree[2*i+2][0]);
+    }
+
+    public long query_sum(int i, int p, int q, int maxRow) {
+        if (p > maxRow)
+            return 0;
+        if (q <= maxRow)
+            return stree[i][1];
+        int r = (p + q) / 2;
+        return query_sum(2*i+1, p, r, maxRow) + query_sum(2*i+2, r+1, q, maxRow);
+    }
+
+    public void update_sum(int i, int p, int q, int k, int maxRow) {
+        if (p > maxRow)
+            return;
+        if (p == q) {
+            stree[i][0] -= k;
+            stree[i][1] -= k;
+            
+            return;
+        }
+        int r = (p + q) / 2;
+        stree[i][1] -= k;
+        if (r+1 > maxRow || stree[2*i+1][1] >= k) {
+            update_sum(2*i+1, p, r, k, maxRow);
+        } else {
+            k -= stree[2*i+1][1];
+            update_sum(2*i+1, p, r, (int)stree[2*i+1][1], maxRow);
+           
+            update_sum(2*i+2, r+1, q, k, maxRow);
+        }
+        stree[i][0] = Math.max(stree[2*i+1][0], stree[2*i+2][0]);
+    }
+
+
+    public BookMyShow(int n_in, int m_in) {
+        n = n_in;
+        m = m_in;
+
+        int sz = 1;
+        while (sz < n*2)
+            sz <<= 1;
+        stree = new long[sz][2];
+
+        build(0, 0, n-1);
+    }
+
+    public int[] gather(int k, int maxRow) {
+        
+        int[] ret = query_max(0, 0, n-1, k, maxRow);
+        if (ret.length > 0)
+            update_max(0, 0, n-1, ret[0], k);
+        return ret;
+    }
+
+    public boolean scatter(int k, int maxRow) {
+       
+        long cnt = query_sum(0, 0, n-1, maxRow);
+        boolean ret = cnt >= k;
+        if (ret)
+            update_sum(0, 0, n-1, k, maxRow);
+        return ret;
+    }
+};
+
+class Solution {
+    public static void main (String[] args) {
+        Scanner sc = new Scanner(System.in);
+        int t = sc.nextInt();
+        while (t-- > 0) {
+            int n = sc.nextInt();
+            int m = sc.nextInt();
+            BookMyShow bms = new BookMyShow(n, m);
+            int q = sc.nextInt();
+            while (q-- > 0) {
+                String op = sc.next();
+                int k = sc.nextInt();
+                int maxRow = sc.nextInt();
+                if (op.equals("gather")) {
+                    int[] ret = bms.gather(k, maxRow);
+                    if (ret.length > 0)
+                        System.out.println(ret[0] + " " + ret[1]);
+                    else
+                        System.out.println("-1");
+                } else {
+                    boolean ret = bms.scatter(k, maxRow);
+                    if (ret)
+                        System.out.println("1");
+                    else
+                        System.out.println("0");
+                }
+            }
+        }
+    }
+}
