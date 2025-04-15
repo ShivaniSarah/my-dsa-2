@@ -1,0 +1,188 @@
+https://leetcode.com/problems/kth-smallest-number-in-multiplication-table/description/
+
+
+668. Kth Smallest Number in Multiplication Table
+Hard
+Topics
+Companies
+Nearly everyone has used the Multiplication Table. The multiplication table of size m x n is an integer matrix mat where mat[i][j] == i * j (1-indexed).
+
+Given three integers m, n, and k, return the kth smallest element in the m x n multiplication table.
+
+ 
+
+Example 1:
+
+
+Input: m = 3, n = 3, k = 5
+Output: 3
+Explanation: The 5th smallest number is 3.
+Example 2:
+
+
+Input: m = 2, n = 3, k = 6
+Output: 6
+Explanation: The 6th smallest number is 6.
+ 
+
+Constraints:
+
+1 <= m, n <= 3 * 104
+1 <= k <= m * n
+
+
+
+# java
+
+
+class Solution {
+    public int findKthNumber(int m, int n, int k) {
+        int left = 1, right = m * n;
+        while (left < right) {
+            int mid = (left + right) >>> 1;
+            int cnt = 0;
+            for (int i = 1; i <= m; ++i) {
+                cnt += Math.min(mid / i, n);
+            }
+            if (cnt >= k) {
+                right = mid;
+            } else {
+                left = mid + 1;
+            }
+        }
+        return left;
+    }
+}
+
+
+or
+
+
+class Solution {
+  public int findKthNumber(int m, int n, int k) {
+    int l = 1;
+    int r = m * n;
+
+    while (l < r) {
+      final int mid = (l + r) / 2;
+      if (numsNoGreaterThan(m, n, mid) >= k)
+        r = mid;
+      else
+        l = mid + 1;
+    }
+
+    return l;
+  }
+
+  private int numsNoGreaterThan(int m, int n, int target) {
+    int count = 0;
+    // For each row i, count the number of numbers <= target.
+    for (int i = 1; i <= m; ++i)
+      count += Math.min(target / i, n);
+    return count;
+  }
+}
+
+or
+
+
+class Solution {
+    public int findKthNumber(int m, int n, int k) {
+    	int low = 1 , high = m * n + 1;
+        
+    	while (low < high) {
+    	    int mid = low + (high - low) / 2;
+    	    int c = count(mid, m, n);
+    	    if (c >= k) high = mid;
+            else low = mid + 1;
+    	}
+        
+    	return high;
+    }
+    
+    private int count(int v, int m, int n) {
+	int count = 0;
+	for (int i = 1; i <= m; i++) {
+	    int temp = Math.min(v / i , n);
+	    count += temp;
+	}
+	return count;
+    }
+}
+
+or
+
+
+class Solution {
+    public int findKthNumber(int m, int n, int k) {
+        int lo=0, hi=m*n;
+        while (lo < hi) {
+            int mid=(lo+hi)/2, count=0;
+            // check how many numbers are smaller than mid
+            for (int i=1; i<=m; i++)
+                count += n < mid/i ? n : mid/i;
+            if (count >= k)  // target <= mid
+                hi = mid;
+            else  // target > mid
+                lo = mid+1;
+        }
+        return lo;
+    }
+}
+
+
+or
+
+// best
+
+
+class Solution {
+    
+    private int fun(int m, int n, int x, int k)
+    {
+        //count will be storing the total numbers that occur before x including x.
+        int count = 0;
+        
+        //we will be checking each row.
+        for(int i = 1;i <= m;i++)
+        {
+            //Obviously if count becomes greater than k then we will have to break beacause we will have to look for smaller candidate.
+            if(count > k)break;
+            
+            //Simple maths : If out x is grater than the last element in that row so obviously no. of elements less than or equal to x wil be n or otherwise it will be  x/i.
+            int ct = Math.min(n, x/i);
+            
+            count += ct;
+        }
+        
+        //at last we return the count.
+        return count;
+    }
+    
+    public int findKthNumber(int m, int n, int k) {
+        
+        int low, high;
+        
+        //Min and Max possible will be 1 and m*n respectively.
+        low = 1;
+        high = m*n;
+        
+        //kth position actually means that exactly k-1 elements occur before it.(obviously in sorted array) or we can say if we include the kth element also then exactly k elements occur before it.
+        
+        //Simple Binary Searching from the possible candidates for the kth position.
+        while(low < high)
+        {
+            //mid can be a possible candidate.
+            int mid = (low + high)/2;
+            
+            //fun function returns how many numbers are less than mid including mid.
+            
+            //if it is greater than or equal then we check for a smaller candidate. Or else we check for bigger candidate.
+            if(fun(m, n, mid, k) >= k)high = mid;
+            else low = mid+1;
+        }
+        
+        
+        return high;
+    }
+}
