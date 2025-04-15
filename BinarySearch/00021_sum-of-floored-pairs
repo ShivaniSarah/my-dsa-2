@@ -1,0 +1,185 @@
+https://leetcode.com/problems/sum-of-floored-pairs/description/
+
+1862. Sum of Floored Pairs
+Hard
+Topics
+Companies
+Hint
+Given an integer array nums, return the sum of floor(nums[i] / nums[j]) for all pairs of indices 0 <= i, j < nums.length in the array. Since the answer may be too large, return it modulo 109 + 7.
+
+The floor() function returns the integer part of the division.
+
+ 
+
+Example 1:
+
+Input: nums = [2,5,9]
+Output: 10
+Explanation:
+floor(2 / 5) = floor(2 / 9) = floor(5 / 9) = 0
+floor(2 / 2) = floor(5 / 5) = floor(9 / 9) = 1
+floor(5 / 2) = 2
+floor(9 / 2) = 4
+floor(9 / 5) = 1
+We calculate the floor of the division for every pair of indices in the array then sum them up.
+Example 2:
+
+Input: nums = [7,7,7,7,7,7,7]
+Output: 49
+ 
+
+Constraints:
+
+1 <= nums.length <= 105
+1 <= nums[i] <= 105
+
+
+# java
+
+
+class Solution {
+  public int sumOfFlooredPairs(int[] nums) {
+    final int MOD = 1_000_000_007;
+    final int MAX = Arrays.stream(nums).max().getAsInt();
+    long ans = 0;
+    // count[i] := the number of `nums` <= i
+    int[] count = new int[MAX + 1];
+
+    for (final int num : nums)
+      ++count[num];
+
+    for (int i = 1; i <= MAX; ++i)
+      count[i] += count[i - 1];
+
+    for (int i = 1; i <= MAX; ++i)
+      if (count[i] > count[i - 1]) {
+        long sum = 0;
+        for (int j = 1; i * j <= MAX; ++j) {
+          final int lo = i * j - 1;
+          final int hi = i * (j + 1) - 1;
+          sum += (count[Math.min(hi, MAX)] - count[lo]) * j;
+        }
+        ans += sum * (count[i] - count[i - 1]);
+        ans %= MOD;
+      }
+
+    return (int) ans;
+  }
+}
+
+
+or
+
+
+class Solution {
+    public int sumOfFlooredPairs(int[] nums) {
+        final int mod = (int) 1e9 + 7;
+        int mx = 0;
+        for (int x : nums) {
+            mx = Math.max(mx, x);
+        }
+        int[] cnt = new int[mx + 1];
+        int[] s = new int[mx + 1];
+        for (int x : nums) {
+            ++cnt[x];
+        }
+        for (int i = 1; i <= mx; ++i) {
+            s[i] = s[i - 1] + cnt[i];
+        }
+        long ans = 0;
+        for (int y = 1; y <= mx; ++y) {
+            if (cnt[y] > 0) {
+                for (int d = 1; d * y <= mx; ++d) {
+                    ans += 1L * cnt[y] * d * (s[Math.min(mx, d * y + y - 1)] - s[d * y - 1]);
+                    ans %= mod;
+                }
+            }
+        }
+        return (int) ans;
+    }
+}
+
+
+or
+
+
+ public int sumOfFlooredPairs(int[] nums) {
+        int N=(int)1e5;
+        int mod=(int)1e9 + 7;
+        
+		
+        int[] frequencyMap=new int[N+1];
+        for(int num:nums) frequencyMap[num]++;
+        
+        int[] prefixFreq=new int[N+1];
+        for(int i=1;i<=N;i++) prefixFreq[i]=prefixFreq[i-1] + frequencyMap[i];
+        
+        long total=0;
+        
+        for(int i=1;i<=N;i++){
+            if(frequencyMap[i]==0) continue;
+            
+            // [i * j, i * (j + 1)) 
+                 long sum=0;
+                for(int j=1; i*j<=N;j++){
+                   int lower=i*j-1;
+                   int upper=i*(j+1)-1;
+                   
+                   int count= prefixFreq[Math.min(N,upper)] - prefixFreq[lower]; 
+                   
+                    sum+=count*j;;
+                }
+                total=(total + (sum%mod)*frequencyMap[i])%mod;
+        }
+        return (int)total;
+    }
+
+or
+
+class Solution {
+
+    // T.C = N+N/2+N/3+.....
+    //     = O(NlogN)
+
+    // we do the brute force approach which has the T.C O(n^2)
+    
+    public int sumOfFlooredPairs(int[] arr) {
+        int n = arr.length;
+        long ans = 0;
+        long mod = 1000000007;
+
+        int max = Integer.MIN_VALUE;
+
+        for(int i=0; i<n; i++){
+            max = Math.max(arr[i],max);
+        }
+
+        int freq[] = new int[max+1];
+
+        for(int i=0; i<n; i++){
+            freq[arr[i]]++;
+        }
+
+        int pre[] = new int[max+1];
+
+        for(int i=1; i<=max; i++){
+            pre[i] = pre[i-1]+freq[i];
+        }
+
+        for(int i=1; i<=max; i++){
+            
+            if(freq[i]==0) continue;
+
+            long sum = 0;
+            for(int j=1; j*i<=max; j++){
+                int left = j*i;
+                int right = i*(j+1)-1;
+                right = Math.min(right,max);
+                int count = pre[right]-pre[left-1];
+                sum = (sum+(j*count)%mod)%mod;
+            }
+            ans = (ans + (long)(freq[i]*sum)%mod)%mod;
+        }
+        return (int)(ans%mod);
+    }
+}
