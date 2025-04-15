@@ -1,0 +1,268 @@
+https://leetcode.com/problems/find-in-mountain-array/description/
+
+
+1095. Find in Mountain Array
+Hard
+Topics
+Companies
+Hint
+(This problem is an interactive problem.)
+
+You may recall that an array arr is a mountain array if and only if:
+
+arr.length >= 3
+There exists some i with 0 < i < arr.length - 1 such that:
+arr[0] < arr[1] < ... < arr[i - 1] < arr[i]
+arr[i] > arr[i + 1] > ... > arr[arr.length - 1]
+Given a mountain array mountainArr, return the minimum index such that mountainArr.get(index) == target. If such an index does not exist, return -1.
+
+You cannot access the mountain array directly. You may only access the array using a MountainArray interface:
+
+MountainArray.get(k) returns the element of the array at index k (0-indexed).
+MountainArray.length() returns the length of the array.
+Submissions making more than 100 calls to MountainArray.get will be judged Wrong Answer. Also, any solutions that attempt to circumvent the judge will result in disqualification.
+
+ 
+
+Example 1:
+
+Input: mountainArr = [1,2,3,4,5,3,1], target = 3
+Output: 2
+Explanation: 3 exists in the array, at index=2 and index=5. Return the minimum index, which is 2.
+Example 2:
+
+Input: mountainArr = [0,1,2,4,2,1], target = 3
+Output: -1
+Explanation: 3 does not exist in the array, so we return -1.
+ 
+
+Constraints:
+
+3 <= mountainArr.length() <= 104
+0 <= target <= 109
+0 <= mountainArr.get(index) <= 109
+
+
+
+# java
+
+
+/**
+ * // This is MountainArray's API interface.
+ * // You should not implement it, or speculate about its implementation
+ * interface MountainArray {
+ *   public int get(int index) {}
+ *   public int length() {}
+ * }
+ */
+
+class Solution {
+  public int findInMountainArray(int target, MountainArray mountainArr) {
+    final int n = mountainArr.length();
+    final int peakIndex = peakIndexInMountainArray(mountainArr, 0, n - 1);
+
+    final int leftIndex = searchLeft(mountainArr, target, 0, peakIndex);
+    if (mountainArr.get(leftIndex) == target)
+      return leftIndex;
+
+    final int rightIndex = searchRight(mountainArr, target, peakIndex + 1, n - 1);
+    if (mountainArr.get(rightIndex) == target)
+      return rightIndex;
+
+    return -1;
+  }
+
+  // 852. Peak Index in a Mountain Array
+  private int peakIndexInMountainArray(MountainArray A, int l, int r) {
+    while (l < r) {
+      final int m = (l + r) / 2;
+      if (A.get(m) < A.get(m + 1))
+        l = m + 1;
+      else
+        r = m;
+    }
+    return l;
+  }
+
+  private int searchLeft(MountainArray A, int target, int l, int r) {
+    while (l < r) {
+      final int m = (l + r) / 2;
+      if (A.get(m) < target)
+        l = m + 1;
+      else
+        r = m;
+    }
+    return l;
+  }
+
+  private int searchRight(MountainArray A, int target, int l, int r) {
+    while (l < r) {
+      final int m = (l + r) / 2;
+      if (A.get(m) > target)
+        l = m + 1;
+      else
+        r = m;
+    }
+    return l;
+  }
+}
+
+
+
+
+
+or
+
+
+
+class Solution {
+    private MountainArray mountainArr;
+    private int target;
+
+    public int findInMountainArray(int target, MountainArray mountainArr) {
+        int n = mountainArr.length();
+        int l = 0, r = n - 1;
+        while (l < r) {
+            int mid = (l + r) >>> 1;
+            if (mountainArr.get(mid) > mountainArr.get(mid + 1)) {
+                r = mid;
+            } else {
+                l = mid + 1;
+            }
+        }
+        this.mountainArr = mountainArr;
+        this.target = target;
+        int ans = search(0, l, 1);
+        return ans == -1 ? search(l + 1, n - 1, -1) : ans;
+    }
+
+    private int search(int l, int r, int k) {
+        while (l < r) {
+            int mid = (l + r) >>> 1;
+            if (k * mountainArr.get(mid) >= k * target) {
+                r = mid;
+            } else {
+                l = mid + 1;
+            }
+        }
+        return mountainArr.get(l) == target ? l : -1;
+    }
+}
+
+
+or
+
+
+
+class Solution {
+    public int findInMountainArray(int target, MountainArray mountainArr) {
+        int length = mountainArr.length();
+
+        // Find the index of the peak element in the mountain array.
+        int peakIndex = findPeakIndex(1, length - 2, mountainArr);
+
+        // Binary search for the target in the increasing part of the mountain array.
+        int increasingIndex = binarySearch(0, peakIndex, target, mountainArr, false);
+        if (mountainArr.get(increasingIndex) == target) 
+            return increasingIndex; // Target found in the increasing part.
+
+        // Binary search for the target in the decreasing part of the mountain array.
+        int decreasingIndex = binarySearch(peakIndex + 1, length - 1, target, mountainArr, true);
+        if (mountainArr.get(decreasingIndex) == target) 
+            return decreasingIndex; // Target found in the decreasing part.
+
+        return -1;  // Target not found in the mountain array.
+    }
+
+    private int findPeakIndex(int low, int high, MountainArray mountainArr) {
+        while (low != high) {
+            int mid = low + (high - low) / 2;
+            if (mountainArr.get(mid) < mountainArr.get(mid + 1)) {
+                low = mid + 1; // Move to the right side (increasing slope).
+            } else {
+                high = mid; // Move to the left side (decreasing slope).
+            }
+        }
+        return low; // Return the index of the peak element.
+    }
+
+    private int binarySearch(int low, int high, int target, MountainArray mountainArr, boolean reversed) {
+        while (low != high) {
+            int mid = low + (high - low) / 2;
+            if (reversed) {
+                if (mountainArr.get(mid) > target)
+                    low = mid + 1; // Move to the right side for a decreasing slope.
+                else
+                    high = mid; // Move to the left side for an increasing slope.
+            } else {
+                if (mountainArr.get(mid) < target)
+                    low = mid + 1; // Move to the right side for an increasing slope.
+                else
+                    high = mid; // Move to the left side for a decreasing slope.
+            }
+        }
+        return low; // Return the index where the target should be or would be inserted.
+    }
+}
+
+
+or
+
+
+ 
+class Solution {
+    public int findInMountainArray(int target, MountainArray mountainArr) {
+        int length = mountainArr.length();
+        int peakIndex = findPeak(mountainArr, length);
+
+        int result = findTarget(mountainArr, 0, peakIndex, target, true);
+        if (result != -1) {
+            return result;
+        }
+
+        return findTarget(mountainArr, peakIndex + 1, length - 1, target, false);
+    }
+
+    private int findTarget(MountainArray mountainArr, int left, int right, int target, boolean isUpside) {
+        while (left <= right) {
+            int mid = (left + right) / 2;
+            int midVal = mountainArr.get(mid);
+
+            if (midVal == target) {
+                return mid;
+            }
+
+            if (isUpside) {
+                if (target > midVal) {
+                    left = mid + 1;
+                } else {
+                    right = mid - 1;
+                }
+            } else {
+                if (target > midVal) {
+                    right = mid - 1;
+                } else {
+                    left = mid + 1;
+                }
+            }
+        }
+
+        return -1;
+    }
+
+    private int findPeak(MountainArray mountainArr, int length) {
+        int left = 0;
+        int right = length - 1;
+
+        while (left < right) {
+            int mid = (left + right) / 2;
+            if (mountainArr.get(mid) < mountainArr.get(mid + 1)) {
+                left = mid + 1;
+            } else {
+                right = mid;
+            }
+        }
+
+        return left;
+    }    
+}
