@@ -1,0 +1,284 @@
+https://leetcode.com/problems/maximum-number-of-events-that-can-be-attended-ii/description/
+
+1751. Maximum Number of Events That Can Be Attended II
+Hard
+Topics
+Companies
+Hint
+You are given an array of events where events[i] = [startDayi, endDayi, valuei]. The ith event starts at startDayi and ends at endDayi, and if you attend this event, you will receive a value of valuei. You are also given an integer k which represents the maximum number of events you can attend.
+
+You can only attend one event at a time. If you choose to attend an event, you must attend the entire event. Note that the end day is inclusive: that is, you cannot attend two events where one of them starts and the other ends on the same day.
+
+Return the maximum sum of values that you can receive by attending events.
+
+ 
+
+Example 1:
+
+
+
+Input: events = [[1,2,4],[3,4,3],[2,3,1]], k = 2
+Output: 7
+Explanation: Choose the green events, 0 and 1 (0-indexed) for a total value of 4 + 3 = 7.
+Example 2:
+
+
+
+Input: events = [[1,2,4],[3,4,3],[2,3,10]], k = 2
+Output: 10
+Explanation: Choose event 2 for a total value of 10.
+Notice that you cannot attend any other event as they overlap, and that you do not have to attend k events.
+Example 3:
+
+
+
+Input: events = [[1,1,1],[2,2,2],[3,3,3],[4,4,4]], k = 3
+Output: 9
+Explanation: Although the events do not overlap, you can only attend 3 events. Pick the highest valued three.
+ 
+
+Constraints:
+
+1 <= k <= events.length
+1 <= k * events.length <= 106
+1 <= startDayi <= endDayi <= 109
+1 <= valuei <= 106
+
+
+# java
+
+
+class Solution {
+    private int[][] events;
+    private int[][] f;
+    private int n;
+
+    public int maxValue(int[][] events, int k) {
+        Arrays.sort(events, (a, b) -> a[0] - b[0]);
+        this.events = events;
+        n = events.length;
+        f = new int[n][k + 1];
+        return dfs(0, k);
+    }
+
+    private int dfs(int i, int k) {
+        if (i >= n || k <= 0) {
+            return 0;
+        }
+        if (f[i][k] != 0) {
+            return f[i][k];
+        }
+        int j = search(events, events[i][1], i + 1);
+        int ans = Math.max(dfs(i + 1, k), dfs(j, k - 1) + events[i][2]);
+        return f[i][k] = ans;
+    }
+
+    private int search(int[][] events, int x, int lo) {
+        int l = lo, r = n;
+        while (l < r) {
+            int mid = (l + r) >> 1;
+            if (events[mid][0] > x) {
+                r = mid;
+            } else {
+                l = mid + 1;
+            }
+        }
+        return l;
+    }
+}
+
+
+or
+
+
+class Solution {
+  public int maxValue(int[][] events, int k) {
+    Integer[][] mem = new Integer[events.length][k + 1];
+    Arrays.sort(events, Comparator.comparingInt((int[] event) -> event[0])
+                            .thenComparing((int[] event) -> event[1]));
+    return maxValue(events, 0, k, mem);
+  }
+
+  private int maxValue(int[][] events, int i, int k, Integer[][] mem) {
+    if (k == 0 || i == events.length)
+      return 0;
+    if (mem[i][k] != null)
+      return mem[i][k];
+
+    // Binary search `events` to find the first index j
+    // s.t. events[j][0] > events[i][1].
+    final int j = firstGreaterEqual(events, i + 1, events[i][1] + 1);
+    return mem[i][k] = Math.max(events[i][2] + maxValue(events, j, k - 1, mem),
+                                maxValue(events, i + 1, k, mem));
+  }
+
+  // Finds the first index l s.t events[l][0] >= target.
+  private int firstGreaterEqual(int[][] events, int l, int target) {
+    int r = events.length;
+    while (l < r) {
+      final int m = (l + r) / 2;
+      if (events[m][0] >= target)
+        r = m;
+      else
+        l = m + 1;
+    }
+    return l;
+  }
+}
+
+
+or
+
+
+class Solution {
+    int[][] dp;
+
+    public int maxValue(int[][] events, int k) {
+        Arrays.sort(events, Comparator.comparingInt(a -> a[0]));
+        int n = events.length;
+        dp = new int[n][k + 1];
+        for (int[] row : dp)
+            Arrays.fill(row, -1);
+        return solve(events, 0, k, 0);
+    }
+
+    int solve(int[][] events, int i, int k, int end) {
+        if (i == events.length || k == 0)
+            return 0;
+
+        if (events[i][0] <= end)
+            return solve(events, i + 1, k, end);
+
+        if (dp[i][k] != -1)
+            return dp[i][k];
+
+        int take = events[i][2] + solve(events, i + 1, k - 1, events[i][1]);
+        int skip = solve(events, i + 1, k, end);
+        return dp[i][k] = Math.max(take, skip);
+    }
+}
+
+
+
+or
+
+class Solution {
+    int[][] events;
+    public int maxValue(int[][] events, int k) {
+        this.events = events;
+        Arrays.sort(events, (a, b) -> a[0] - b[0]);
+        int n = events.length;
+        
+        dp = new int[k + 1][n];
+        for (int[] row : dp) {
+            Arrays.fill(row, -1);
+        }
+        
+        return dfs(0, k);
+    }    
+    
+    private int[][] dp;
+    private int dfs(int index, int count) {
+        
+        if (count == 0 || index == events.length) {
+            return 0;
+        }
+        if (dp[count][index] != -1) {
+            return dp[count][index];
+        }
+        int nextIndex = binarySearch(events[index][1]);
+        dp[count][index] = Math.max( events[index][2] + dfs(nextIndex, count - 1), dfs(index + 1, count));
+        return dp[count][index];
+    }
+    
+    public int binarySearch( int target) {
+        int left = 0, right = events.length;
+        while (left < right) {
+            int mid = (left + right) / 2;
+            if (events[mid][0] <= target) {
+                left = mid + 1;
+            } else {
+                right = mid;
+            }
+        }
+        return left;
+    }   
+}
+
+
+or
+
+
+class Solution {
+    public int maxValue(int[][] events, int k) {
+         Arrays.sort(events, (a, b) -> a[1] - b[1]);
+        int n = events.length;
+        int[][] dp = new int[k+1][n+1];
+
+        for (int i = 1; i <= k; i++) {
+            for (int j = 1; j <= n; j++) {
+                int prev = findPreviousEvent(events, j);
+                dp[i][j] = Math.max(dp[i][j-1], dp[i-1][prev] + events[j-1][2]);
+            }
+        }
+
+        return dp[k][n];
+    }
+
+    private int findPreviousEvent(int[][] events, int current) {
+        int start = events[current-1][0];
+        int low = 0, high = current - 1;
+
+        while (low <= high) {
+            int mid = low + (high - low) / 2;
+            if (events[mid][1] < start)
+                low = mid + 1;
+            else
+                high = mid - 1;
+        }
+
+        return low;
+    }
+}
+
+
+or
+
+
+// best => dp + BS
+
+class Solution {
+    public int maxValue(int[][] events, int k) {
+        int max = 0; 
+        if (k == 1) {
+            for(int [] event : events) 
+                max = Math.max(max, event[2]);
+           
+            return max;
+        }
+        int n = events.length;
+        Arrays.sort(events, (o1, o2) -> Integer.compare(o1[1], o2[1]));
+
+        int[][] dp = new int[n + 1][k + 1];
+        for (int i = 0; i < n; i++) {
+            int prevEventIdx = binarySearch(events, i);
+            for (int j = 0; j < k; j++) {
+                dp[i + 1][j + 1] = Math.max(dp[i][j + 1], dp[prevEventIdx + 1][j] + events[i][2]);
+            }
+        }
+        return dp[n][k];
+    }
+
+    private int binarySearch(int[][] a, int idx) {
+        int l = 0, r = idx - 1;
+        while (l < r) {
+            int m = (l + r + 1) / 2;
+            if (a[m][1] >= a[idx][0]) {
+                r = m - 1;
+            } else {
+                l = m;
+            }
+        }
+        return a[l][1] < a[idx][0] ? l : -1;
+    }
+}
