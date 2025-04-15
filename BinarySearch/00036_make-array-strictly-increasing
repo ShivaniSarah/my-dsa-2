@@ -1,0 +1,471 @@
+https://leetcode.com/problems/make-array-strictly-increasing/description/
+
+
+1187. Make Array Strictly Increasing
+Hard
+Topics
+Companies
+Hint
+Given two integer arrays arr1 and arr2, return the minimum number of operations (possibly zero) needed to make arr1 strictly increasing.
+
+In one operation, you can choose two indices 0 <= i < arr1.length and 0 <= j < arr2.length and do the assignment arr1[i] = arr2[j].
+
+If there is no way to make arr1 strictly increasing, return -1.
+
+ 
+
+Example 1:
+
+Input: arr1 = [1,5,3,6,7], arr2 = [1,3,2,4]
+Output: 1
+Explanation: Replace 5 with 2, then arr1 = [1, 2, 3, 6, 7].
+Example 2:
+
+Input: arr1 = [1,5,3,6,7], arr2 = [4,3,1]
+Output: 2
+Explanation: Replace 5 with 3 and then replace 3 with 4. arr1 = [1, 3, 4, 6, 7].
+Example 3:
+
+Input: arr1 = [1,5,3,6,7], arr2 = [1,6,3,3]
+Output: -1
+Explanation: You can't make arr1 strictly increasing.
+ 
+
+Constraints:
+
+1 <= arr1.length, arr2.length <= 2000
+0 <= arr1[i], arr2[i] <= 10^9
+
+
+
+# java
+
+class Solution {
+    public int makeArrayIncreasing(int[] arr1, int[] arr2) {
+        Arrays.sort(arr2);
+        int m = 0;
+        for (int x : arr2) {
+            if (m == 0 || x != arr2[m - 1]) {
+                arr2[m++] = x;
+            }
+        }
+        final int inf = 1 << 30;
+        int[] arr = new int[arr1.length + 2];
+        arr[0] = -inf;
+        arr[arr.length - 1] = inf;
+        System.arraycopy(arr1, 0, arr, 1, arr1.length);
+        int[] f = new int[arr.length];
+        Arrays.fill(f, inf);
+        f[0] = 0;
+        for (int i = 1; i < arr.length; ++i) {
+            if (arr[i - 1] < arr[i]) {
+                f[i] = f[i - 1];
+            }
+            int j = search(arr2, arr[i], m);
+            for (int k = 1; k <= Math.min(i - 1, j); ++k) {
+                if (arr[i - k - 1] < arr2[j - k]) {
+                    f[i] = Math.min(f[i], f[i - k - 1] + k);
+                }
+            }
+        }
+        return f[arr.length - 1] >= inf ? -1 : f[arr.length - 1];
+    }
+
+    private int search(int[] nums, int x, int n) {
+        int l = 0, r = n;
+        while (l < r) {
+            int mid = (l + r) >> 1;
+            if (nums[mid] >= x) {
+                r = mid;
+            } else {
+                l = mid + 1;
+            }
+        }
+        return l;
+    }
+}
+
+
+or
+
+
+class Solution {
+  public int makeArrayIncreasing(int[] arr1, int[] arr2) {
+    // dp[i] := the minimum steps to reach i at previous round
+    Map<Integer, Integer> dp = new HashMap<>();
+    dp.put(-1, 0);
+
+    Arrays.sort(arr2);
+
+    for (final int a : arr1) {
+      Map<Integer, Integer> newDp = new HashMap<>();
+      for (final int val : dp.keySet()) {
+        final int steps = dp.get(val);
+        // It's possible to use the value in the arr1.
+        if (a > val)
+          newDp.put(a, Math.min(newDp.getOrDefault(a, Integer.MAX_VALUE), steps));
+        // Also try the value in the arr2.
+        final int i = firstGreater(arr2, val);
+        if (i < arr2.length)
+          newDp.put(arr2[i], Math.min(newDp.getOrDefault(arr2[i], Integer.MAX_VALUE), steps + 1));
+      }
+      if (newDp.isEmpty())
+        return -1;
+      dp = newDp;
+    }
+
+    return Collections.min(dp.values());
+  }
+
+  private int firstGreater(int[] arr, int target) {
+    final int i = Arrays.binarySearch(arr, target + 1);
+    return i < 0 ? -i - 1 : i;
+  }
+}
+
+
+or
+
+
+class Solution {
+    public int makeArrayIncreasing(int[] A, int[] B) { // A = arr1, B = arr2
+        TreeSet<Integer> set = new TreeSet<>(Arrays.stream(B).boxed().toList());
+        int[] dp = new int[B.length+1];
+        dp[0]=-1;
+        int INF = (int)2e9;
+        for (int i = 0; i < A.length; i++){
+            for (int j = B.length; j >= 0; j--){
+                int a = A[i] > dp[j]? A[i] : INF; // option A - don't swap
+                Integer b = set.higher(j==0?INF:dp[j-1]); // option B - swap
+                dp[j]=Math.min(a, b==null?INF:b); // take the min of A and B
+            }
+        }
+        for (int i = 0; i <= B.length; i++) if (dp[i] != INF){
+            return i;
+        }
+        return -1;
+    }
+}
+
+
+or
+
+class Solution {
+    public int makeArrayIncreasing(int[] arr1, int[] arr2) {
+        TreeSet<Integer> set = new TreeSet<>();
+        for (int i : arr2) set.add(i);
+        
+        int m = arr1.length;
+        int p = Math.min(m, arr2.length);   // maximum # of operation we may perform;
+        int[][] dp = new int[m][p + 1];
+        for (int[] i : dp) Arrays.fill(i, Integer.MAX_VALUE);
+        
+        // Base Case: first column (0 swap)
+        dp[0][0] = arr1[0];
+        for (int i = 1; i < m; i++) {
+            if (arr1[i] <= arr1[i-1]) break;
+            dp[i][0] = arr1[i];
+        }
+        
+        // Base Case: first row (only 1 character)
+        for (int j = 1; j <= p; j++) {
+            dp[0][j] = Math.min(arr1[0], set.first());
+        }
+        
+       
+        for (int i = 1; i < m; i++) {
+            for (int j = 1; j <= Math.min(i+1, p); j++) {
+              
+                // not swap at i
+                if (arr1[i] > dp[i-1][j]) dp[i][j] = arr1[i];   // handle the case dp[i-1][j] == MAX
+                
+                // swap at i
+                if (dp[i-1][j-1] == Integer.MAX_VALUE) continue;  // this line will speed up the solution
+                
+                Integer temp = set.higher(dp[i-1][j-1]);
+                if (temp != null) {
+                    dp[i][j] = Math.min(dp[i][j], temp);
+                }
+            }
+        }
+        
+        // check result for arr1 := arr1[0: m-1]
+        for (int i = 0; i <= p; i++) {
+            if (dp[m-1][i] != Integer.MAX_VALUE) return i;
+        }
+        return -1;
+    }
+}
+
+
+or
+
+
+class Solution {
+    public int makeArrayIncreasing(int[] arr1, int[] arr2) {
+        TreeSet<Integer> set = new TreeSet<>();
+        for (int i : arr2) set.add(i);
+        
+        int m = arr1.length;
+        int p = Math.min(m, arr2.length);   // maximum # of operation we may perform;
+        
+        // Base Case: first row (first char)
+        int[] dp = new int[p + 1];
+        dp[0] = arr1[0];
+        for (int j = 1; j <= p; j++) {
+            dp[j] = Math.min(arr1[0], set.first());
+        }
+       
+        for (int i = 1; i < m; i++) {
+            int[] next = new int[p+1];
+            Arrays.fill(next, Integer.MAX_VALUE);
+            
+            if (arr1[i] > arr1[i-1] && dp[0] != Integer.MAX_VALUE) next[0] = arr1[i];
+            
+            for (int j = 1; j <= p; j++) {
+                if (arr1[i] > dp[j]) next[j] = arr1[i];       // not swap at i
+                
+                if (dp[j-1] == Integer.MAX_VALUE) continue;   // swap at i
+                Integer temp = set.higher(dp[j-1]);
+                if (temp != null) {
+                    next[j] = Math.min(next[j], temp);
+                } 
+            }
+            
+            dp = next;
+        }
+        
+        for (int i = 0; i <= p; i++) {
+            if (dp[i] != Integer.MAX_VALUE) return i;
+        }
+        return -1;
+    }
+}
+
+or
+
+
+class Solution {
+    public int makeArrayIncreasing(int[] arr1, int[] arr2) {
+         Arrays.sort(arr2);
+
+        int answer = dfs(0, -1, arr1, arr2);
+
+        return answer < 2001 ? answer : -1;
+    }
+
+    private Map<Pair<Integer, Integer>, Integer> dp = new HashMap<>();
+
+    private int dfs(int i, int prev, int[] arr1, int[] arr2) {
+        if (i == arr1.length) {
+            return 0;
+        }
+        Pair<Integer, Integer> key = new Pair<>(i, prev);
+        if (dp.containsKey(key)) {
+            return dp.get(key);
+        }
+
+        int cost = 2001;
+
+        // If arr1[i] is already greater than prev, we can leave it be.
+        if (arr1[i] > prev) {
+            cost = dfs(i + 1, arr1[i], arr1, arr2);
+        }
+
+        // Find a replacement with the smallest value in arr2.
+        int idx = bisectRight(arr2, prev);
+
+        // Replace arr1[i], with a cost of 1 operation.
+        if (idx < arr2.length) {
+            cost = Math.min(cost, 1 + dfs(i + 1, arr2[idx], arr1, arr2));
+        }
+
+        dp.put(key, cost);
+        return cost;
+    }
+
+    private static int bisectRight(int[] arr, int value) {
+        int left = 0, right = arr.length;
+        while (left < right) {
+            int mid = (left + right) / 2;
+            if (arr[mid] <= value) {
+                left = mid + 1;
+            } else {
+                right = mid;
+            }
+        }
+        return left;
+    }
+
+}
+
+or
+
+
+
+class Solution {
+    
+    HashMap<Integer, Integer> dp[];
+    TreeSet<Integer> ts;
+    
+    int makeArrayIncr(int i, int prev, int[] arr1) {
+        
+        if(i == arr1.length) return 0;
+        
+        if(dp[i].containsKey(prev)) return dp[i].get(prev);
+        
+        int notswap = 5000;
+        
+        if(arr1[i] > prev) notswap = makeArrayIncr(i + 1, arr1[i], arr1);
+        
+        int swap = 5000;
+        
+        Integer curr = ts.higher(prev);
+        
+        if(curr != null) swap = 1 + makeArrayIncr(i + 1, curr, arr1);
+        
+        dp[i].put(prev, Math.min(swap, notswap));
+        
+        // System.out.println(i + " " + swap + " " + notswap);
+        
+        return Math.min(swap, notswap);
+        
+    }
+    
+    public int makeArrayIncreasing(int[] arr1, int[] arr2) {
+        
+        ts = new TreeSet<>();
+        for(int i : arr2) ts.add(i);
+        
+        dp = new HashMap[arr1.length];
+        for(int i = 0; i < dp.length; i++) dp[i] = new HashMap<>();
+        
+        int ans = makeArrayIncr(0, Integer.MIN_VALUE, arr1);
+        
+        return ans < 5000 ? ans : -1; 
+    }
+}
+
+
+or
+
+
+class Solution {
+
+public int makeArrayIncreasing(int[] arr1, int[] arr2) {
+    
+    int L1=arr1.length,L2=arr2.length;
+    int[][]stack=new int[L1+1][2];
+    stack[0][0]=-1000;
+    stack[0][1]=0;
+    int top=0;
+    
+    int[][]tmp=new int[L1+1][2];
+    int t2=-1;
+    
+    Arrays.sort(arr2);
+    
+    for(int i=0;i<L1;i++){
+        
+        // first try replacing current number
+        int i2=0,j=0;
+        while(i2<L2&&j<=top){
+            int cur=arr2[i2];
+            
+            if(cur<=stack[j][0]){++i2;continue;}
+            
+            while(j+1<=top&&cur>stack[j+1][0])++j;
+            ++t2;
+            tmp[t2][0]=cur;
+            tmp[t2][1]=stack[j][1]+1;
+            
+            ++i2;
+            ++j;
+        }
+        
+        // if keep current number
+        int num=arr1[i];
+        while(top>=0&&stack[top][0]>=num)--top;
+        if(top>=0){
+            // new element: {num,stack[top][1]}
+            int x=stack[top][1];
+            
+            int u=0;
+            top=-1;
+            
+            while(u<=t2&&tmp[u][0]<num){
+                ++top;
+                stack[top][0]=tmp[u][0];
+                stack[top][1]=tmp[u][1];
+                ++u;
+            }
+            
+            ++top;
+            stack[top][0]=num;
+            stack[top][1]=x;
+            
+            while(u<=t2&&tmp[u][1]>=x)++u;
+            
+            while(u<=t2){
+                ++top;
+                stack[top][0]=tmp[u][0];
+                stack[top][1]=tmp[u][1];
+                ++u;
+            }
+        }
+        else{
+            // top==-1
+            for(int u=0;u<=t2;u++){
+                ++top;
+                stack[top][0]=tmp[u][0];
+                stack[top][1]=tmp[u][1];
+            }
+            
+        }
+        
+        t2=-1;
+        
+        if(top<0)break;//stop early
+    }
+    
+    return top>=0?stack[top][1]:-1;
+}
+}
+
+
+or
+
+
+
+class Solution {
+  public int makeArrayIncreasing(int[] arr1, int[] arr2) {
+    PriorityQueue<int[]> q = new PriorityQueue<>(1000, (int[] a, int[] b) ->{         //index, changes, value
+        if(a[1] != b[1]) return a[1] - b[1];
+        if(a[0] != b[0]) return b[0] - a[0];
+        return                  a[2] - b[2];});
+
+    TreeSet<Integer> nums2 = new TreeSet<>();                  
+    for(int n: arr2) nums2.add(n);
+    
+    q.add(new int[]{0, 1, nums2.first()});             //put two starts
+    q.add(new int[]{0, 0, arr1[0]});
+
+    int[] values  = new int[arr1.length];              //for backtracing
+    Arrays.fill(values, Integer.MAX_VALUE);
+
+    while(!q.isEmpty()){                    
+      int t[] = q.poll(); 
+      int id = t[0], ch = t[1], val = t[2];
+      if(id == arr1.length - 1) return ch;             //we have answer
+
+      if(values[id] <= val) continue;                  //if we visited with lower value
+      values[id] = val;
+
+      if(arr1[++id] > val) q.add(new int[]{id, ch, arr1[id]});    //if next value from array is increasing
+      Integer num = nums2.higher(val);
+      if(num != null) q.add(new int[]{id, ch+1, num});          //if number from arr2 can increase current sequence
+    }
+
+    return -1;
+  }
+}
