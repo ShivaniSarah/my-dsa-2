@@ -1,0 +1,246 @@
+https://leetcode.com/problems/block-placement-queries/description/
+
+3161. Block Placement Queries
+Hard
+Topics
+Companies
+Hint
+There exists an infinite number line, with its origin at 0 and extending towards the positive x-axis.
+
+You are given a 2D array queries, which contains two types of queries:
+
+For a query of type 1, queries[i] = [1, x]. Build an obstacle at distance x from the origin. It is guaranteed that there is no obstacle at distance x when the query is asked.
+For a query of type 2, queries[i] = [2, x, sz]. Check if it is possible to place a block of size sz anywhere in the range [0, x] on the line, such that the block entirely lies in the range [0, x]. A block cannot be placed if it intersects with any obstacle, but it may touch it. Note that you do not actually place the block. Queries are separate.
+Return a boolean array results, where results[i] is true if you can place the block specified in the ith query of type 2, and false otherwise.
+
+ 
+
+Example 1:
+
+Input: queries = [[1,2],[2,3,3],[2,3,1],[2,2,2]]
+
+Output: [false,true,true]
+
+Explanation:
+
+
+
+For query 0, place an obstacle at x = 2. A block of size at most 2 can be placed before x = 3.
+
+Example 2:
+
+Input: queries = [[1,7],[2,7,6],[1,2],[2,7,5],[2,7,6]]
+
+Output: [true,true,false]
+
+Explanation:
+
+
+
+Place an obstacle at x = 7 for query 0. A block of size at most 7 can be placed before x = 7.
+Place an obstacle at x = 2 for query 2. Now, a block of size at most 5 can be placed before x = 7, and a block of size at most 2 before x = 2.
+ 
+
+Constraints:
+
+1 <= queries.length <= 15 * 104
+2 <= queries[i].length <= 3
+1 <= queries[i][0] <= 2
+1 <= x, sz <= min(5 * 104, 3 * queries.length)
+The input is generated such that for queries of type 1, no obstacle exists at distance x when the query is asked.
+The input is generated such that there is at least one query of type 2.
+
+
+
+#  java
+
+class FenwickTree {
+  public FenwickTree(int n) {
+    vals = new int[n + 1];
+  }
+
+  public void add(int i, int val) {
+    while (i < vals.length) {
+      vals[i] = Math.max(vals[i], val);
+      i += lowbit(i);
+    }
+  }
+
+  public int get(int i) {
+    int res = 0;
+    while (i > 0) {
+      res = Math.max(res, vals[i]);
+      i -= lowbit(i);
+    }
+    return res;
+  }
+
+  private int[] vals;
+
+  private static int lowbit(int i) {
+    return i & -i;
+  }
+}
+
+class Solution {
+  public List<Boolean> getResults(int[][] queries) {
+    final int n = Math.min(50000, queries.length * 3);
+    List<Boolean> ans = new ArrayList<>();
+    FenwickTree tree = new FenwickTree(n + 1);
+    TreeSet<Integer> obstacles = new TreeSet<>(Arrays.asList(0, n)); // sentinel values
+
+    for (int[] query : queries) {
+      final int type = query[0];
+      if (type == 1) {
+        final int x = query[1];
+        obstacles.add(x);
+      }
+    }
+
+    Iterator<Integer> it = obstacles.iterator();
+    int x1 = it.next();
+    while (it.hasNext()) {
+      final int x2 = it.next();
+      tree.add(x2, x2 - x1);
+      x1 = x2;
+    }
+
+    for (int i = queries.length - 1; i >= 0; --i) {
+      final int type = queries[i][0];
+      final int x = queries[i][1];
+      if (type == 1) {
+        final Integer next = obstacles.higher(x);
+        final Integer prev = obstacles.lower(x);
+        if (next != null)
+          tree.add(next, next - prev);
+        obstacles.remove(x);
+      } else {
+        final int sz = queries[i][2];
+        final int prev = obstacles.floor(x);
+        ans.add(tree.get(prev) >= sz || x - prev >= sz);
+      }
+    }
+
+    Collections.reverse(ans);
+    return ans;
+  }
+}
+
+or
+
+class Solution {
+    public List<Boolean> getResults(int[][] queries) {
+        List<Boolean> ans = new ArrayList<>();
+        int q = queries.length;
+        List<Integer> bar = new ArrayList<>();
+        Map<Integer, int[]> mp = new HashMap<>();
+        TreeSet<int[]> s = new TreeSet<>((a, b) -> a[0] != b[0] ? a[0] - b[0] : a[1] - b[1]);
+        Iterator<int[]> it;
+
+        bar.add(0);
+        bar.add(50001);
+        for (int i = 0; i < q; i++) {
+            if (queries[i][0] == 1) bar.add(queries[i][1]);
+        }
+
+        Collections.sort(bar);
+        int bar_sz = bar.size();
+
+        mp.put(bar.get(0), new int[]{bar.get(0), bar.get(1)});
+        for (int i = 1; i < bar_sz - 1; i++) {
+            mp.put(bar.get(i), new int[]{bar.get(i - 1), bar.get(i + 1)});
+        }
+        mp.put(bar.get(bar_sz - 1), new int[]{bar.get(bar_sz - 2), 0});
+
+        for (int i = 0; i < bar.size() - 1; i++) {
+            s.add(new int[]{bar.get(i + 1) - bar.get(i), bar.get(i)});
+        }
+        s.add(new int[]{0, bar.get(bar_sz - 1)});
+
+        for (int i = q - 1; i >= 0; i--) {
+            if (queries[i][0] == 1) {
+                int x = queries[i][1];
+                int x_f = mp.get(x)[0];
+                int x_l = mp.get(x)[1];
+
+                s.remove(new int[]{x - x_f, x_f});
+                s.remove(new int[]{x_l - x, x});
+                mp.get(x_f)[1] = x_l;
+                mp.get(x_l)[0] = x_f;
+                s.add(new int[]{x_l - x_f, x_f});
+            } else {
+                int x = queries[i][1], y = queries[i][2];
+                if (y > x) {
+                    ans.add(false);
+                    continue;
+                }
+
+                it = s.tailSet(new int[]{y, 0}).iterator();
+                boolean can = false;
+                while (it.hasNext()) {
+                    int[] p = it.next();
+                    if (y + p[1] <= x) {
+                        can = true;
+                        break;
+                    }
+                }
+                ans.add(can);
+            }
+        }
+
+        Collections.reverse(ans);
+        return ans;
+    }
+}
+
+
+
+or
+
+
+class Solution {
+    public List<Boolean> getResults(int[][] queries) {
+        TreeMap<Integer, Integer> obstacles = new TreeMap<>(); // max up until block at key
+
+        List<Boolean> ans = new ArrayList<>();
+
+        for (int[] q : queries) {
+            if (q[0] == 1) { // build obstacle
+                int index = q[1];
+                Integer prev = obstacles.lowerKey(index);
+                Integer next = obstacles.higherKey(index);
+
+                if (prev == null) {
+                    obstacles.put(index, index);
+                } else {
+                    obstacles.put(index, Math.max(index - prev, obstacles.get(prev)));
+                }
+
+                prev = index;
+                while (next != null && obstacles.get(next) > obstacles.get(prev)) {
+                    obstacles.put(next, Math.max(next - prev, obstacles.get(prev)));
+                    prev = next;
+                    next = obstacles.higherKey(next);
+                }
+
+            } else { // ans query
+                int index = q[1], sz = q[2];
+                if (obstacles.containsKey(index)) { // there's an obstacle at queried index
+                    ans.add(obstacles.get(index) >= sz);
+                } else { // no obstacle
+                    Integer prev = obstacles.lowerKey(index);
+                    if (prev == null) {
+                        ans.add(index >= sz);
+                    } else {
+                        ans.add(Math.max(index - prev, obstacles.get(prev)) >= sz);
+                    }
+                }
+
+            }
+        }
+
+        return ans;
+
+    }
+
+}
