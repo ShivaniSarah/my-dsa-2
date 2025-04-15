@@ -1,0 +1,414 @@
+https://leetcode.com/problems/minimum-number-of-valid-strings-to-form-target-ii/description/
+
+
+3292. Minimum Number of Valid Strings to Form Target II
+Hard
+Topics
+Companies
+Hint
+You are given an array of strings words and a string target.
+
+A string x is called valid if x is a prefix of any string in words.
+
+Return the minimum number of valid strings that can be concatenated to form target. If it is not possible to form target, return -1.
+
+ 
+
+Example 1:
+
+Input: words = ["abc","aaaaa","bcdef"], target = "aabcdabc"
+
+Output: 3
+
+Explanation:
+
+The target string can be formed by concatenating:
+
+Prefix of length 2 of words[1], i.e. "aa".
+Prefix of length 3 of words[2], i.e. "bcd".
+Prefix of length 3 of words[0], i.e. "abc".
+Example 2:
+
+Input: words = ["abababab","ab"], target = "ababaababa"
+
+Output: 2
+
+Explanation:
+
+The target string can be formed by concatenating:
+
+Prefix of length 5 of words[0], i.e. "ababa".
+Prefix of length 5 of words[0], i.e. "ababa".
+Example 3:
+
+Input: words = ["abcdef"], target = "xyz"
+
+Output: -1
+
+ 
+
+Constraints:
+
+1 <= words.length <= 100
+1 <= words[i].length <= 5 * 104
+The input is generated such that sum(words[i].length) <= 105.
+words[i] consists only of lowercase English letters.
+1 <= target.length <= 5 * 104
+target consists only of lowercase English letters.
+
+
+# java
+
+
+class Solution {
+  // 3291. Minimum Number of Valid Strings to Form Target I
+  public int minValidStrings(String[] words, String target) {
+    int ans = 0;
+    int unmatchedPrefix = target.length();
+    int[][] lpsList = new int[words.length][];
+
+    for (int i = 0; i < words.length; ++i)
+      lpsList[i] = getLPS(words[i] + '#' + target);
+
+    while (unmatchedPrefix > 0) {
+      // Greedily choose the word that has the longest suffix match with the
+      // remaining unmatched prefix.
+      int maxMatchSuffix = 0;
+      for (int i = 0; i < words.length; ++i)
+        maxMatchSuffix = Math.max(maxMatchSuffix, lpsList[i][words[i].length() + unmatchedPrefix]);
+      if (maxMatchSuffix == 0)
+        return -1;
+      ++ans;
+      unmatchedPrefix -= maxMatchSuffix;
+    }
+
+    return ans;
+  }
+
+  // Returns the lps array, where lps[i] is the length of the longest prefix of
+  // pattern[0..i] which is also a suffix of this substring.
+  private int[] getLPS(final String pattern) {
+    int[] lps = new int[pattern.length()];
+    for (int i = 1, j = 0; i < pattern.length(); ++i) {
+      while (j > 0 && pattern.charAt(j) != pattern.charAt(i))
+        j = lps[j - 1];
+      if (pattern.charAt(i) == pattern.charAt(j))
+        lps[i] = ++j;
+    }
+    return lps;
+  }
+}
+
+
+or
+
+
+// kmp
+
+class Solution {
+    public int minValidStrings(String[] words, String target) {
+        int m = target.length();
+        int n = words.length;
+        ArrayList<int[]> arr = new ArrayList<>();
+        for(int i = 0; i < n; i++) {
+            StringBuilder sb = new StringBuilder();
+            sb.append(words[i]);
+            sb.append('#');
+            sb.append(target);
+            int[] lps = new int[words[i].length() + m + 1];
+            kmp(lps, sb.toString());
+            arr.add(lps);
+        }
+        int total = 0;
+        int i = m - 1;
+        while(i >= 0) {
+            int mm = 0;
+            for(int j = 0; j < n; j++) {
+                mm = Math.max(mm, arr.get(j)[words[j].length() + 1 + i]);
+            }
+            if(mm == 0) return -1;
+            i -= mm;
+            total++;
+        }
+        return total;
+    }
+    public static void kmp(int[] lps, String s) {
+        int length = 0;
+        int i = 1;
+        while (i < s.length()) {
+            if (s.charAt(i) == s.charAt(length)) {
+                length++;
+                lps[i] = length;
+                i++;
+            } else {
+                if (length != 0) {
+                    length = lps[length - 1];
+                } else {
+                    lps[i] = 0;
+                    i++;
+                }
+            }
+        }
+    }
+}
+
+or
+
+
+class Solution {
+    public int minValidStrings(String[] words, String target) {
+        int n = target.length();
+        int[] dp = new int[n + 1];
+        Arrays.fill(dp, Integer.MAX_VALUE);
+        dp[0] = 0;
+
+        List<List<Integer>> matches = new ArrayList<>(n);
+        for (int i = 0; i < n; i++) {
+            matches.add(new ArrayList<>());
+        }
+        char[] targetChars = target.toCharArray();
+        for (String word : words) {
+            char[] wordChars = word.toCharArray();
+            int m = wordChars.length;
+            int[] pi = new int[m];
+            for (int i = 1, j = 0; i < m; i++) {
+                while (j > 0 && wordChars[i] != wordChars[j]) {
+                    j = pi[j - 1];
+                }
+                if (wordChars[i] == wordChars[j]) {
+                    j++;
+                }
+                pi[i] = j;
+            }
+
+            for (int i = 0, j = 0; i < n; i++) {
+                while (j > 0 && targetChars[i] != wordChars[j]) {
+                    j = pi[j - 1];
+                }
+                if (targetChars[i] == wordChars[j]) {
+                    j++;
+                }
+                if (j > 0) {
+                    matches.get(i - j + 1).add(j);
+                    if (j == m) {
+                        j = pi[j - 1]; 
+                    }
+                }
+            }
+        }
+        for (int i = 0; i < n; i++) {
+            if (dp[i] == Integer.MAX_VALUE) continue;
+            for (int len : matches.get(i)) {
+                if (i + len <= n) {
+                    dp[i + len] = Math.min(dp[i + len], dp[i] + 1);
+                }
+            }
+        }
+        return dp[n] == Integer.MAX_VALUE ? -1 : dp[n];
+    }
+}
+
+
+or
+
+
+class Solution {
+   public static long mod = (long) 1e9 + 7;
+  public static long base[] = { 4441, 7817 };
+
+  public static long[] get_hash(String s) {
+    long h[] = { 0, 0 };
+    for (int i = 0; i < s.length(); i++) {
+      h = add(multiply(base, h), s.charAt(i));
+    }
+    return h;
+  }
+
+  public static long[] multiply(long a[], long b[]) {
+    return new long[] { (a[0] * b[0]) % mod, (a[1] * b[1]) % mod };
+  }
+
+  public static long[] add(long a[], long b) {
+    return new long[] { (a[0] + b) % mod, (a[1] + b) % mod };
+  }
+
+  // create an object of hsh & initialise it in main method.
+  static class hsh {
+    int n;
+    String s;
+    long pre[][], pp[][];
+
+    void init(String S,HashSet<Index>set) {
+      s = S;
+      n = s.length();
+      pp = new long[n + 1][2];
+      pre = new long[n + 1][2];
+      pp[0] = new long[] { 1, 1 };
+      for (int i = 0; i < n; i++) {
+        pre[i + 1][0] = ((pre[i][0] * base[0]) % mod + s.charAt(i)) % mod;
+        pre[i + 1][1] = ((pre[i][1] * base[1]) % mod + s.charAt(i)) % mod;
+        set.add(new Index((pre[i+1][0]+mod)%mod,(pre[i+1][1]+mod)%mod));
+        if (i > 0) {
+          pp[i][0] = (pp[i - 1][0] * base[0]) % mod;
+          pp[i][1] = (pp[i - 1][1] * base[1]) % mod;
+        }
+      }
+    }
+
+    // returns hash of a substring (l,r) in O(1)
+    // l -> inclusive, r -> exclusive
+    long[] get(int s, int e) {
+      return new long[] { (pre[e][0] - (pre[s][0] * pp[e - s][0]) % mod + mod) % mod,
+          (pre[e][1] - (pre[s][1] * pp[e - s][1]) % mod + mod) % mod };
+    }
+  }
+
+    public static int dp[];
+
+  public static int fun( hsh ths, int i,int limit) {
+    if (i >= tlen) {
+      return 0;
+    }
+    if (dp[i] != -1) {
+      return dp[i];
+    }
+    int ans = (int)Math.pow(10,7);
+    int st = i;
+    // while (st < tlen) {
+      int low = 1, high = tlen - st;// length pr binary search
+      int yaha = -1;
+      while (low <= high) {
+        int mid = (low + high) / 2;
+        long tmp[]=ths.get(st,st+mid);
+        if(set.contains(new Index(tmp[0],tmp[1]))){
+          low = mid + 1;
+          yaha = mid;
+        } else {
+          high = mid - 1;
+        }
+      }
+      if (yaha == -1) {
+        return (int)Math.pow(10,7);
+      } else {
+        for (int k = limit; k <= yaha; k++) {
+          ans = Math.min(ans, 1 + fun(  ths,  i + k,Math.max(yaha-k,1)));
+        }
+      }
+
+    // }
+    return dp[i] = ans;
+  }
+  public static HashSet<Index> set;
+  public static int tlen;
+  public static int minValidStrings(String[] words, String target) {
+    int n = words.length;
+    set=new HashSet<>();
+    for (int i = 0; i < n; i++) {
+      hsh hs = new hsh();
+      hs.init(words[i],set);
+    }
+    HashSet<Index>dontuse=new HashSet<>();
+    hsh ths = new hsh();
+    ths.init(target,dontuse);
+    tlen = target.length();
+    dp = new int[tlen + 1];
+    Arrays.fill(dp, -1);
+    int aa1=fun(  ths,  0,1);
+    if(aa1==(int)Math.pow(10,7)){
+        aa1=-1;
+    }
+    return aa1;
+  }
+
+    // ----------------
+    public static class Index {
+
+        private long x;
+        private long y;
+
+        public Index(long x, long y) {
+            this.x = x;
+            this.y = y;
+        }
+
+        @Override
+        public int hashCode() {
+            return (int)(this.x ^ this.y);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj)
+                return true;
+            if (obj == null)
+                return false;
+            if (getClass() != obj.getClass())
+                return false;
+            Index other = (Index) obj;
+            if (x != other.x)
+                return false;
+            if (y != other.y)
+                return false;
+            return true;
+        }
+    }
+    
+
+}
+
+
+or
+
+
+class Solution {
+    public int minValidStrings(String[] words, String target) {
+        int n = target.length();
+        int[] dp = new int[n + 1];
+        Arrays.fill(dp, Integer.MAX_VALUE);
+        dp[0] = 0;
+
+        List<List<Integer>> matches = new ArrayList<>(n);
+        for (int i = 0; i < n; i++) {
+            matches.add(new ArrayList<>());
+        }
+        char[] targetChars = target.toCharArray();
+        for (String word : words) {
+            char[] wordChars = word.toCharArray();
+            int m = wordChars.length;
+            int[] pi = new int[m];
+            for (int i = 1, j = 0; i < m; i++) {
+                while (j > 0 && wordChars[i] != wordChars[j]) {
+                    j = pi[j - 1];
+                }
+                if (wordChars[i] == wordChars[j]) {
+                    j++;
+                }
+                pi[i] = j;
+            }
+
+            for (int i = 0, j = 0; i < n; i++) {
+                while (j > 0 && targetChars[i] != wordChars[j]) {
+                    j = pi[j - 1];
+                }
+                if (targetChars[i] == wordChars[j]) {
+                    j++;
+                }
+                if (j > 0) {
+                    matches.get(i - j + 1).add(j);
+                    if (j == m) {
+                        j = pi[j - 1]; 
+                    }
+                }
+            }
+        }
+        for (int i = 0; i < n; i++) {
+            if (dp[i] == Integer.MAX_VALUE) continue;
+            for (int len : matches.get(i)) {
+                if (i + len <= n) {
+                    dp[i + len] = Math.min(dp[i + len], dp[i] + 1);
+                }
+            }
+        }
+        return dp[n] == Integer.MAX_VALUE ? -1 : dp[n];
+    }
+}
