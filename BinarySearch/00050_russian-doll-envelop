@@ -1,0 +1,285 @@
+https://leetcode.com/problems/russian-doll-envelopes/description/
+
+354. Russian Doll Envelopes
+Hard
+Topics
+Companies
+You are given a 2D array of integers envelopes where envelopes[i] = [wi, hi] represents the width and the height of an envelope.
+
+One envelope can fit into another if and only if both the width and height of one envelope are greater than the other envelope's width and height.
+
+Return the maximum number of envelopes you can Russian doll (i.e., put one inside the other).
+
+Note: You cannot rotate an envelope.
+
+ 
+
+Example 1:
+
+Input: envelopes = [[5,4],[6,4],[6,7],[2,3]]
+Output: 3
+Explanation: The maximum number of envelopes you can Russian doll is 3 ([2,3] => [5,4] => [6,7]).
+Example 2:
+
+Input: envelopes = [[1,1],[1,1],[1,1]]
+Output: 1
+ 
+
+Constraints:
+
+1 <= envelopes.length <= 105
+envelopes[i].length == 2
+1 <= wi, hi <= 105
+
+
+
+#  java
+
+
+class Solution {
+  public int maxEnvelopes(int[][] envelopes) {
+    Arrays.sort(envelopes, Comparator.comparingInt((int[] envelope) -> envelope[0])
+                               .thenComparingInt((int[] envelope) -> - envelope[1]));
+    return lengthOfLIS(envelopes);
+  }
+
+  // Similar to 300. Longest Increasing Subsequence
+  private int lengthOfLIS(int[][] envelopes) {
+    // tails[i] := the minimum tail of all the increasing subsequences having
+    // length i + 1
+    List<Integer> tails = new ArrayList<>();
+
+    for (final int[] envelope : envelopes) {
+      final int h = envelope[1];
+      if (tails.isEmpty() || h > tails.get(tails.size() - 1))
+        tails.add(h);
+      else
+        tails.set(firstGreaterEqual(tails, h), h);
+    }
+
+    return tails.size();
+  }
+
+  private int firstGreaterEqual(List<Integer> arr, int target) {
+    final int i = Collections.binarySearch(arr, target);
+    return i < 0 ? -i - 1 : i;
+  }
+}
+
+or
+
+class Solution {
+    public int maxEnvelopes(int[][] envelopes) {
+        Arrays.sort(envelopes, (a, b) -> { return a[0] == b[0] ? b[1] - a[1] : a[0] - b[0]; });
+        int n = envelopes.length;
+        int[] d = new int[n + 1];
+        d[1] = envelopes[0][1];
+        int size = 1;
+        for (int i = 1; i < n; ++i) {
+            int x = envelopes[i][1];
+            if (x > d[size]) {
+                d[++size] = x;
+            } else {
+                int left = 1, right = size;
+                while (left < right) {
+                    int mid = (left + right) >> 1;
+                    if (d[mid] >= x) {
+                        right = mid;
+                    } else {
+                        left = mid + 1;
+                    }
+                }
+                int p = d[left] >= x ? left : 1;
+                d[p] = x;
+            }
+        }
+        return size;
+    }
+}
+
+
+or
+
+class Solution {
+    public int maxEnvelopes(int[][] envelopes) {
+    if(envelopes == null || envelopes.length == 0 
+       || envelopes[0] == null || envelopes[0].length != 2)
+        return 0;
+    Arrays.sort(envelopes, new Comparator<int[]>(){
+        public int compare(int[] arr1, int[] arr2){
+            if(arr1[0] == arr2[0])
+                return arr2[1] - arr1[1];
+            else
+                return arr1[0] - arr2[0];
+       } 
+    });
+    int dp[] = new int[envelopes.length];
+    int len = 0;
+    for(int[] envelope : envelopes){
+        int index = Arrays.binarySearch(dp, 0, len, envelope[1]);
+        if(index < 0)
+            index = -(index + 1);
+        dp[index] = envelope[1];
+        if(index == len)
+            len++;
+    }
+    return len;
+}
+}
+
+
+or
+
+
+class Solution {
+    public int maxEnvelopes(int[][] envelopes) {
+        Pair[] arr=new Pair[envelopes.length];
+        for(int i=0;i<arr.length;i++){
+            int[] nums=envelopes[i];
+            int w=nums[0];
+            int h=nums[1];
+            Pair np=new Pair(w,h);
+            arr[i]=np;
+        }
+          Arrays.sort(arr);
+       
+         return LIS(arr);
+    }
+    
+    private int LIS(Pair[] arr){
+          int ans=0;
+          int[] minele=new int[arr.length];
+        for(int i=0;i<arr.length;i++){
+            int val=arr[i].h;
+            int lo=0, hi=ans;
+            
+            while(lo<hi){
+                int mid=(lo + hi)/2;
+                if(minele[mid]<val){
+                    lo=mid+1;
+                }else{
+                    hi=mid;
+                }
+            }
+            minele[lo]=val;
+            
+            if(lo==ans){
+                ans++;
+            }
+        }
+        return ans;
+    }
+    
+    public static class Pair implements Comparable<Pair>{
+        int w;
+        int h;
+        
+        Pair(int w,int h){
+            this.w=w;
+            this.h=h;
+        }
+        
+        @Override
+        public int compareTo(Pair other){
+            if(this.w==other.w) return other.h -this.h;
+            return this.w-other.w;
+        }
+    }
+}
+
+
+or
+
+class Solution {
+    public int maxEnvelopes(int[][] envelopes) {
+         Arrays.sort(envelopes,new EnvelopeComparator());
+         return LIS(envelopes);
+    }
+    
+    private int LIS(int[][] arr){
+          int ans=0;
+          int[] minele=new int[arr.length];
+        for(int i=0;i<arr.length;i++){
+            int val=arr[i][1];
+            int lo=0, hi=ans;
+            
+            while(lo<hi){
+                int mid=(lo + hi)/2;
+                if(minele[mid]<val){
+                    lo=mid+1;
+                }else{
+                    hi=mid;
+                }
+            }
+            minele[lo]=val;
+            
+            if(lo==ans){
+                ans++;
+            }
+        }
+        return ans;
+    }
+    
+    public class EnvelopeComparator implements Comparator<int[]>{
+        @Override
+        public int compare(int[] one,int[] two){
+            if(one[0]==two[0]) return two[1]-one[1];
+            return one[0]-two[0];
+        }
+    }
+}
+
+
+or
+
+
+
+class Solution {
+    public int maxEnvelopes(int[][] envelopes) {
+        // Sort envelopes by width in ascending order. 
+        // If two envelopes have the same width, sort by height in descending order.
+        Arrays.sort(envelopes, (a, b) -> {
+            if (a[0] == b[0]) return b[1] - a[1];
+            return a[0] - b[0];
+        });
+
+        // Extract the heights into a separate list.
+        int[] heights = new int[envelopes.length];
+        for (int i = 0; i < envelopes.length; i++) {
+            heights[i] = envelopes[i][1];
+        }
+
+        // The 'ans' list will store the increasing subsequence of heights.
+        List<Integer> ans = new ArrayList<>();
+
+        for (int height : heights) {
+            // Find the position where 'height' can be placed in 'ans' using binary search.
+            int pos = binarySearch(ans, height);
+
+            // If 'height' is greater than all elements in 'ans', append it.
+            if (pos == ans.size()) {
+                ans.add(height);
+            } 
+            // Otherwise, replace the element at the found position with 'height'.
+            else {
+                ans.set(pos, height);
+            }
+        }
+
+        // The size of 'ans' represents the length of the longest increasing subsequence.
+        return ans.size();
+    }
+
+    private int binarySearch(List<Integer> list, int target) {
+        int left = 0, right = list.size();
+        while (left < right) {
+            int mid = (left + right) / 2;
+            if (list.get(mid) < target) {
+                left = mid + 1;
+            } else {
+                right = mid;
+            }
+        }
+        return left;
+    }
+}
