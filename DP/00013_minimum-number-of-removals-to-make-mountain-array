@@ -1,0 +1,445 @@
+https://leetcode.com/problems/minimum-number-of-removals-to-make-mountain-array/description/
+
+
+1671. Minimum Number of Removals to Make Mountain Array
+Hard
+Topics
+Companies
+Hint
+You may recall that an array arr is a mountain array if and only if:
+
+arr.length >= 3
+There exists some index i (0-indexed) with 0 < i < arr.length - 1 such that:
+arr[0] < arr[1] < ... < arr[i - 1] < arr[i]
+arr[i] > arr[i + 1] > ... > arr[arr.length - 1]
+Given an integer array nums​​​, return the minimum number of elements to remove to make nums​​​ a mountain array.
+
+ 
+
+Example 1:
+
+Input: nums = [1,3,1]
+Output: 0
+Explanation: The array itself is a mountain array so we do not need to remove any elements.
+Example 2:
+
+Input: nums = [2,1,1,5,6,2,3,1]
+Output: 3
+Explanation: One solution is to remove the elements at indices 0, 1, and 5, making the array nums = [1,5,6,3,1].
+ 
+
+Constraints:
+
+3 <= nums.length <= 1000
+1 <= nums[i] <= 109
+It is guaranteed that you can make a mountain array out of nums.
+
+
+
+#  java
+
+
+class Solution {
+    public int minimumMountainRemovals(int[] nums) {
+        int n = nums.length;
+        int[] left = new int[n];
+        int[] right = new int[n];
+        Arrays.fill(left, 1);
+        Arrays.fill(right, 1);
+        for (int i = 1; i < n; ++i) {
+            for (int j = 0; j < i; ++j) {
+                if (nums[i] > nums[j]) {
+                    left[i] = Math.max(left[i], left[j] + 1);
+                }
+            }
+        }
+        for (int i = n - 2; i >= 0; --i) {
+            for (int j = i + 1; j < n; ++j) {
+                if (nums[i] > nums[j]) {
+                    right[i] = Math.max(right[i], right[j] + 1);
+                }
+            }
+        }
+        int ans = 0;
+        for (int i = 0; i < n; ++i) {
+            if (left[i] > 1 && right[i] > 1) {
+                ans = Math.max(ans, left[i] + right[i] - 1);
+            }
+        }
+        return n - ans;
+    }
+}
+
+
+or
+
+
+class Solution {
+  public int minimumMountainRemovals(int[] nums) {
+    int[] l = lengthOfLIS(nums);
+    int[] r = reversed(lengthOfLIS(reversed(nums)));
+    int maxMountainSeq = 0;
+
+    for (int i = 0; i < nums.length; ++i)
+      if (l[i] > 1 && r[i] > 1)
+        maxMountainSeq = Math.max(maxMountainSeq, l[i] + r[i] - 1);
+
+    return nums.length - maxMountainSeq;
+  }
+
+  // Similar to 300. Longest Increasing Subsequence
+  private int[] lengthOfLIS(int[] nums) {
+    // tails[i] := the minimum tail of all the increasing subsequences with
+    // length i + 1
+    List<Integer> tails = new ArrayList<>();
+    // dp[i] := the length of LIS ending in nums[i]
+    int[] dp = new int[nums.length];
+    for (int i = 0; i < nums.length; ++i) {
+      final int num = nums[i];
+      if (tails.isEmpty() || num > tails.get(tails.size() - 1))
+        tails.add(num);
+      else
+        tails.set(firstGreaterEqual(tails, num), num);
+      dp[i] = tails.size();
+    }
+    return dp;
+  }
+
+  private int firstGreaterEqual(List<Integer> arr, int target) {
+    final int i = Collections.binarySearch(arr, target);
+    return i < 0 ? -i - 1 : i;
+  }
+
+  private int[] reversed(int[] nums) {
+    int[] arr = nums.clone();
+    int l = 0;
+    int r = nums.length - 1;
+    while (l < r)
+      swap(arr, l++, r--);
+    return arr;
+  }
+
+  private void swap(int[] arr, int i, int j) {
+    final int temp = arr[i];
+    arr[i] = arr[j];
+    arr[j] = temp;
+  }
+}
+
+
+or
+
+
+class Solution {
+    public int minimumMountainRemovals(int[] nums) {
+        int n = nums.length;
+        int[] LIS = new int[n], LDS = new int[n];
+        Arrays.fill(LIS, 1);
+        Arrays.fill(LDS, 1);
+
+        // Compute LIS for each index
+        for (int i = 0; i < n; ++i) {
+            for (int j = 0; j < i; ++j) {
+                if (nums[i] > nums[j]) {
+                    LIS[i] = Math.max(LIS[i], LIS[j] + 1);
+                }
+            }
+        }
+
+        // Compute LDS from each index
+        for (int i = n - 1; i >= 0; --i) {
+            for (int j = n - 1; j > i; --j) {
+                if (nums[i] > nums[j]) {
+                    LDS[i] = Math.max(LDS[i], LDS[j] + 1);
+                }
+            }
+        }
+
+        int maxMountainLength = 0;
+
+        // Find the maximum mountain length
+        for (int i = 1; i < n - 1; ++i) {
+            if (LIS[i] > 1 && LDS[i] > 1) {  // Valid peak
+                maxMountainLength = Math.max(maxMountainLength, LIS[i] + LDS[i] - 1);
+            }
+        }
+
+        return n - maxMountainLength;
+    }
+}
+
+
+or
+
+
+import java.util.*;
+
+// Longest Increasing Subsequence (LIS) Solution from both directions
+
+class Solution {
+    // Helper function to calculate LIS lengths for each position
+    private List<Integer> lisLength(int[] nums) {
+        // Start with first element
+        List<Integer> lis = new ArrayList<>();
+        lis.add(nums[0]);
+        // Track LIS length ending at each position
+        List<Integer> lisLen = new ArrayList<>();
+        for (int i = 0; i < nums.length; i++) {
+            lisLen.add(1);
+        }
+        
+        for (int i = 1; i < nums.length; i++) {
+            // If current element is larger than last LIS element, extend the sequence
+            if (nums[i] > lis.get(lis.size() - 1)) {
+                lis.add(nums[i]);
+            } else {
+                // Replace the smallest element that's >= current element
+                // This maintains the potential for longer sequences
+                int index = Collections.binarySearch(lis, nums[i]);
+                if (index < 0) {
+                    index = -(index + 1);
+                }
+                lis.set(index, nums[i]);
+            }
+            // Store length of LIS up to current position
+            lisLen.set(i, lis.size());
+        }
+        return lisLen;
+    }
+    
+    public int minimumMountainRemovals(int[] nums) {
+        int n = nums.length;
+        
+        // Get LIS lengths from left to right (increasing part)
+        List<Integer> lis = lisLength(nums);
+        
+        // Get LIS lengths from right to left (decreasing part)
+        int[] reversed = new int[n];
+        for (int i = 0; i < n; i++) {
+            reversed[i] = nums[n - 1 - i];
+        }
+        List<Integer> lds = lisLength(reversed);
+        Collections.reverse(lds);
+        
+        int removals = Integer.MAX_VALUE;
+        
+        // For each potential peak position
+        for (int i = 0; i < n; i++) {
+            // Valid mountain needs both sides to have length > 1
+            if (lis.get(i) > 1 && lds.get(i) > 1) {
+                // Calculate removals needed:
+                // Total length - (increasing length + decreasing length - 1)
+                // -1 because peak is counted twice
+                removals = Math.min(removals, n + 1 - lis.get(i) - lds.get(i));
+            }
+        }
+        
+        return removals;
+    }
+}
+
+
+or
+
+
+class Solution {
+    public int minimumMountainRemovals(int[] nums) {
+        
+        int n = nums.length;
+        int[] LIS = new int[n];
+        int[] LDS = new int[n];
+    
+        Arrays.fill(LIS, 1);
+        Arrays.fill(LDS, 1);
+        // calculate the longest increase subsequence (LIS) for every index i
+        for(int i=1 ; i < n ; i++)
+        {
+            for(int j = 0 ; j < i ; j++)
+            {
+                if(nums[i] > nums[j] && LIS[j]+1 > LIS[i])
+                    LIS[i] = LIS[j]+1;
+            }
+        }
+        
+		// calculate the longest decreasing subsequence(LDS) for every index i and keep track of the maximum of LIS+LDS
+        int max = 0;
+        for(int i=n-2 ; i >= 0 ; i--)
+        {
+            for(int j = n-1 ; j > i ; j--)
+            {
+                if(nums[i] > nums[j] && LDS[j]+1 > LDS[i])
+                    LDS[i] = LDS[j]+1;
+            }
+            
+            if(LIS[i] > 1 && LDS[i] > 1) 
+                max = Math.max(LIS[i]+LDS[i]-1, max);
+        }
+        return n - max;
+    }
+}
+
+
+or
+
+
+
+class Solution {
+    public int minimumMountainRemovals(int[] nums) {
+        int n = nums.length;
+        
+        // memoization for forward direction
+        int[] dp1 = new int[n];
+        Arrays.fill(dp1,1);
+        
+        // memoizationfor backward direction
+        int[] dp2 = new int[n];
+        Arrays.fill(dp2,1);
+        
+        //find the Longest increasing subsequence in Forward Direction
+        for (int cur=1;cur<n;cur++){
+            for (int prev=0;prev<cur;prev++){
+                if (nums[prev] < nums[cur] && (1 + dp1[prev] > dp1[cur])){
+                    dp1[cur] = 1 + dp1[prev];
+                }
+            }
+        }
+        
+        // find the longest increasing subsequence in backward direction
+        for (int cur=n-1;cur>=0;cur--){
+            for (int prev=n-1;prev>cur;prev--){
+                if (nums[prev] < nums[cur] && (1 + dp2[prev] > dp2[cur])){
+                    dp2[cur] = 1 + dp2[prev]; 
+                }
+            }
+        }
+        // find the max no. of element which is included for making the mountain
+        
+        int maxi = 0;
+        for (int i=0;i<n;i++){
+            if(dp1[i] > 1 && dp2[i] > 1) // if this ith elemenet is single then dont consider in the longest bitonic subsequence
+            maxi = Math.max(maxi,dp1[i]+dp2[i]-1);
+        }
+        
+        return n - maxi;
+        
+    }
+}
+
+
+or
+
+
+class Solution {
+    public int minimumMountainRemovals(int[] nums) {
+        if(nums.length < 3) {
+            return 0; // Array too small to form a mountain
+        }
+
+        int n = nums.length;
+        int[] LIS = new int[n];
+        int[] LDS = new int[n];
+        
+        // Compute the longest increasing subsequence (LIS) up to each index
+        for(int i = 0; i < n; i++) {
+            LIS[i] = 1; // Start with each element as a subsequence of length 1
+            for(int j = 0; j < i; j++) {
+                if(nums[i] > nums[j]) {
+                    LIS[i] = Math.max(LIS[i], LIS[j] + 1);
+                }
+            }
+        }
+
+        // Compute the longest decreasing subsequence (LDS) starting from each index
+        for(int i = n - 1; i >= 0; i--) {
+            LDS[i] = 1; // Start with each element as a subsequence of length 1
+            for(int j = n - 1; j > i; j--) {
+                if(nums[i] > nums[j]) {
+                    LDS[i] = Math.max(LDS[i], LDS[j] + 1);
+                }
+            }
+        }
+
+        // Calculate the minimum removals needed
+        int minRemovals = n; // Start with the maximum possible removals
+
+        for(int i = 1; i < n - 1; i++) {
+            if(LIS[i] > 1 && LDS[i] > 1) { // Valid mountain peak
+                int mountainLength = LIS[i] + LDS[i] - 1;
+                minRemovals = Math.min(minRemovals, n - mountainLength);
+            }
+        }
+
+        return minRemovals;
+    }
+}
+
+
+or
+
+class Solution {
+    public int minimumMountainRemovals(int[] nums) {
+        int[] dplis= new int[nums.length];
+        int[] dplds= new int[nums.length];
+        for(int i=0; i<nums.length; i++){
+            dplis[i]=1;
+            for(int j=0; j<i; j++){
+                if(nums[i]>nums[j]){
+                    dplis[i]=Math.max(dplis[i], dplis[j]+1);
+                }
+            }
+        }
+        for(int i=nums.length-1; i>=0; i--){
+            dplds[i]=1;
+            for(int j=nums.length-1; j>i; j--){
+                if(nums[i]>nums[j]){
+                    dplds[i]=Math.max(dplds[i], dplds[j]+1);
+                }
+            }
+        }
+        int max=0;
+        for(int i=0; i<nums.length-1; i++){
+            if(dplis[i]>1 && dplds[i]>1){
+                max= Math.max(max, dplis[i]+dplds[i]-1);
+            }
+        }
+        return nums.length- max;
+    }
+}
+
+
+or
+
+// bs
+
+
+class Solution {
+    public int minimumMountainRemovals(int[] nums) {
+        int n = nums.length, lbs = 0; // lbs -> longest bitomic subsequence
+        int [] dp = new int[n], dp2 = new int[n]; // dp[i] -> lis end at index i, dp2[i] -> lds end at index i
+        List<Integer> lis = new ArrayList<>();
+        for (int i = 0; i<n-1; i++) { // calculate longest increasing subsequence
+            if (lis.isEmpty() || lis.get(lis.size()-1)<nums[i]) lis.add(nums[i]);
+            else {   
+                int idx = Collections.binarySearch(lis, nums[i]);
+                if (idx<0) {
+                    lis.set(-idx-1, nums[i]);
+                }
+            }
+            dp[i] = lis.size();
+        }
+        lis = new ArrayList<>();
+        for (int i = n-1; i>=1; i--) { // calculate longest decreasing subsequence
+            if (lis.isEmpty() || lis.get(lis.size()-1)<nums[i]) lis.add(nums[i]);
+            else {   
+                int idx = Collections.binarySearch(lis, nums[i]);
+                if (idx<0) {
+                    lis.set(-idx-1, nums[i]);
+                }
+            }
+            dp2[i] = lis.size();
+            if (dp[i]>1 && dp2[i]>1) lbs = Math.max(lbs, dp[i]+dp2[i]-1);
+        }
+        return n-lbs;
+    }
+    
+}
