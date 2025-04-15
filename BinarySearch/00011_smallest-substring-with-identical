@@ -1,0 +1,188 @@
+https://leetcode.com/problems/smallest-substring-with-identical-characters-i/description/
+
+
+3398. Smallest Substring With Identical Characters I
+Hard
+Topics
+Companies
+Hint
+You are given a binary string s of length n and an integer numOps.
+
+You are allowed to perform the following operation on s at most numOps times:
+
+Select any index i (where 0 <= i < n) and flip s[i]. If s[i] == '1', change s[i] to '0' and vice versa.
+You need to minimize the length of the longest substring of s such that all the characters in the substring are identical.
+
+Return the minimum length after the operations.
+
+ 
+
+Example 1:
+
+Input: s = "000001", numOps = 1
+
+Output: 2
+
+Explanation: 
+
+By changing s[2] to '1', s becomes "001001". The longest substrings with identical characters are s[0..1] and s[3..4].
+
+Example 2:
+
+Input: s = "0000", numOps = 2
+
+Output: 1
+
+Explanation: 
+
+By changing s[0] and s[2] to '1', s becomes "1010".
+
+Example 3:
+
+Input: s = "0101", numOps = 0
+
+Output: 1
+
+ 
+
+Constraints:
+
+1 <= n == s.length <= 1000
+s consists only of '0' and '1'.
+0 <= numOps <= n
+
+
+
+# java
+
+
+class Solution {
+    private char[] s;
+    private int numOps;
+
+    public int minLength(String s, int numOps) {
+        this.numOps = numOps;
+        this.s = s.toCharArray();
+        int l = 1, r = s.length();
+        while (l < r) {
+            int mid = (l + r) >> 1;
+            if (check(mid)) {
+                r = mid;
+            } else {
+                l = mid + 1;
+            }
+        }
+        return l;
+    }
+
+    private boolean check(int m) {
+        int cnt = 0;
+        if (m == 1) {
+            char[] t = {'0', '1'};
+            for (int i = 0; i < s.length; ++i) {
+                if (s[i] == t[i & 1]) {
+                    ++cnt;
+                }
+            }
+            cnt = Math.min(cnt, s.length - cnt);
+        } else {
+            int k = 0;
+            for (int i = 0; i < s.length; ++i) {
+                ++k;
+                if (i == s.length - 1 || s[i] != s[i + 1]) {
+                    cnt += k / (m + 1);
+                    k = 0;
+                }
+            }
+        }
+        return cnt <= numOps;
+    }
+}
+
+
+or
+
+
+class Solution {
+  public int minLength(String s, int numOps) {
+    int l = 1;
+    int r = s.length();
+
+    while (l < r) {
+      final int m = (l + r) / 2;
+      if (getMinOps(s, m) <= numOps)
+        r = m;
+      else
+        l = m + 1;
+    }
+
+    return l;
+  }
+
+  // Returns the minimum number of operations needed to make all groups of
+  // identical characters of length k or less.
+  private int getMinOps(final String s, int k) {
+    if (k == 1) {
+      int res = 0;
+      for (int i = 0; i < s.length(); ++i)
+        if (s.charAt(i) - '0' == i % 2)
+          ++res;
+      return Math.min(res, s.length() - res);
+    }
+
+    int res = 0;
+    int runningLen = 1;
+
+    for (int i = 1; i < s.length(); ++i)
+      if (s.charAt(i) == s.charAt(i - 1)) {
+        ++runningLen;
+      } else {
+        res += runningLen / (k + 1);
+        runningLen = 1;
+      }
+
+    return res + runningLen / (k + 1);
+  }
+}
+
+or
+
+class Solution {
+  boolean check(String s, int numOps, int mid, char startChar){
+    for(int i = 0; i < s.length(); ++i){
+        if(startChar == s.charAt(i)) numOps--;
+        startChar = (startChar == '0')?'1':'0';
+    }
+    return (numOps >= 0);
+}
+
+boolean isValid(String s, int numOps, int mid){
+    if(mid == 1) return check(s, numOps, mid, '1') || check(s, numOps, mid, '0');
+    int count = 0;
+    for(int i = 0, last = -1; i < s.length(); ++i){
+        if(s.charAt(i) == last) count++; 
+        else{
+            numOps -= count/(mid+1);
+            last = s.charAt(i);
+            count = 1;
+        }
+    }
+    if(count > mid) numOps -= count/(mid+1);
+    return (numOps >= 0);
+}
+    
+int minLength(String s, int numOps) {
+    int start = 1, end = s.length(), mid, ans = s.length();
+    while(start <= end){
+        mid = start + (end - start)/2;
+        if(isValid(s, numOps, mid)){
+            ans = mid;
+            end = mid - 1;
+        }else start = mid + 1;
+    }
+    return ans;
+}
+}
+
+or
+
