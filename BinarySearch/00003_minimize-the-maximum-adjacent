@@ -1,0 +1,522 @@
+https://leetcode.com/problems/minimize-the-maximum-adjacent-element-difference/description/
+
+3357. Minimize the Maximum Adjacent Element Difference
+Hard
+Topics
+Companies
+Hint
+You are given an array of integers nums. Some values in nums are missing and are denoted by -1.
+
+You can choose a pair of positive integers (x, y) exactly once and replace each missing element with either x or y.
+
+You need to minimize the maximum absolute difference between adjacent elements of nums after replacements.
+
+Return the minimum possible difference.
+
+ 
+
+Example 1:
+
+Input: nums = [1,2,-1,10,8]
+
+Output: 4
+
+Explanation:
+
+By choosing the pair as (6, 7), nums can be changed to [1, 2, 6, 10, 8].
+
+The absolute differences between adjacent elements are:
+
+|1 - 2| == 1
+|2 - 6| == 4
+|6 - 10| == 4
+|10 - 8| == 2
+Example 2:
+
+Input: nums = [-1,-1,-1]
+
+Output: 0
+
+Explanation:
+
+By choosing the pair as (4, 4), nums can be changed to [4, 4, 4].
+
+Example 3:
+
+Input: nums = [-1,10,-1,8]
+
+Output: 1
+
+Explanation:
+
+By choosing the pair as (11, 9), nums can be changed to [11, 10, 9, 8].
+
+ 
+
+Constraints:
+
+2 <= nums.length <= 105
+nums[i] is either -1 or in the range [1, 109].
+
+
+# java
+
+class Solution {
+  public int minDifference(int[] nums) {
+    int maxPositiveGap = 0;
+    int mn = 1_000_000_000;
+    int mx = 0;
+
+    for (int i = 1; i < nums.length; ++i) {
+      if ((nums[i - 1] == -1) != (nums[i] == -1)) {
+        final int positive = Math.max(nums[i - 1], nums[i]);
+        mn = Math.min(mn, positive);
+        mx = Math.max(mx, positive);
+      } else {
+        maxPositiveGap = Math.max(maxPositiveGap, Math.abs(nums[i - 1] - nums[i]));
+      }
+    }
+
+    int l = maxPositiveGap;
+    int r = (mx - mn + 1) / 2;
+
+    while (l < r) {
+      final int m = (l + r) / 2;
+      if (check(nums, m, mn + m, mx - m))
+        r = m;
+      else
+        l = m + 1;
+    }
+
+    return l;
+  }
+
+  // Returns true if it's possible have `m` as maximum absolute difference
+  // between adjacent numbers, where -1s are replaced with `x` or `y`.
+  private boolean check(int[] nums, int m, int x, int y) {
+    int gapLength = 0;
+    int prev = 0;
+
+    for (final int num : nums) {
+      if (num == -1) {
+        ++gapLength;
+        continue;
+      }
+      if (prev > 0 && gapLength > 0) {
+        if (gapLength == 1 && !checkSingleGap(prev, num, m, x, y))
+          return false;
+        if (gapLength > 1 && !checkMultipleGaps(prev, num, m, x, y))
+          return false;
+      }
+      prev = num;
+      gapLength = 0;
+    }
+
+    // Check leading gaps
+    if (nums[0] == -1) {
+      final int num = findFirstNumber(nums, 0, 1);
+      if (num != -1 && !checkBoundaryGaps(num, m, x, y))
+        return false;
+    }
+
+    // Check trailing gaps
+    if (nums[nums.length - 1] == -1) {
+      final int num = findFirstNumber(nums, nums.length - 1, -1);
+      if (num != -1 && !checkBoundaryGaps(num, m, x, y))
+        return false;
+    }
+
+    return true;
+  }
+
+  // Returns true if it's possible to have at most `m` as the minimized maximum
+  // difference for a sequence with a single -1 between two numbers.
+  // e.g. [a, -1, b] can be filled with either x or y.
+  private boolean checkSingleGap(int a, int b, int m, int x, int y) {
+    final int gapWithX = Math.max(Math.abs(a - x), Math.abs(b - x)); // [a, x, b]
+    final int gapWithY = Math.max(Math.abs(a - y), Math.abs(b - y)); // [a, y, b]
+    return Math.min(gapWithX, gapWithY) <= m;
+  }
+
+  // Returns true if it's possible to have at most `m` as the minimized maximum
+  // difference for a sequence with multiple -1s between two numbers.
+  // e.g. [a, -1, -1, ..., -1, b] can be filled with x and y.
+  private boolean checkMultipleGaps(int a, int b, int m, int x, int y) {
+    final int ax = Math.abs(a - x);
+    final int ay = Math.abs(a - y);
+    final int bx = Math.abs(b - x);
+    final int by = Math.abs(b - y);
+    final int xy = Math.abs(x - y);
+    final int gapAllX = Math.max(ax, bx);               // [a, x, x, ..., x, b]
+    final int gapAllY = Math.max(ay, by);               // [a, y, y, ..., y, b]
+    final int gapXToY = Math.max(Math.max(ax, xy), by); // [a, x, ..., y, b]
+    final int gapYToX = Math.max(Math.max(ay, xy), bx); // [a, y, ..., x, b]
+    return Math.min(Math.min(gapAllX, gapAllY), Math.min(gapXToY, gapYToX)) <= m;
+  }
+
+  // Returns true if it's possible to have at most `m` as the minimized maximum
+  // difference for a boundary sequence starting or ending with -1s.
+  // e.g. [a, -1, -1, ...] or [..., -1, -1, a].
+  private boolean checkBoundaryGaps(int a, int m, int x, int y) {
+    final int gapAllX = Math.abs(a - x); // [x, x, ..., x, a]
+    final int gapAllY = Math.abs(a - y); // [y, y, ..., y, a]
+    return Math.min(gapAllX, gapAllY) <= m;
+  }
+
+  // Returns the first positive number starting from the given index or -1
+  // if not found.
+  private int findFirstNumber(int[] nums, int start, int step) {
+    int i = start;
+    while (i >= 0 && i < nums.length && nums[i] == -1)
+      i += step;
+    return i >= 0 && i < nums.length ? nums[i] : -1;
+  }
+}
+
+
+or
+
+
+class Solution {
+      public int minDifference(int[] A) {
+        int n = A.length, max_adj = 0, mina = Integer.MAX_VALUE, maxb = 0;
+        for (int i = 0; i < n - 1; ++i) {
+            int a = A[i], b = A[i + 1];
+            if (a > 0 && b > 0) {
+                max_adj = Math.max(max_adj, Math.abs(a - b));
+            } else if (a > 0 || b > 0) {
+                mina = Math.min(mina, Math.max(a, b));
+                maxb = Math.max(maxb, Math.max(a, b));
+            }
+        }
+
+        int res = 0, min_2r = (maxb - mina + 2) / 3 * 2;
+        for (int i = 0; i < n; ++i) {
+            if ((i > 0 && A[i - 1] == -1) || A[i] > 0) continue;
+            int j = i;
+            while (j < n && A[j] == -1) {
+                j++;
+            }
+            int a = Integer.MAX_VALUE, b = 0;
+            if (i > 0) {
+                a = Math.min(a, A[i - 1]);
+                b = Math.max(b, A[i - 1]);
+            }
+            if (j < n) {
+                a = Math.min(a, A[j]);
+                b = Math.max(b, A[j]);
+            }
+            if (j - i == 1) {
+                res = Math.max(res, Math.min(maxb - a, b - mina));
+            } else {
+                res = Math.max(res, Math.min(maxb - a, Math.min(b - mina, min_2r)));
+            }
+        }
+        return Math.max(max_adj, (res + 1) / 2);
+    }
+}
+
+
+or
+
+
+class Solution {
+
+    static int[] reConstruct(int[] nums) {
+        int n = nums.length, i = 0, x = 0, freq = 0;
+        int[] temp = new int[n];
+        while (i < n) {
+            int current = nums[i];
+            freq = 0;
+            while (i < n && current == nums[i]) {
+                freq++;
+                i++;
+            }
+            if (current == -1 && freq >= 2) {
+                temp[x++] = current;
+            }
+            temp[x++] = current;
+        }
+        int[] res = new int[x];
+        for (int j = 0; j < x; j++) {
+            res[j] = temp[j];
+        }
+        return res;
+    }
+
+    static int maxStartDiff(int[] arr) {
+        int n = arr.length, max = 0;
+        for (int i = 0; i < n - 1; i++) {
+            if (arr[i] != -1 && arr[i + 1] != -1) {
+                max = Math.max(max, Math.abs(arr[i] - arr[i + 1]));
+            }
+        }
+        return max;
+    }
+
+    static public int minDifference(int[] nums) {
+        nums = reConstruct(nums);
+        int ans = -1;
+        int start = maxStartDiff(nums), end = 1000000000, mid = 0;
+        while (start <= end) {
+            mid = start + (end - start) / 2;
+            boolean can = canBe(nums, mid);
+            if (can) {
+                ans = mid;
+                end = mid - 1;
+            } else
+                start = mid + 1;
+        }
+
+        return ans;
+    }
+
+    static boolean canBe(int[] arr, int mid) {
+        int to = Integer.MAX_VALUE, from = -1, n = arr.length;
+        for (int i = 0; i < arr.length; i++) {
+            if (arr[i] == -1) {
+                if (i > 0) {
+                    if (arr[i - 1] != -1) {
+                        int left = -1;
+                        left = arr[i - 1] - mid;
+                        int right = mid + arr[i - 1];
+                        from = Math.max(from, left);
+                        to = Math.min(to, right);
+                    }
+                }
+                if (i < n - 1) {
+                    if (arr[i + 1] != -1) {
+                        int left = arr[i + 1] - mid;
+                        int right = mid + arr[i + 1];
+                        from = Math.max(from, left);
+                        to = Math.min(to, right);
+                    }
+                }
+            }
+        }
+        if (from < to)
+            return true;
+
+        if (from == to) {
+            int[] temp = Arrays.copyOf(arr, n);
+            int maxDiff = -1;
+            for (int i = 0; i < n; i++) {
+                if (arr[i] == -1)
+                    temp[i] = from;
+            }
+            for (int i = 0; i < n - 1; i++) {
+                maxDiff = Math.max(maxDiff, Math.abs(temp[i] - temp[i + 1]));
+            }
+            if (maxDiff > mid)
+                return false;
+            return true;
+        }
+
+        int[] temp = Arrays.copyOf(arr, n);
+        for (int i = 0; i < n; i++) {
+            if (temp[i] == -1) {
+                if (i == 0) {
+                    if (temp[i + 1] != -1) {
+                        if (Math.abs(temp[i + 1] - from) <= mid) {
+                            temp[i] = from;
+                        } else if (Math.abs(temp[i + 1] - to) <= mid) {
+                            temp[i] = to;
+                        }else
+                            return false;
+                    }
+                } else if (i == n - 1) {
+                    if (temp[i - 1] != -1) {
+                        if (Math.abs(temp[i - 1] - from) <= mid) {
+                            temp[i] = from;
+                        } else if (Math.abs(temp[i - 1] - to) <= mid) {
+                            temp[i] = to;
+                        }else
+                            return false;
+                    }
+                } else {
+                    if (temp[i - 1] == -1) {
+                        if (Math.abs(temp[i + 1] - from) <= mid) {
+                            temp[i] = from;
+                        } else if (Math.abs(temp[i + 1] - to) <= mid) {
+                            temp[i] = to;
+                        } else
+                            return false;
+                    } else {
+                        if (temp[i + 1] == -1) {
+                            if (Math.abs(temp[i - 1] - from) <= mid) {
+                                temp[i] = from;
+                            } else if (Math.abs(temp[i - 1] - to) <= mid) {
+                                temp[i] = to;
+                            } else
+                                return false;
+                        } else {
+
+                            if (Math.abs(temp[i - 1] - from) <= mid && Math.abs(temp[i + 1] - from) <= mid)
+                                temp[i] = from;
+                            else if (Math.abs(temp[i - 1] - to) <= mid && Math.abs(temp[i + 1] - to) <= mid)
+                                temp[i] = to;
+                            else
+                                return false;
+                        }
+                    }
+                }
+            }
+        }
+        return true;
+    }
+}
+
+
+or
+
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+class Solution {
+    record Interval(int s, int e, boolean hasMoreThanOne){
+        static boolean check(int a, int mid, int b, int range){
+            return Math.abs(mid - a) <= range && Math.abs(mid - b) <= range;
+        }
+        static boolean check(int a, int mid1, int mid2, int b, int range){
+            return Math.abs(mid1 - a) <= range && Math.abs(mid1 - mid2) <= range && Math.abs(mid2 - b) <= range;
+        }
+    }
+
+    public int minDifference(int[] nums) {
+        boolean noPositiveNum = Arrays.stream(nums).filter(i -> i != -1).findAny().isEmpty();
+        if(noPositiveNum){
+            return 0;
+        }
+        int currentMax = getCurrentMax(nums);
+        List<Interval> intervals = buildIntervals(nums);
+        int minStart = Integer.MAX_VALUE, maxEnd = Integer.MIN_VALUE;
+        for (Interval interval : intervals) {
+            minStart = Math.min(minStart, Math.min(interval.e, interval.s));
+            maxEnd = Math.max(maxEnd, Math.max(interval.e, interval.s));
+        }
+        int l = 0, h = maxEnd, m;
+        int ans = -1;
+        while(l <= h){
+            m = l + (h - l) / 2;
+            boolean result = calculateFromIntervals(intervals, minStart + m, maxEnd - m, m);
+            if(result){
+                ans = m;
+                h = m - 1;
+            } else {
+                l = m + 1;
+            }
+        }
+        return Math.max(ans, currentMax);
+    }
+
+    private int getCurrentMax(int[] nums){
+        int currMax = Integer.MIN_VALUE;
+        int previous = nums[0];
+        for(int i = 1; i < nums.length; i ++){
+            if(nums[i] != -1){
+                if(previous != -1){
+                    currMax = Math.max(currMax, Math.abs(previous - nums[i]));
+                }
+                previous = nums[i];
+            } else {
+                previous = -1;
+            }
+        }
+        return currMax;
+    }
+
+    private List<Interval> buildIntervals(int[] nums) {
+        int previous = -1;
+        int minusOneCount = 0;
+        List<Interval> intervals = new ArrayList<>();
+        for (int num : nums) {
+            if (num == -1) {
+                minusOneCount ++;
+            } else {
+                if (minusOneCount > 0) {
+                    intervals.add(new Interval(previous != -1 ? previous : num, num, minusOneCount > 1));
+                    minusOneCount = 0;
+                }
+                previous = num;
+            }
+        }
+        if(nums[nums.length - 1] == -1){
+            intervals.add(new Interval(previous, previous, minusOneCount > 1));
+        }
+        return intervals;
+    }
+
+    boolean calculateFromIntervals(List<Interval> intervals, int minStart, int maxEnd, int maxDiff){
+        for (Interval interval : intervals) {
+            if (interval.hasMoreThanOne) {
+                boolean res1 = Interval.check(interval.s, minStart, minStart, interval.e, maxDiff);
+                boolean res2 = Interval.check(interval.s, minStart, maxEnd, interval.e, maxDiff);
+                boolean res3 = Interval.check(interval.s, maxEnd, minStart, interval.e, maxDiff);
+                boolean res4 = Interval.check(interval.s, maxEnd, maxEnd, interval.e, maxDiff);
+                if (!res1 && !res2 && !res3 && !res4) {
+                    return false;
+                }
+            } else {
+                boolean res1 = Interval.check(interval.s, minStart, interval.e, maxDiff);
+                boolean res2 = Interval.check(interval.s, maxEnd, interval.e, maxDiff);
+                if (!res1 && !res2) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+}
+
+
+or
+
+
+class Solution {
+    public int minDifference(int[] n) {
+        int maxGap = 0, min = Integer.MAX_VALUE, max = 0;
+        for (int i = 0; i + 1 < n.length; i++) {
+            int a = n[i], b = n[i + 1];
+            if (Math.min(a, b) == -1 && Math.max(a, b) != -1) {
+                int known = Math.max(a, b);
+                min = Math.min(min, known);
+                max = Math.max(max, known);
+            } else if (a != -1 && b != -1) {
+                maxGap = Math.max(maxGap, Math.abs(a - b));
+            }
+        }
+        if (min == Integer.MAX_VALUE) return maxGap;
+
+        int l = maxGap, r = (max - min + 1) / 2;
+        while (l < r) {
+            int d = (l + r) / 2;
+            if (checkDifference(n, min + d, max - d, d)) r = d;
+            else l = d + 1;
+        }
+        return l;
+    }
+
+    boolean checkDifference(int[] n, int x, int y, int d) {
+        int cnt = 0, prev = 0;
+        boolean hasPrev = false;
+        for (int cur : n) {
+            if (cur == -1) {
+                if (hasPrev && Math.min(Math.abs(prev - x), Math.abs(prev - y)) > d) return false;
+                cnt++;
+            } else {
+                if (cnt > 0) {
+                    int diff = hasPrev ? Math.min(Math.max(Math.abs(prev - x), Math.abs(cur - x)),
+                                                  Math.max(Math.abs(prev - y), Math.abs(cur - y)))
+                                       : Math.min(Math.abs(cur - x), Math.abs(cur - y));
+                    if (diff > d && (cnt == 1 || y - x > d)) return false;
+                }
+                prev = cur;
+                hasPrev = true;
+                cnt = 0;
+            }
+        }
+        return true;
+    }
+}
