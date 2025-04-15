@@ -1,0 +1,501 @@
+https://leetcode.com/problems/maximize-the-distance-between-points-on-a-square/
+
+3464. Maximize the Distance Between Points on a Square
+Hard
+Topics
+Companies
+Hint
+You are given an integer side, representing the edge length of a square with corners at (0, 0), (0, side), (side, 0), and (side, side) on a Cartesian plane.
+
+You are also given a positive integer k and a 2D integer array points, where points[i] = [xi, yi] represents the coordinate of a point lying on the boundary of the square.
+
+You need to select k elements among points such that the minimum Manhattan distance between any two points is maximized.
+
+Return the maximum possible minimum Manhattan distance between the selected k points.
+
+The Manhattan Distance between two cells (xi, yi) and (xj, yj) is |xi - xj| + |yi - yj|.
+
+ 
+
+Example 1:
+
+Input: side = 2, points = [[0,2],[2,0],[2,2],[0,0]], k = 4
+
+Output: 2
+
+Explanation:
+
+
+
+Select all four points.
+
+Example 2:
+
+Input: side = 2, points = [[0,0],[1,2],[2,0],[2,2],[2,1]], k = 4
+
+Output: 1
+
+Explanation:
+
+
+
+Select the points (0, 0), (2, 0), (2, 2), and (2, 1).
+
+Example 3:
+
+Input: side = 2, points = [[0,0],[0,1],[0,2],[1,2],[2,0],[2,2],[2,1]], k = 5
+
+Output: 1
+
+Explanation:
+
+
+
+Select the points (0, 0), (0, 1), (0, 2), (1, 2), and (2, 2).
+
+ 
+
+Constraints:
+
+1 <= side <= 109
+4 <= points.length <= min(4 * side, 15 * 103)
+points[i] == [xi, yi]
+The input is generated such that:
+points[i] lies on the boundary of the square.
+All points[i] are unique.
+4 <= k <= min(25, points.length)
+
+
+
+# java
+
+
+class Solution {
+  public int maxDistance(int side, int[][] points, int k) {
+    List<int[]> ordered = getOrderedPoints(side, points);
+    int l = 0;
+    int r = side;
+
+    while (l < r) {
+      final int m = (l + r + 1) / 2;
+      if (isValidDistance(ordered, k, m))
+        l = m;
+      else
+        r = m - 1;
+    }
+
+    return l;
+  }
+
+  private record Sequence(int startX, int startY, int endX, int endY, int length) {}
+
+  // Returns true if we can select `k` points such that the minimum Manhattan
+  // distance between any two consecutive chosen points is at least `m`.
+  private boolean isValidDistance(List<int[]> ordered, int k, int d) {
+    Deque<Sequence> dq = new ArrayDeque<>(List.of(new Sequence(
+        ordered.get(0)[0], ordered.get(0)[1], ordered.get(0)[0], ordered.get(0)[1], 1)));
+    int maxLength = 1;
+
+    for (int i = 1; i < ordered.size(); ++i) {
+      final int x = ordered.get(i)[0];
+      final int y = ordered.get(i)[1];
+      int startX = x;
+      int startY = y;
+      int length = 1;
+      while (!dq.isEmpty() &&
+             (Math.abs(x - dq.peekFirst().endX()) + Math.abs(y - dq.peekFirst().endY()) >= d)) {
+        if (Math.abs(x - dq.peekFirst().startX()) + Math.abs(y - dq.peekFirst().startY()) >= d &&
+            dq.peekFirst().length() + 1 >= length) {
+          startX = dq.peekFirst().startX();
+          startY = dq.peekFirst().startY();
+          length = dq.peekFirst().length() + 1;
+          maxLength = Math.max(maxLength, length);
+        }
+        dq.pollFirst();
+      }
+      dq.addLast(new Sequence(startX, startY, x, y, length));
+    }
+
+    return maxLength >= k;
+  }
+
+  // Returns the ordered points on the perimeter of a square of side length
+  // `side`, starting from left, top, right, and bottom boundaries.
+  private List<int[]> getOrderedPoints(int side, int[][] points) {
+    List<int[]> left = new ArrayList<>();
+    List<int[]> top = new ArrayList<>();
+    List<int[]> right = new ArrayList<>();
+    List<int[]> bottom = new ArrayList<>();
+
+    for (int[] point : points) {
+      final int x = point[0];
+      final int y = point[1];
+      if (x == 0 && y > 0)
+        left.add(point);
+      else if (x > 0 && y == side)
+        top.add(point);
+      else if (x == side && y < side)
+        right.add(point);
+      else
+        bottom.add(point);
+    }
+
+    left.sort(Comparator.comparingInt(a -> a[1]));
+    top.sort(Comparator.comparingInt(a -> a[0]));
+    right.sort(Comparator.comparingInt(a -> - a[1]));
+    bottom.sort(Comparator.comparingInt(a -> - a[0]));
+    List<int[]> ordered = new ArrayList<>();
+    ordered.addAll(left);
+    ordered.addAll(top);
+    ordered.addAll(right);
+    ordered.addAll(bottom);
+    return ordered;
+  }
+}
+
+
+or
+
+
+import java.util.*;
+
+public class Solution {
+    public int maxDistance(int side, int[][] points, int k) {
+        int n = points.length;
+        long[] pos = new long[n];
+        for (int i = 0; i < n; i++) {
+            int x = points[i][0], y = points[i][1];
+            long p;
+            if (y == 0)
+                p = x;
+            else if (x == side)
+                p = (long) side + y;
+            else if (y == side)
+                p = 2L * side + (side - x);
+            else // x == 0
+                p = 3L * side + (side - y);
+            pos[i] = p;
+        }
+        Arrays.sort(pos);
+        long L = 4L * side;
+        int total = n * 2;
+        long[] ext = new long[total];
+        for (int i = 0; i < n; i++){
+            ext[i] = pos[i];
+            ext[i+n] = pos[i] + L;
+        }
+        
+        long low = 0, high = 2L * side;
+        while (low < high) {
+            long mid = (low + high + 1) / 2;
+            if (canPlace(mid, k, n, ext, L))
+                low = mid;
+            else
+                high = mid - 1;
+        }
+        return (int) low;
+    }
+    
+    private boolean canPlace(long d, int k, int n, long[] ext, long L) {
+        for (int start = 0; start < n; start++) {
+            int cur = start;
+            long last = ext[start];
+            boolean valid = true;
+            int limit = start + n;
+            for (int step = 1; step < k; step++){
+                long target = last + d;
+                int lo = cur + 1, hi = limit;
+                while (lo < hi) {
+                    int mid = (lo + hi) / 2;
+                    if (ext[mid] < target)
+                        lo = mid + 1;
+                    else
+                        hi = mid;
+                }
+                if (lo == limit) {
+                    valid = false;
+                    break;
+                }
+                cur = lo;
+                last = ext[cur];
+            }
+            if (valid && ext[start] + L - last >= d)
+                return true;
+        }
+        return false;
+    }
+}
+
+or
+
+
+class Solution {
+    public int maxDistance(int s, int[][] p, int k) {
+        long[] x = new long[p.length];
+        for(int i=0; i<x.length; i++){
+            x[i]=getX(p[i], s);
+        }
+        Arrays.sort(x);
+
+        int l=1, r=s, m;
+        while(l<r){
+            m=(l+r+1)/2;
+            if(possible(4L*s, x, m, k))l=m;
+            else r=m-1;
+        }
+        return r;
+    }
+    private long getX(int[] p, int s){
+        if(p[1]==0)return p[0];
+        else if(p[1]==s)return 3L*s-p[0];
+        else if(p[0]==s)return p[1] + (long)s;
+        else return 4L*s - p[1];
+    }
+    private boolean possible(long r, long[] x, int m, int k){
+        int c;
+        for(int i=0; i<x.length&&x[i]-x[0]<m; i++){
+            c=i;
+            for(int j=1; j<k; j++){
+                c=get(x, x[c]+m, c);
+                if(c==x.length||x[c]+m-r>x[i])break;
+            }
+            if(c<x.length&&x[c]+m-r<=x[i])return true;
+        }
+        return false;
+    }
+    private int get(long[] x, long v, int f){
+        int t = x.length, m;
+        while(f<t){
+            m=(f+t)/2;
+            if(x[m]<v)f=m+1;
+            else t=m;
+        }
+        return f;
+    }
+}
+
+
+or
+
+
+
+class Solution {
+    public void fillArr(long[] arr, int[][] points, int n, long side){
+        HashSet<Integer> set = new HashSet<>();
+        int ptr = 0;
+        List<Long> list = new ArrayList<>();
+
+        // y = 0
+        for(int i = 0; i < n; i++){
+            int[] point = points[i];
+            if(set.contains(i)) continue;
+            if(point[1] == 0) {
+                list.add((long)(point[0]));
+                set.add(i);
+            }
+        }
+        Collections.sort(list);
+        for(long x: list){
+            arr[ptr] = x;
+            ptr++;
+        }
+        list.clear();
+
+
+        // x = side
+        for(int i = 0; i < n; i++){
+            int[] point = points[i];
+            if(set.contains(i)) continue;
+            if(point[0] == side) {
+                list.add((long)(point[0]) + point[1]);
+                set.add(i);
+            }
+        }
+        Collections.sort(list);
+        for(long x: list){
+            arr[ptr] = x;
+            ptr++;
+        }
+        list.clear();
+
+        // y = side
+        for(int i = 0; i < n; i++){
+            int[] point = points[i];
+            if(set.contains(i)) continue;
+            if(point[1] == side) {
+                list.add(3 * side - point[0]);
+                set.add(i);
+            }
+        }
+        Collections.sort(list);
+        for(long x: list){
+            arr[ptr] = x;
+            ptr++;
+        }
+        list.clear();
+
+        // x = 0
+        for(int i = 0; i < n; i++){
+            int[] point = points[i];
+            if(set.contains(i)) continue;
+            if(point[0] == 0) {
+                list.add(4 * side - point[1]);
+                set.add(i);
+            }
+        }
+        Collections.sort(list);
+        for(long x: list){
+            arr[ptr] = x;
+            ptr++;
+        }
+    }
+    public boolean check(long reqMinDist, long[] arr, int n, int k, long side){
+        for(int startIdx = 0; startIdx < n; startIdx++){
+
+            if(arr[startIdx] - arr[0] >= reqMinDist) break;
+
+            int completed = 1;
+            int prevIdx = startIdx;
+            for(int i = 1; i < n; i++){
+                if(arr[i] - arr[prevIdx] >= reqMinDist){
+                    prevIdx = i;
+                    completed++;
+                }
+                if(completed == k){
+                    long lastDist = 4 * side - arr[prevIdx] + arr[startIdx];
+                    if(lastDist >= reqMinDist) return true;
+                }
+            }
+        }
+        return false;
+    }
+    public int maxDistance(int side, int[][] points, int k) {
+        int n = points.length;
+        long low = 1, high = 2 * side, ans = 1;
+        long[] arr = new long[n];
+        fillArr(arr, points, n, side);
+
+        // System.out.println("Printing arr: ");
+        // for(int i = 0; i < n; i++) {
+        //     System.out.print(arr[i] +" ");
+        // }
+        // System.out.println("");
+
+        while(low <= high){
+            long mid = low + (high - low) / 2;
+
+            boolean b = check(mid, arr, n, k, side);
+
+            // System.out.println("low: " + low + ", high: " + high + ", mid: " + mid + ", b: " + b);
+
+            if(b){
+                ans = mid;
+                low = mid + 1;
+            } else{
+                high = mid - 1;
+            }
+        }
+        return (int)(ans);
+    }
+}
+
+
+or
+
+
+// greedy + Bianry search
+
+class Solution {
+    public int maxDistance(int side, int[][] points, int k) {
+        ArrayList<int[]>t=new ArrayList<>();
+        ArrayList<int[]>b=new ArrayList<>();
+        ArrayList<int[]>l=new ArrayList<>();
+        ArrayList<int[]>r=new ArrayList<>();
+        for(int[]it:points){
+            if(it[1]==0){
+            b.add(it);
+            }
+            else if(it[1]==side){
+                t.add(it);
+            }
+            else if(it[0]==side){
+                r.add(it);
+            }
+            else l.add(it);
+        }
+        Collections.sort(b,(aa,bb)->aa[0]-bb[0]);
+        Collections.sort(r,(aa,bb)->aa[1]-bb[1]);
+        Collections.sort(t,(aa,bb)->bb[0]-aa[0]);
+        Collections.sort(l,(aa,bb)->bb[1]-aa[1]);
+        long[]p=new long[points.length];
+        int i=0;
+        for(int[]it:b){
+           p[i++]=(long)((long)it[0]+(long)it[1]);
+        }
+        for(int[]it:r){
+            p[i++]=(long)((long)side+(long)it[1]);
+        }
+        for(int[]it:t){
+            p[i++]=(long)(2l*(long)side)+(long)((long)side-(long)it[0]);
+        }
+        for(int[]it:l){
+            p[i]=(long)(3l*(long)side)+(long)((long)side-(long)it[1]);
+             i++;
+        }
+        int rr=side;
+        int ll=1;
+        int ans=0;
+        while(ll<=rr){
+            int m=(ll+rr)/2;
+            if(f(m,p,k,side)){
+              ll=m+1;
+              ans=m;
+            }
+            else{
+             rr=m-1;
+             
+            }
+        }
+        return ans;
+        
+    }
+    public boolean f(int m,long[]p,int k,int side){
+        for(int i=0;i<p.length;i++){
+            int s=i;
+            int c=1;
+            int cc=s;
+            while(c<k){
+
+            int idx=ff(p,(long)((long)p[cc]+(long)m));
+            if(idx>=p.length)break;
+            if(p[s]+(long)(4l*(long)side)-p[idx]<m)break; 
+            c++;
+         //    System.out.println(s+" "+c+" "+idx+" "+(p[cc]+m)+" "+m);
+            cc=idx;
+            
+            }
+           
+            if(c==k)return true;
+        }
+        return false;
+    }
+    public int ff(long[]p,long t){
+        int l=0;
+        int r=p.length-1;
+        int ans=p.length;
+        while(l<=r){
+           int m=(l+r)/2;
+           if(p[m]<t){
+              
+               l=m+1;   
+           }
+           else{
+             ans=m;
+              r=m-1;
+           }
+        }
+     //   for(int i:p)System.out.println(i+" 1");
+     //   System.out.println(ans);
+        return ans;
+    }
+}
