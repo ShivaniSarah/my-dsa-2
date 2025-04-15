@@ -1,0 +1,215 @@
+https://leetcode.com/problems/number-of-pairs-satisfying-inequality/description/
+
+
+2426. Number of Pairs Satisfying Inequality
+Hard
+Topics
+Companies
+Hint
+You are given two 0-indexed integer arrays nums1 and nums2, each of size n, and an integer diff. Find the number of pairs (i, j) such that:
+
+0 <= i < j <= n - 1 and
+nums1[i] - nums1[j] <= nums2[i] - nums2[j] + diff.
+Return the number of pairs that satisfy the conditions.
+
+ 
+
+Example 1:
+
+Input: nums1 = [3,2,5], nums2 = [2,2,1], diff = 1
+Output: 3
+Explanation:
+There are 3 pairs that satisfy the conditions:
+1. i = 0, j = 1: 3 - 2 <= 2 - 2 + 1. Since i < j and 1 <= 1, this pair satisfies the conditions.
+2. i = 0, j = 2: 3 - 5 <= 2 - 1 + 1. Since i < j and -2 <= 2, this pair satisfies the conditions.
+3. i = 1, j = 2: 2 - 5 <= 2 - 1 + 1. Since i < j and -3 <= 2, this pair satisfies the conditions.
+Therefore, we return 3.
+Example 2:
+
+Input: nums1 = [3,-1], nums2 = [-2,2], diff = -1
+Output: 0
+Explanation:
+Since there does not exist any pair that satisfies the conditions, we return 0.
+ 
+
+Constraints:
+
+n == nums1.length == nums2.length
+2 <= n <= 105
+-104 <= nums1[i], nums2[i] <= 104
+-104 <= diff <= 104
+
+
+
+#  java
+
+
+class BinaryIndexedTree {
+    private int n;
+    private int[] c;
+
+    public BinaryIndexedTree(int n) {
+        this.n = n;
+        c = new int[n + 1];
+    }
+
+    public static final int lowbit(int x) {
+        return x & -x;
+    }
+
+    public void update(int x, int delta) {
+        while (x <= n) {
+            c[x] += delta;
+            x += lowbit(x);
+        }
+    }
+
+    public int query(int x) {
+        int s = 0;
+        while (x > 0) {
+            s += c[x];
+            x -= lowbit(x);
+        }
+        return s;
+    }
+}
+
+class Solution {
+    public long numberOfPairs(int[] nums1, int[] nums2, int diff) {
+        BinaryIndexedTree tree = new BinaryIndexedTree(100000);
+        long ans = 0;
+        for (int i = 0; i < nums1.length; ++i) {
+            int v = nums1[i] - nums2[i];
+            ans += tree.query(v + diff + 40000);
+            tree.update(v + 40000, 1);
+        }
+        return ans;
+    }
+}
+
+
+or
+
+
+class Solution {
+        private int SHIFT = 30000;
+    public long numberOfPairs(int[] nums1, int[] nums2, int diff) {
+        int n = nums1.length;
+        BIT bit = new BIT(SHIFT * 2);
+        long res = 0L;
+        for (int i = 0; i < n; i++) {
+            int ndiff = nums1[i] - nums2[i];
+            res += bit.get(ndiff + diff + SHIFT);
+            bit.add(ndiff + SHIFT);
+        }
+        return res;
+    }
+    // BIT: both add & get O(logN)
+    private class BIT {
+        private int[] bit;
+        public BIT(int n) {
+            bit = new int[n+1];
+        }
+        
+        public void add(int val) {
+            if (val <= 0) return;
+            for (int i = val; i < bit.length; i += (i & -i)) bit[i]++;
+        }
+        
+        public int get(int val) {
+            int res = 0;
+            for (int i = val; i > 0; i -= (i & -i)) res += bit[i];
+            return res;
+        }
+    }
+}
+
+
+
+or
+
+
+class Solution {
+        public long numberOfPairs(int[] nums1, int[] nums2, int diff) {
+        int n = nums1.length;
+        long[] nums = new long[n];
+        for (int i = 0; i < n; i++) nums[i] = nums1[i] - nums2[i];
+        long[] tmp = Arrays.copyOf(nums, n);
+        return sort(nums, tmp, 0, n-1, diff);
+    }
+    // sort O(NlogN)
+    private long sort(long[] nums, long[] tmp, int lo, int hi, int diff) {
+        if (lo == hi) return 0L;
+        int mid = lo + (hi - lo) / 2;
+        long res = 0L;
+        res += sort(nums, tmp, lo, mid, diff);
+        res += sort(nums, tmp, mid+1, hi, diff);
+        res += merge(nums, tmp, lo, mid, hi, diff);
+        return res;
+    }
+    // merge 2*N = O(N)
+    private long merge(long[] nums, long[] tmp, int lo, int mid, int hi, int diff) {
+        long res = 0L;
+        // find the count of pairs x <= y + diff in 2 sorted halves
+        for (int i = lo, j = mid+1; i <= mid && j <= hi; i++) {
+            while (j <= hi && nums[i] > nums[j] + diff) j++;
+            res += hi-j+1;
+        }
+        // merge 2 sorted halves
+        for (int i = lo, j = mid+1, k = lo; i <= mid || j <= hi; k++) {
+            if (j > hi || (i <= mid && nums[i] < nums[j])) {
+                tmp[k] = nums[i++];
+            } else {
+                tmp[k] = nums[j++];
+            }
+        }
+        System.arraycopy(tmp, lo, nums, lo, hi-lo+1); // tmp -> nums
+        return res;
+    }
+}
+
+
+or
+
+
+class Solution {
+    public long numberOfPairs(int[] nums1, int[] nums2, int diff) {
+        int n=nums1.length ;
+        List<Long> list = new ArrayList<>() ;
+        long result = 0 ;
+        for(int i = n-1 ; i >=0 ; i--){
+            Long k = (long)nums1[i] - (long)nums2[i] ;
+            result += find(k,list) ;
+            k +=  (long)diff ;
+            insert(k,list) ;
+        }
+        return result;
+    }
+    public long find(Long k ,List<Long> list){
+        int n = list.size() ;
+        int low = 0 ;
+        int high = n-1 ;
+        while(low<=high){
+            int mid = (low+high)/2 ;
+            if(list.get(mid)>=k)
+                high = mid-1 ;
+            else
+                low = mid+1 ;
+        }
+        return n - low ;
+    }
+    public void insert(Long k , List<Long> list ){
+        int low = 0 ;
+        int high = list.size()-1 ;
+        while(low<=high){
+            int mid =(low+high)/2 ;
+            if(list.get(mid)>=k)
+                high = mid-1 ;
+            else
+                low = mid+1 ;
+        }
+        list.add(low,k) ;
+    }
+}
+// nums1[i] - nums2[i] <= nums1[j] - nums2[j] + diff
+
