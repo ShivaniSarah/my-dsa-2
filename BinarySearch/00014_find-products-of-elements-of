@@ -1,0 +1,637 @@
+https://leetcode.com/problems/find-products-of-elements-of-big-array/
+
+3145. Find Products of Elements of Big Array
+Hard
+Topics
+Companies
+Hint
+The powerful array of a non-negative integer x is defined as the shortest sorted array of powers of two that sum up to x. The table below illustrates examples of how the powerful array is determined. It can be proven that the powerful array of x is unique.
+
+num	Binary Representation	powerful array
+1	00001	[1]
+8	01000	[8]
+10	01010	[2, 8]
+13	01101	[1, 4, 8]
+23	10111	[1, 2, 4, 16]
+The array big_nums is created by concatenating the powerful arrays for every positive integer i in ascending order: 1, 2, 3, and so on. Thus, big_nums begins as [1, 2, 1, 2, 4, 1, 4, 2, 4, 1, 2, 4, 8, ...].
+
+You are given a 2D integer matrix queries, where for queries[i] = [fromi, toi, modi] you should calculate (big_nums[fromi] * big_nums[fromi + 1] * ... * big_nums[toi]) % modi.
+
+Return an integer array answer such that answer[i] is the answer to the ith query.
+
+ 
+
+Example 1:
+
+Input: queries = [[1,3,7]]
+
+Output: [4]
+
+Explanation:
+
+There is one query.
+
+big_nums[1..3] = [2,1,2]. The product of them is 4. The result is 4 % 7 = 4.
+
+Example 2:
+
+Input: queries = [[2,5,3],[7,7,4]]
+
+Output: [2,2]
+
+Explanation:
+
+There are two queries.
+
+First query: big_nums[2..5] = [1,2,4,1]. The product of them is 8. The result is 8 % 3 = 2.
+
+Second query: big_nums[7] = 2. The result is 2 % 4 = 2.
+
+ 
+
+Constraints:
+
+1 <= queries.length <= 500
+queries[i].length == 3
+0 <= queries[i][0] <= queries[i][1] <= 1015
+1 <= queries[i][2] <= 105
+
+
+
+# java
+
+
+class Solution {
+    private static final int M = 50;
+    private static final long[] cnt = new long[M + 1];
+    private static final long[] s = new long[M + 1];
+
+    static {
+        long p = 1;
+        for (int i = 1; i <= M; i++) {
+            cnt[i] = cnt[i - 1] * 2 + p;
+            s[i] = s[i - 1] * 2 + p * (i - 1);
+            p *= 2;
+        }
+    }
+
+    private static long[] numIdxAndSum(long x) {
+        long idx = 0;
+        long totalSum = 0;
+        while (x > 0) {
+            int i = Long.SIZE - Long.numberOfLeadingZeros(x) - 1;
+            idx += cnt[i];
+            totalSum += s[i];
+            x -= 1L << i;
+            totalSum += (x + 1) * i;
+            idx += x + 1;
+        }
+        return new long[] {idx, totalSum};
+    }
+
+    private static long f(long i) {
+        long l = 0;
+        long r = 1L << M;
+        while (l < r) {
+            long mid = (l + r + 1) >> 1;
+            long[] idxAndSum = numIdxAndSum(mid);
+            long idx = idxAndSum[0];
+            if (idx < i) {
+                l = mid;
+            } else {
+                r = mid - 1;
+            }
+        }
+
+        long[] idxAndSum = numIdxAndSum(l);
+        long totalSum = idxAndSum[1];
+        long idx = idxAndSum[0];
+        i -= idx;
+        long x = l + 1;
+        for (int j = 0; j < i; j++) {
+            long y = x & -x;
+            totalSum += Long.numberOfTrailingZeros(y);
+            x -= y;
+        }
+        return totalSum;
+    }
+
+    public int[] findProductsOfElements(long[][] queries) {
+        int n = queries.length;
+        int[] ans = new int[n];
+        for (int i = 0; i < n; i++) {
+            long left = queries[i][0];
+            long right = queries[i][1];
+            long mod = queries[i][2];
+            long power = f(right + 1) - f(left);
+            ans[i] = qpow(2, power, mod);
+        }
+        return ans;
+    }
+
+    private int qpow(long a, long n, long mod) {
+        long ans = 1 % mod;
+        for (; n > 0; n >>= 1) {
+            if ((n & 1) == 1) {
+                ans = ans * a % mod;
+            }
+            a = a * a % mod;
+        }
+        return (int) ans;
+    }
+}
+
+
+or
+
+
+class Solution {
+  public int[] findProductsOfElements(long[][] queries) {
+    int[] ans = new int[queries.length];
+
+    for (int i = 0; i < queries.length; ++i) {
+      final long a = queries[i][0];
+      final long b = queries[i][1];
+      final int mod = (int) queries[i][2];
+      ans[i] = (int) modPow(2,
+                            sumPowersFirstKBigNums(b + 1) - //
+                                sumPowersFirstKBigNums(a),
+                            mod);
+    }
+
+    return ans;
+  }
+
+  // Returns the sum of powers of the first k numbers in `big_nums`.
+  private long sumPowersFirstKBigNums(long k) {
+    final long num = firstNumberHavingSumBitsTillGreaterThan(k);
+    long sumPowers = sumPowersTill(num - 1);
+    long remainingCount = k - sumBitsTill(num - 1);
+    for (int power = 0; power < bitLength(num); ++power) {
+      if ((num >> power & 1) == 1) {
+        sumPowers += power;
+        --remainingCount;
+        if (remainingCount == 0)
+          break;
+      }
+    }
+    return sumPowers;
+  }
+
+  // Returns the first number in [1, k] that has sumBitsTill(num) >= k.
+  private long firstNumberHavingSumBitsTillGreaterThan(long k) {
+    long l = 1;
+    long r = k;
+    while (l < r) {
+      final long m = (l + r) / 2;
+      if (sumBitsTill(m) < k)
+        l = m + 1;
+      else
+        r = m;
+    }
+    return l;
+  }
+
+  // Returns sum(i.bit_count()), where 1 <= i <= x.
+  private long sumBitsTill(long x) {
+    long sumBits = 0;
+    for (long powerOfTwo = 1; powerOfTwo <= x; powerOfTwo *= 2) {
+      sumBits += (x / (2 * powerOfTwo)) * powerOfTwo;
+      sumBits += Math.max(0, x % (2 * powerOfTwo) + 1 - powerOfTwo);
+    }
+    return sumBits;
+  }
+
+  // Returns sum(all powers of i), where 1 <= i <= x.
+  private long sumPowersTill(long x) {
+    long sumPowers = 0;
+    long powerOfTwo = 1;
+    for (int power = 0; power < bitLength(x); ++power) {
+      sumPowers += (x / (2 * powerOfTwo)) * powerOfTwo * power;
+      sumPowers += Math.max(0, x % (2 * powerOfTwo) + 1 - powerOfTwo) * power;
+      powerOfTwo *= 2;
+    }
+    return sumPowers;
+  }
+
+  private long modPow(long x, long n, int mod) {
+    if (n == 0)
+      return 1 % mod;
+    if (n % 2 == 1)
+      return x * modPow(x % mod, (n - 1), mod) % mod;
+    return modPow(x * x % mod, (n / 2), mod) % mod;
+  }
+
+  private int bitLength(long x) {
+    return 64 - Long.numberOfLeadingZeros(x);
+  }
+}
+
+or
+
+
+class Solution {
+    public int[] findProductsOfElements(long[][] queries) {
+        // for (int val = 0; val < 10; val++) System.out.println(val+" has "+countOnes(val)+" ones filled.");
+        int[] res = new int[queries.length];
+        for (int i = 0; i < res.length; i++) res[i] = fulfil(queries[i]);
+        return res;
+    }
+    private int fulfil(long[] query) {
+        long from = query[0]; long to = query[1]; long mod = query[2];
+        long[] upTo = upTo(to);
+        long[] littler = upTo(from - 1);
+        // System.out.println(to+": "+Arrays.toString(upTo));
+        // System.out.println((from - 1)+": "+Arrays.toString(littler));
+        long res = 1;
+        long pow = 1;
+        for (int i = 0; i < 63; i++) {
+            long amt = upTo[i] - littler[i];
+            if (amt == 0) {
+                pow = (pow * 2) % mod;
+                continue;
+            }
+            long mult = modPow(1l << i, amt, mod);
+            res = (res * mult) % mod;
+            pow = (pow * 2) % mod;
+            if (res == 0) return 0;
+        }
+        return (int) res;
+    }
+    private long modPow(long base, long pow, long mod) {
+        if (pow == 0) return 1;
+        long lesser = modPow(base, pow / 2, mod);
+        lesser = (lesser * lesser) % mod;
+        if (pow % 2 == 1) lesser = (lesser * base) % mod;
+        return lesser;
+    }
+    private long[] upTo(long maxIndex) {
+        long minVal = 0, maxVal = maxIndex + 5;
+        long highest = 0, excess = maxIndex + 1;
+        while (minVal <= maxVal) {
+            long midVal = minVal + (maxVal - minVal) / 2;
+            long amtOfOnes = countOnes(midVal);
+            // System.out.println(midVal+": "+amtOfOnes);
+            if (amtOfOnes < maxIndex + 1) {
+                highest = midVal;
+                excess = maxIndex + 1 - amtOfOnes;
+                minVal = midVal + 1;
+            } else if (amtOfOnes > maxIndex + 1) {
+                maxVal = midVal - 1;
+            } else {
+                highest = midVal;
+                excess = 0;
+                break;
+            }
+        }
+        // System.out.println("For "+maxIndex+" index, I pick value: "+highest+" with "+excess+" extra ones.\n");
+        long[] bitCounts = grab(highest);
+        if (excess == 0) return bitCounts;
+        long higher = maxVal + 1;
+        for (int p = 0; p < 64; p++) {
+            if ((higher & (1l << p)) != 0) {
+                bitCounts[p]++;
+                if (--excess == 0) return bitCounts;
+            }
+        }
+        return bitCounts;
+    }
+    public long[] grab(long n) {
+        long[] res = new long[64];
+        for (int p = 0; p < 64; p++) {
+            long totalPairs = (n + 1) / (1l << (p + 1));
+            res[p] += totalPairs * (1l << p);
+            long remainder = (n + 1) % (1l << (p + 1));
+            if (remainder > (1l << p)) res[p] += remainder - (1l << p);
+        }
+        return res;
+    }
+    public long countOnes(long max) {
+        long totalSetBits = 0;
+        long n = max + 1;
+        for (long p = 0; (1l << p) <= max; p++) {
+            long totalPairs = n / (1l << (p + 1));
+            totalSetBits += totalPairs * (1l << p);
+            totalSetBits += (long) Math.max(0, n % (1l<< (p + 1)) - (1l << p));
+        }
+
+        return totalSetBits;
+    }
+}
+
+or
+
+class Solution {
+    
+    public int[] findProductsOfElements(long[][] queries) {
+        int n = queries.length;
+        int[] res = new int[n];
+        for (int i = 0; i < n; i++) {
+            long from = queries[i][0] + 1;
+            long to = queries[i][1] + 1;
+            long mod = queries[i][2];
+            
+            long lbb = lb(from);
+            long ubb = ub(to);
+            long[] a1 = make(lbb);
+            long[] a2 = make(ubb);
+            
+            increase(a1, from, lbb);
+            decrease(a2, to, ubb);
+            improve(a2, a1);
+            
+            long sum = set(a2);
+            res[i] = (int) me(sum, mod);
+        }
+        return res;
+    }
+
+    public static long me( long ex, long mod) {
+        long result = 1 , x = 1 , y = 2;
+        if(mod == 1) return 0;
+        while(x <= ex){
+            if( (ex & x) == x ){
+                result *= y;
+                result %= mod;
+            }
+            x <<= 1l;
+            y *= y;
+            y %= mod;
+        }
+        return result;
+    }
+
+    static long set(long[] a2) {
+        long sum = 0;
+        for (int i = 1; i < a2.length; i++) {
+            sum += (i * a2[i]);
+        }
+        return sum;
+    }
+
+    static void improve(long[] a2, long[] a1) {
+        int n = a2.length;
+        for (int i = 1; i < n; i++) {
+            a2[i] -= a1[i];
+        }
+    }
+
+    static void decrease(long[] ub, long to, long ubb) {
+        long x = bits(ubb) - to;
+        int i = ub.length - 1;
+        while (i >= 0 && x > 0) {
+            if (((ubb >> i) & 1) == 1) {
+                x--;
+                ub[i]--;
+            }
+            i--;
+        }
+    }
+
+    static void increase(long[] lb, long from, long lbb) {
+        long x = from - bits(lbb) - 1;
+        int i = 0,n = lb.length;
+        while (i < n && x > 0) {
+            if (((lbb + 1 >> i) & 1) == 1) {
+                x--;
+                lb[i]++;
+            }
+            i++;
+        }
+    }
+
+    static long[] make(long n) {
+        long[] arr = new long[47];
+        long x = 1 , kk = arr.length;
+        for (int i = 0; i < kk; i++) {
+            arr[i] = ((n / x) / 2) * x + ((n % x + 1) * ((n / x) % 2));
+            x *= 2;
+        }
+        return arr;
+    }
+
+    static long ub(long to) {
+        long s = 0, e = to, m, ans = -1;
+        while (s <= e) {
+            m = s + (e - s) / 2;
+            if (bits(m) >= to) {
+                ans = m;
+                e = m - 1;
+            } else {
+                s = m + 1;
+            }
+        }
+        return ans;
+    }
+
+    static long lb(long from) {
+        long s = 0, e = from, m, ans = -1;
+        while (s <= e) {
+            m = s + (e - s) / 2;
+            if (bits(m) < from) {
+                ans = m;
+                s = m + 1;
+            } else {
+                e = m - 1;
+            }
+        }
+        return ans;
+    }
+
+    static long bits(long n) {
+        long x = 1, s = 0;
+        for (int i = 0; i < 47; i++) {
+            s += ((n / x) / 2) * x + (n % x + 1) * ((n / x) % 2);
+            x *= 2;
+        }
+        return s;
+    }
+}
+
+or
+
+
+class Solution {
+
+    long MAAAX = 1000000000000000L;
+
+    // this fn counts sum of powers of 2 in multiplication of powerful arrays from 0 to (2^n -1)
+    long getMult(int n) {
+        if (n <= 0)
+            return 0L;
+
+        long tmp = ((long) n * (n + 1)) / 2L;
+
+        long pp = (long) Math.pow(2, n);
+
+        return pp * tmp;
+    }
+
+    // this fn counts len of big_nums if we concate powerful arrays from 0 to (2^n -1)
+    long getLen(int n) {
+        long pp = (long) Math.pow(2, n - 1);
+        return pp * (long) n;
+    }
+
+    // counts total sum of power of 2 and total on bits in n
+    int[] getMaxSum(long n) {
+        int tot = 0;
+        int on = 0;
+
+        for (int i = 0; i < 64; i++) {
+            boolean x = (n & 1) == 1;
+            n = n >> 1;
+
+            if (x) {
+                tot += i;
+                on++;
+            }
+
+        }
+
+        return new int[] { tot, on };
+    }
+
+    // counts sum of power of 2 for big_nums array of 0 to n
+    long countMult(long n) {
+        int[] maxSum = getMaxSum(n);
+        int totSum = maxSum[0];
+
+        long multB = (long) totSum;
+
+        for (int i = 0; i < 64; i++) {
+
+            boolean x = (n & 1) == 1;
+            n = n >> 1;
+
+            if (x) {
+                totSum -= i;
+
+                long tmp1 = (long) Math.pow(2, i);
+                long tmp2 = (long)totSum * tmp1;
+                long tmp3 = getMult(i - 1);
+                long tmp4 = tmp2 + tmp3;
+
+
+                multB += tmp4;
+            }
+
+        }
+
+        return multB;
+    }
+
+   // counts len of big_nums array of 0 to n
+    long countLen(long n) {
+        int[] maxSum = getMaxSum(n);
+        int totOn = maxSum[1];
+
+        long onBits = (long) totOn;
+
+        for (int i = 0; i < 64; i++) {
+
+            boolean x = (n & 1) == 1;
+            n = n >> 1;
+
+            if (x) {
+                totOn -= 1;
+
+                long tmp1 = (long) Math.pow(2, i);
+                long onTmp2 = (long)totOn * tmp1;
+                long onTmp3 = getLen(i);
+                long onTmp4 = onTmp2 + onTmp3;
+
+                onBits += onTmp4;
+            }
+
+        }
+
+        return onBits;
+    }
+
+    // find max n for which big_array(0 to n) length is equal or just smaller than target
+    long bs(long target) {
+        long l = 0L, r = MAAAX;
+
+        while (l < r) {
+            long mid = (l + r + 1) / 2L;
+
+            long len = countLen(mid);
+
+            if (len > target) {
+                r = mid - 1;
+            } else {
+                l = mid;
+            }
+
+        }
+
+        long finalLen = countLen(l);
+        long finalMult = countMult(l);
+
+        if (finalLen == target)
+            return finalMult;
+
+        // add remaining power of 2 from next number if len < target
+        long nn = l + 1L;
+        for (int i = 0; i < 64; i++) {
+            boolean x = (nn & 1) == 1;
+            nn = nn >> 1;
+
+            if (x) {
+                finalMult += (long) i;
+                finalLen += 1L;
+            }
+
+            if (finalLen == target)
+                return finalMult;
+        }
+
+        return -1;
+    }
+
+    // modular power of 2 with mod p
+    long power(long x, long y, long p) {
+
+        if(y == 0L) return 1L%p;
+
+        long res = 1L;
+
+        x = x % p;
+
+        if (x == 0L)
+            return 0L;
+
+        while (y > 0L) {
+
+            if ((y & 1) != 0L)
+                res = (res * x) % p;
+
+            y = y >> 1;
+            x = (x * x) % p;
+        }
+
+        return res;
+    }
+
+    public int[] findProductsOfElements(long[][] queries) {
+
+        
+        int[] ans = new int[queries.length];
+
+
+        for(int i=0; i<queries.length; i++)
+        {
+            long mult1 = bs(queries[i][0]);
+            long mult2 = bs(queries[i][1]+1);
+
+            ans[i] = (int)(power(2L,mult2-mult1,queries[i][2]));
+
+            System.out.println(mult1+":"+mult2+":"+ans[i]);
+
+        }
+
+        return ans;
+
+    }
+}
