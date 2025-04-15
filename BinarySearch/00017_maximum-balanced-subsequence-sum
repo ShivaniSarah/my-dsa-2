@@ -1,0 +1,340 @@
+https://leetcode.com/problems/maximum-balanced-subsequence-sum/description/
+
+2926. Maximum Balanced Subsequence Sum
+Hard
+Topics
+Companies
+Hint
+You are given a 0-indexed integer array nums.
+
+A subsequence of nums having length k and consisting of indices i0 < i1 < ... < ik-1 is balanced if the following holds:
+
+nums[ij] - nums[ij-1] >= ij - ij-1, for every j in the range [1, k - 1].
+A subsequence of nums having length 1 is considered balanced.
+
+Return an integer denoting the maximum possible sum of elements in a balanced subsequence of nums.
+
+A subsequence of an array is a new non-empty array that is formed from the original array by deleting some (possibly none) of the elements without disturbing the relative positions of the remaining elements.
+
+ 
+
+Example 1:
+
+Input: nums = [3,3,5,6]
+Output: 14
+Explanation: In this example, the subsequence [3,5,6] consisting of indices 0, 2, and 3 can be selected.
+nums[2] - nums[0] >= 2 - 0.
+nums[3] - nums[2] >= 3 - 2.
+Hence, it is a balanced subsequence, and its sum is the maximum among the balanced subsequences of nums.
+The subsequence consisting of indices 1, 2, and 3 is also valid.
+It can be shown that it is not possible to get a balanced subsequence with a sum greater than 14.
+Example 2:
+
+Input: nums = [5,-1,-3,8]
+Output: 13
+Explanation: In this example, the subsequence [5,8] consisting of indices 0 and 3 can be selected.
+nums[3] - nums[0] >= 3 - 0.
+Hence, it is a balanced subsequence, and its sum is the maximum among the balanced subsequences of nums.
+It can be shown that it is not possible to get a balanced subsequence with a sum greater than 13.
+Example 3:
+
+Input: nums = [-2,-1]
+Output: -1
+Explanation: In this example, the subsequence [-1] can be selected.
+It is a balanced subsequence, and its sum is the maximum among the balanced subsequences of nums.
+ 
+
+Constraints:
+
+1 <= nums.length <= 105
+-109 <= nums[i] <= 109
+
+
+# java
+
+class BinaryIndexedTree {
+    private int n;
+    private long[] c;
+    private final long inf = 1L << 60;
+
+    public BinaryIndexedTree(int n) {
+        this.n = n;
+        c = new long[n + 1];
+        Arrays.fill(c, -inf);
+    }
+
+    public void update(int x, long v) {
+        while (x <= n) {
+            c[x] = Math.max(c[x], v);
+            x += x & -x;
+        }
+    }
+
+    public long query(int x) {
+        long mx = -inf;
+        while (x > 0) {
+            mx = Math.max(mx, c[x]);
+            x -= x & -x;
+        }
+        return mx;
+    }
+}
+
+class Solution {
+    public long maxBalancedSubsequenceSum(int[] nums) {
+        int n = nums.length;
+        int[] arr = new int[n];
+        for (int i = 0; i < n; ++i) {
+            arr[i] = nums[i] - i;
+        }
+        Arrays.sort(arr);
+        int m = 0;
+        for (int i = 0; i < n; ++i) {
+            if (i == 0 || arr[i] != arr[i - 1]) {
+                arr[m++] = arr[i];
+            }
+        }
+        BinaryIndexedTree tree = new BinaryIndexedTree(m);
+        for (int i = 0; i < n; ++i) {
+            int j = search(arr, nums[i] - i, m) + 1;
+            long v = Math.max(tree.query(j), 0) + nums[i];
+            tree.update(j, v);
+        }
+        return tree.query(m);
+    }
+
+    private int search(int[] nums, int x, int r) {
+        int l = 0;
+        while (l < r) {
+            int mid = (l + r) >> 1;
+            if (nums[mid] >= x) {
+                r = mid;
+            } else {
+                l = mid + 1;
+            }
+        }
+        return l;
+    }
+}
+
+
+or
+
+class FenwickTree {
+  public FenwickTree(int n) {
+    vals = new long[n + 1];
+  }
+
+  // Updates the maximum sum of subsequence ending in (i - 1) with `val`.
+  public void maximize(int i, long val) {
+    while (i < vals.length) {
+      vals[i] = Math.max(vals[i], val);
+      i += lowbit(i);
+    }
+  }
+
+  // Returns the maximum sum of subsequence ending in (i - 1).
+  public long get(int i) {
+    long res = 0;
+    while (i > 0) {
+      res = Math.max(res, vals[i]);
+      i -= lowbit(i);
+    }
+    return res;
+  }
+
+  private long[] vals;
+
+  private static int lowbit(int i) {
+    return i & -i;
+  }
+}
+
+class Solution {
+  public long maxBalancedSubsequenceSum(int[] nums) {
+    // Let's define maxSum[i] := subsequence with the maximum sum ending in i
+    // By observation:
+    //     nums[i] - nums[j] >= i - j
+    //  => nums[i] - i >= nums[j] - j
+    //  So, if nums[i] - i >= nums[j] - j, where i > j,
+    //  maxSum[i] = max(maxSum[i], maxSum[j] + nums[i])
+    long ans = Long.MIN_VALUE;
+    FenwickTree tree = new FenwickTree(nums.length);
+
+    for (Pair<Integer, Integer> pair : getPairs(nums)) {
+      final int i = pair.getValue();
+      final long subseqSum = tree.get(i) + nums[i];
+      tree.maximize(i + 1, subseqSum);
+      ans = Math.max(ans, subseqSum);
+    }
+
+    return ans;
+  }
+
+  private List<Pair<Integer, Integer>> getPairs(int[] nums) {
+    List<Pair<Integer, Integer>> pairs = new ArrayList<>();
+    for (int i = 0; i < nums.length; ++i)
+      pairs.add(new Pair<>(nums[i] - i, i));
+    pairs.sort((p1, p2) -> p1.getKey() - p2.getKey());
+    return pairs;
+  }
+}
+
+
+or
+
+class FenwickTree {
+  public FenwickTree(int n) {
+    vals = new long[n + 1];
+  }
+
+  // Updates the maximum sum of subsequence ending in (i - 1) with `val`.
+  public void maximize(int i, long val) {
+    while (i < vals.length) {
+      vals[i] = Math.max(vals[i], val);
+      i += lowbit(i);
+    }
+  }
+
+  // Returns the maximum sum of subsequence ending in (i - 1).
+  public long get(int i) {
+    long res = 0;
+    while (i > 0) {
+      res = Math.max(res, vals[i]);
+      i -= lowbit(i);
+    }
+    return res;
+  }
+
+  private long[] vals;
+
+  private static int lowbit(int i) {
+    return i & -i;
+  }
+}
+
+class Solution {
+  public long maxBalancedSubsequenceSum(int[] nums) {
+    // Let's define maxSum[i] := subsequence with the maximum sum ending in i
+    // By observation:
+    //     nums[i] - nums[j] >= i - j
+    //  => nums[i] - i >= nums[j] - j
+    //  So, if nums[i] - i >= nums[j] - j, where i > j,
+    //  maxSum[i] = max(maxSum[i], maxSum[j] + nums[i])
+    long ans = Long.MIN_VALUE;
+    FenwickTree tree = new FenwickTree(nums.length);
+
+    for (Pair<Integer, Integer> pair : getPairs(nums)) {
+      final int i = pair.getValue();
+      final long subseqSum = tree.get(i) + nums[i];
+      tree.maximize(i + 1, subseqSum);
+      ans = Math.max(ans, subseqSum);
+    }
+
+    return ans;
+  }
+
+  private List<Pair<Integer, Integer>> getPairs(int[] nums) {
+    List<Pair<Integer, Integer>> pairs = new ArrayList<>();
+    for (int i = 0; i < nums.length; ++i)
+      pairs.add(new Pair<>(nums[i] - i, i));
+    pairs.sort((p1, p2) -> p1.getKey() - p2.getKey());
+    return pairs;
+  }
+}
+
+or
+
+class Solution {
+    public long maxBalancedSubsequenceSum(int[] nums) {
+        int n = nums.length;
+        int [] arr = new int[n];
+        for(int i = 0; i<n; i++){
+            arr[i] = nums[i]-i;
+        }
+        TreeMap<Integer, Long> map = new TreeMap<>();
+        long ans = Integer.MIN_VALUE;
+        for(int i = 0; i<n; i++){
+            if(nums[i]<=0){
+                ans = Math.max(ans, nums[i]);
+            }
+            else{
+                long temp = nums[i];
+                if(map.floorKey(arr[i])!=null){
+                    temp += map.get(map.floorKey(arr[i]));
+                }
+                while(map.ceilingKey(arr[i])!=null && map.get(map.ceilingKey(arr[i]))<temp){
+                    map.remove(map.ceilingKey(arr[i]));
+                }
+                if(map.floorKey(arr[i])==null || map.get(map.floorKey(arr[i]))<temp){
+                    map.put(arr[i], temp);
+                }
+                ans = Math.max(ans, temp);
+            }
+        }
+        return ans;
+    }
+}
+
+
+or
+
+
+class Solution {
+    public long maxBalancedSubsequenceSum(int[] nums) {
+        int length = nums.length;
+        long result = Long.MIN_VALUE;
+        TreeMap<Integer, Long> treeMap = new TreeMap<>();
+
+        for(int index = 0; index < length; index++){
+            result = Math.max(result, nums[index]);
+
+            if(nums[index] > 0){
+                int currentKey = nums[index] - index;
+                long currentPrefixSum = nums[index];
+
+                Map.Entry<Integer, Long> validCurrentPrefixSum = treeMap.floorEntry(currentKey);
+                if(validCurrentPrefixSum != null){
+                    currentPrefixSum = currentPrefixSum + validCurrentPrefixSum.getValue(); 
+                }
+
+                while(treeMap.ceilingKey(currentKey) != null && treeMap.ceilingEntry(currentKey).getValue() <= currentPrefixSum){
+                    treeMap.remove(treeMap.ceilingKey(currentKey));
+                }
+
+                treeMap.put(currentKey, currentPrefixSum);
+                result = Math.max(result, currentPrefixSum);
+            }
+        }
+
+        return result;
+    }
+}
+
+
+or
+
+
+class Solution {
+    public long maxBalancedSubsequenceSum(int[] nums) {
+        TreeMap<Integer, Long> map = new TreeMap<>();
+        long maxSum = Long.MIN_VALUE;
+        for (int i=0; i<nums.length; i++) {
+            long currentMaxSum = nums[i];
+            if (nums[i] > 0) {
+                Map.Entry<Integer, Long> validEntry = map.floorEntry(nums[i]-i);
+                if (validEntry != null) {
+                    currentMaxSum += validEntry.getValue();
+                }
+                Map.Entry<Integer, Long> invalidEntry = map.ceilingEntry(nums[i]-i);
+                while(invalidEntry != null && invalidEntry.getValue() <= currentMaxSum) {
+                    map.remove(invalidEntry.getKey());
+                    invalidEntry = map.ceilingEntry(nums[i]-i);
+                }
+                map.put(nums[i]-i, currentMaxSum);
+            }
+            maxSum = Math.max(currentMaxSum, maxSum);
+        }
+        return maxSum;
+    }
+}
