@@ -1,0 +1,241 @@
+https://leetcode.com/problems/find-a-value-of-a-mysterious-function-closest-to-target/description/
+
+1521. Find a Value of a Mysterious Function Closest to Target
+Hard
+Topics
+Companies
+Hint
+
+
+Winston was given the above mysterious function func. He has an integer array arr and an integer target and he wants to find the values l and r that make the value |func(arr, l, r) - target| minimum possible.
+
+Return the minimum possible value of |func(arr, l, r) - target|.
+
+Notice that func should be called with the values l and r where 0 <= l, r < arr.length.
+
+ 
+
+Example 1:
+
+Input: arr = [9,12,3,7,15], target = 5
+Output: 2
+Explanation: Calling func with all the pairs of [l,r] = [[0,0],[1,1],[2,2],[3,3],[4,4],[0,1],[1,2],[2,3],[3,4],[0,2],[1,3],[2,4],[0,3],[1,4],[0,4]], Winston got the following results [9,12,3,7,15,8,0,3,7,0,0,3,0,0,0]. The value closest to 5 is 7 and 3, thus the minimum difference is 2.
+Example 2:
+
+Input: arr = [1000000,1000000,1000000], target = 1
+Output: 999999
+Explanation: Winston called the func with all possible values of [l,r] and he always got 1000000, thus the min difference is 999999.
+Example 3:
+
+Input: arr = [1,2,4,8,16], target = 0
+Output: 0
+ 
+
+Constraints:
+
+1 <= arr.length <= 105
+1 <= arr[i] <= 106
+0 <= target <= 107
+
+
+
+#  java
+
+
+class Solution {
+    public int closestToTarget(int[] arr, int target) {
+        int ans = Math.abs(arr[0] - target);
+        Set<Integer> pre = new HashSet<>();
+        pre.add(arr[0]);
+        for (int x : arr) {
+            Set<Integer> cur = new HashSet<>();
+            for (int y : pre) {
+                cur.add(x & y);
+            }
+            cur.add(x);
+            for (int y : cur) {
+                ans = Math.min(ans, Math.abs(y - target));
+            }
+            pre = cur;
+        }
+        return ans;
+    }
+}
+
+
+or
+
+
+class Solution {
+  public int closestToTarget(int[] arr, int target) {
+    int ans = Integer.MAX_VALUE;
+    // all the values of subarrays that end in the previous number
+    Set<Integer> prev = new HashSet<>();
+
+    for (final int num : arr) {
+      HashSet<Integer> curr = new HashSet<>(Arrays.asList(num));
+      // Extend each subarray that ends in the previous number. Due to
+      // monotonicity of the AND operation, the size of `curr` will be at most
+      // Integer.bitCount(num) + 1.
+      for (final int val : prev)
+        curr.add(val & num);
+      for (final int val : curr)
+        ans = Math.min(ans, Math.abs(target - val));
+      prev = curr;
+    }
+
+    return ans;
+  }
+}
+
+
+or
+
+class Solution {
+  public int closestToTarget(int[] arr, int target) {
+    int[] prefix = new int[22];
+    prefix[0] = -1;
+    int res = Integer.MAX_VALUE, size = 1;
+    for(int a: arr) {
+        int ns = 1;
+        for(int i = 1; i < size; i++) {
+            if(prefix[ns-1] != (prefix[i] & a)) {
+                prefix[ns++] = prefix[i] & a;
+                res = Math.min(res, Math.abs((prefix[i] & a) - target));
+            }
+        }
+        if(prefix[ns-1] != a) {
+            prefix[ns++] = a;
+            res = Math.min(res, Math.abs(a - target));
+        }
+        size = ns;
+    }
+    return res;
+}
+}
+
+
+or
+
+class Solution {
+  private void update(int[] count, int val, int delta) {
+    for(int i = 0; i < count.length; i++) {
+        count[i] += (val & (1 << i)) != 0 ? delta : 0;
+    }
+}
+private int value(int[] count, int size) {
+    int val = 0;
+    if(size > 0) {
+        for(int i = 0; i < count.length; i++) {
+            val |= count[i] == size ? (1 << i) : 0;
+        }
+    }
+    return val;
+}
+public int closestToTarget(int[] arr, int target) {
+    int[] count = new int[20];
+    int l = 0, res = Integer.MAX_VALUE;
+    for(int r = 0; r < arr.length; r++) {
+        update(count, arr[r], 1);
+        int val = value(count, r-l+1);
+        res = Math.min(res, Math.abs(val - target));
+        while(val < target && l <= r) {
+            update(count, arr[l++], -1);
+            val = value(count, r-l+1);
+            res = Math.min(res, Math.abs(val - target));
+        }
+    }
+    return res;
+}
+}
+
+
+or
+
+
+class Solution {
+  public int closestToTarget(int[] arr, int target) {
+    int[] cur = new int[22], next = new int[22];
+    cur[0] = next[0] = -1;  // sentinel
+    int res = Integer.MAX_VALUE, cur_size = 1;
+    for(int a: arr) {
+        int next_size = 1;
+        for(int i = 1; i < cur_size; i++) {
+            if(next[next_size-1] != (cur[i] & a)) {
+                next[next_size++] = cur[i] & a;
+                res = Math.min(res, Math.abs((cur[i] & a) - target));
+            }
+        }
+        if(next[next_size-1] != a) {
+            next[next_size++] = a;
+            res = Math.min(res, Math.abs(a - target));
+        }
+        int[] temp = cur; cur = next; next = temp;  // swap cur and next
+        cur_size = next_size;
+    }
+    return res;
+}
+}
+
+
+or
+
+
+class Solution {
+  public int closestToTarget(int[] arr, int target) {
+    int res = Integer.MAX_VALUE;
+    Set<Integer> set = new HashSet<>();
+    for(int a: arr) {
+        Set<Integer> next = new HashSet<>();
+        for(int p: set) {
+            next.add(a & p);
+        }
+		next.add(a);
+        for(int p: next) {
+            res = Math.min(res, Math.abs(p - target));
+        }
+        set = next;
+    }
+    return res;
+}
+}
+
+
+or
+
+
+
+class Solution {
+      public int closestToTarget(int[] A, int k) {
+        int res = Integer.MAX_VALUE;
+        for (int i = 0; i < A.length; i++) {
+            res = Math.min(res, Math.abs(A[i] - k));
+            for (int j = i - 1; j >= 0 && (A[j] & A[i]) != A[j]; j--) {
+                A[j] &= A[i];
+                res = Math.min(res, Math.abs(A[j] - k));
+            }
+        }
+        return res;
+    }
+}
+
+
+
+or
+
+
+
+class Solution {
+    public int closestToTarget(int[] arr, int target) {
+        Set<Integer> set = new HashSet<>();
+        int ans =100000000;
+        for(int x:arr){
+            Set<Integer> newSet = new HashSet<>();
+            newSet.add(x);
+            for(int y : set)newSet.add(y&x);
+            for(int y : newSet)ans = Math.min(ans,Math.abs(target-y));
+            set = newSet;
+        }
+        return ans;
+    }
+} 
