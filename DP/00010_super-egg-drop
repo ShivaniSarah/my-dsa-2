@@ -1,0 +1,176 @@
+https://leetcode.com/problems/super-egg-drop/description/
+
+887. Super Egg Drop
+Hard
+Topics
+Companies
+You are given k identical eggs and you have access to a building with n floors labeled from 1 to n.
+
+You know that there exists a floor f where 0 <= f <= n such that any egg dropped at a floor higher than f will break, and any egg dropped at or below floor f will not break.
+
+Each move, you may take an unbroken egg and drop it from any floor x (where 1 <= x <= n). If the egg breaks, you can no longer use it. However, if the egg does not break, you may reuse it in future moves.
+
+Return the minimum number of moves that you need to determine with certainty what the value of f is.
+
+ 
+
+Example 1:
+
+Input: k = 1, n = 2
+Output: 2
+Explanation: 
+Drop the egg from floor 1. If it breaks, we know that f = 0.
+Otherwise, drop the egg from floor 2. If it breaks, we know that f = 1.
+If it does not break, then we know f = 2.
+Hence, we need at minimum 2 moves to determine with certainty what the value of f is.
+Example 2:
+
+Input: k = 2, n = 6
+Output: 3
+Example 3:
+
+Input: k = 3, n = 14
+Output: 4
+ 
+
+Constraints:
+
+1 <= k <= 100
+1 <= n <= 104
+
+
+# java
+
+class Solution {
+    private int[][] f;
+
+    public int superEggDrop(int k, int n) {
+        f = new int[n + 1][k + 1];
+        return dfs(n, k);
+    }
+
+    private int dfs(int i, int j) {
+        if (i < 1) {
+            return 0;
+        }
+        if (j == 1) {
+            return i;
+        }
+        if (f[i][j] != 0) {
+            return f[i][j];
+        }
+        int l = 1, r = i;
+        while (l < r) {
+            int mid = (l + r + 1) >> 1;
+            int a = dfs(mid - 1, j - 1);
+            int b = dfs(i - mid, j);
+            if (a <= b) {
+                l = mid;
+            } else {
+                r = mid - 1;
+            }
+        }
+        return f[i][j] = Math.max(dfs(l - 1, j - 1), dfs(i - l, j)) + 1;
+    }
+}
+
+or
+
+
+class Solution {
+  public int superEggDrop(int k, int n) {
+    int[][] mem = new int[k + 1][n + 1];
+    Arrays.stream(mem).forEach(A -> Arrays.fill(A, -1));
+    return drop(k, n, mem);
+  }
+
+  // Returns the minimum number of moves to know f with k eggs and n floors.
+  private int drop(int k, int n, int[][] mem) {
+    if (k == 0) // no eggs -> done
+      return 0;
+    if (k == 1) // one egg -> drop from 1-th floor to n-th floor
+      return n;
+    if (n == 0) // no floor -> done
+      return 0;
+    if (n == 1) // one floor -> drop from that floor
+      return 1;
+    if (mem[k][n] != -1)
+      return mem[k][n];
+
+    int l = 1;
+    int r = n + 1;
+
+    while (l < r) {
+      final int m = (l + r) / 2;
+      final int broken = drop(k - 1, m - 1, mem);
+      final int unbroken = drop(k, n - m, mem);
+      if (broken >= unbroken)
+        r = m;
+      else
+        l = m + 1;
+    }
+
+    return mem[k][n] = 1 + drop(k - 1, l - 1, mem);
+  }
+}
+
+
+or
+
+class Solution {
+  public int superEggDrop(int k, int n) {
+    int moves = 0;
+    int[][] dp = new int[n + 1][k + 1];
+
+    while (dp[moves][k] < n) {
+      ++moves;
+      for (int eggs = 1; eggs <= k; ++eggs)
+        dp[moves][eggs] = dp[moves - 1][eggs - 1] + dp[moves - 1][eggs] + 1;
+    }
+
+    return moves;
+  }
+}
+
+or
+
+
+class Solution {
+    Integer dp[][];
+    public int superEggDrop(int k, int n) {
+        dp=new Integer[k+1][n+1];
+        return sol(k,n);
+    }
+    public int sol(int k,int n){
+        if(k==1 || n==0 || n==1) return n;
+        if(dp[k][n]!=null) return dp[k][n];
+        int l=1,h=n;
+        int ans=Integer.MAX_VALUE;
+        while(l<=h){
+            int mid=(l+h)/2;
+            int k1=sol(k-1,mid-1);
+            int k2=sol(k,n-mid);
+            int temp=1+Math.max(k1,k2);
+            if(k1<k2) l=mid+1;
+            else h=mid-1;
+            ans=Math.min(temp,ans);
+        }
+        return dp[k][n]=ans;
+    }
+}
+
+or
+
+
+class Solution {
+    public int superEggDrop(int k, int n) {
+        int[][] dp=new int[k+1][n+1];
+        for(int i=1;i<=n;i++){
+            for(int j=1;j<=k;j++){
+                dp[j][i]=dp[j-1][i-1]+dp[j][i-1]+1;
+                if(dp[j][i]>=n) return i;
+            }
+        }
+        return -1;
+    }
+}
