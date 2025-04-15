@@ -1,0 +1,160 @@
+https://leetcode.com/problems/longest-common-subpath/description/
+
+1923. Longest Common Subpath
+Hard
+Topics
+Companies
+Hint
+There is a country of n cities numbered from 0 to n - 1. In this country, there is a road connecting every pair of cities.
+
+There are m friends numbered from 0 to m - 1 who are traveling through the country. Each one of them will take a path consisting of some cities. Each path is represented by an integer array that contains the visited cities in order. The path may contain a city more than once, but the same city will not be listed consecutively.
+
+Given an integer n and a 2D integer array paths where paths[i] is an integer array representing the path of the ith friend, return the length of the longest common subpath that is shared by every friend's path, or 0 if there is no common subpath at all.
+
+A subpath of a path is a contiguous sequence of cities within that path.
+
+ 
+
+Example 1:
+
+Input: n = 5, paths = [[0,1,2,3,4],
+                       [2,3,4],
+                       [4,0,1,2,3]]
+Output: 2
+Explanation: The longest common subpath is [2,3].
+Example 2:
+
+Input: n = 3, paths = [[0],[1],[2]]
+Output: 0
+Explanation: There is no common subpath shared by the three paths.
+Example 3:
+
+Input: n = 5, paths = [[0,1,2,3,4],
+                       [4,3,2,1,0]]
+Output: 1
+Explanation: The possible longest common subpaths are [0], [1], [2], [3], and [4]. All have a length of 1.
+ 
+
+Constraints:
+
+1 <= n <= 105
+m == paths.length
+2 <= m <= 105
+sum(paths[i].length) <= 105
+0 <= paths[i][j] < n
+The same city is not listed multiple times consecutively in paths[i].
+
+
+# java
+
+
+class Solution {
+  public int longestCommonSubpath(int n, int[][] paths) {
+    int l = 0;
+    int r = paths[0].length;
+
+    while (l < r) {
+      final int m = l + (r - l + 1) / 2;
+      if (checkCommonSubpath(paths, m))
+        l = m;
+      else
+        r = m - 1;
+    }
+
+    return l;
+  }
+
+  private static final long BASE = 165_131L;
+  private static final long HASH = 8_417_508_174_513L;
+
+  // Returns true if there's a common subpath of length m for all the paths.
+  private boolean checkCommonSubpath(int[][] paths, int m) {
+    Set<Long>[] hashSets = new Set[paths.length];
+
+    // Calculate the hash values for subpaths of length m for every path.
+    for (int i = 0; i < paths.length; ++i)
+      hashSets[i] = rabinKarp(paths[i], m);
+
+    // Check if there is a common subpath of length m.
+    for (final long subpathHash : hashSets[0])
+      if (Arrays.stream(hashSets).allMatch(hashSet -> hashSet.contains(subpathHash)))
+        return true;
+
+    return false;
+  }
+
+  // Returns the hash values for subpaths of length m in the path.
+  private Set<Long> rabinKarp(int[] path, int m) {
+    Set<Long> hashes = new HashSet<>();
+    long maxPower = 1;
+    long hash = 0;
+    for (int i = 0; i < path.length; ++i) {
+      hash = (hash * BASE + path[i]) % HASH;
+      if (i >= m)
+        hash = (hash - path[i - m] * maxPower % HASH + HASH) % HASH;
+      else
+        maxPower = maxPower * BASE % HASH;
+      if (i >= m - 1)
+        hashes.add(hash);
+    }
+    return hashes;
+  }
+}
+
+or
+
+
+// rolling hash + Binary search
+
+
+class Solution {
+    public int longestCommonSubpath(int n, int[][] a) {
+        int k = a.length, max = n, p = n + 1;
+        long mod = (long)Math.pow(10, 3 * (int)Math.log10(p) - 3) + 100007;
+        long[][] b = new long[k][];
+        for (int i = 0; i < k; i++) {
+            max = Math.max(max, a[i].length);
+            b[i] = new long[a[i].length + 1];
+            for (int j = 0; j < a[i].length; j++) {
+                b[i][j + 1] = b[i][j] * p % mod + a[i][j];
+                b[i][j + 1] %= mod;
+            }
+        }
+        long[] pow = new long[max + 1];
+        pow[0] = 1;
+        for (int j = 0; j < max; j++) {
+            pow[j + 1] = pow[j] * p % mod;
+        }
+        int l = 0, r = max;
+        while (l < r) {
+            int m = l + r + 1 >>> 1;
+            if (check(b, pow, mod, m)) l = m;
+            else r = m - 1;
+        }
+        return l;
+    }
+
+    boolean check(long[][] b, long[] pow, long mod, int len) {
+        int k = b.length;
+        Set<Long> set1 = new HashSet<>();
+        Set<Long> set2 = new HashSet<>();
+        for (int j = 0; j <= b[0].length - 1 - len; j++) {
+            set1.add((b[0][j + len] - b[0][j] * pow[len] % mod + mod) % mod);
+        }
+        boolean flag = false;
+        for (int i = 1; i < k; i++) {
+            flag = false;
+            for (int j = 0; j <= b[i].length - 1 - len; j++) {
+                long h = (b[i][j + len] - b[i][j] * pow[len] % mod + mod) % mod;
+                if (set1.contains(h)) {
+                    set2.add(h);
+                    flag = true;
+                }
+            }
+            if (!flag) return false;
+            set1 = new HashSet<>(set2);
+            set2.clear();
+        }
+        return true;
+    }
+}
