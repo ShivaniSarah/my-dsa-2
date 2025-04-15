@@ -1,0 +1,368 @@
+https://leetcode.com/problems/kth-smallest-product-of-two-sorted-arrays/description/
+
+2040. Kth Smallest Product of Two Sorted Arrays
+Hard
+Topics
+Companies
+Hint
+Given two sorted 0-indexed integer arrays nums1 and nums2 as well as an integer k, return the kth (1-based) smallest product of nums1[i] * nums2[j] where 0 <= i < nums1.length and 0 <= j < nums2.length.
+ 
+
+Example 1:
+
+Input: nums1 = [2,5], nums2 = [3,4], k = 2
+Output: 8
+Explanation: The 2 smallest products are:
+- nums1[0] * nums2[0] = 2 * 3 = 6
+- nums1[0] * nums2[1] = 2 * 4 = 8
+The 2nd smallest product is 8.
+Example 2:
+
+Input: nums1 = [-4,-2,0,3], nums2 = [2,4], k = 6
+Output: 0
+Explanation: The 6 smallest products are:
+- nums1[0] * nums2[1] = (-4) * 4 = -16
+- nums1[0] * nums2[0] = (-4) * 2 = -8
+- nums1[1] * nums2[1] = (-2) * 4 = -8
+- nums1[1] * nums2[0] = (-2) * 2 = -4
+- nums1[2] * nums2[0] = 0 * 2 = 0
+- nums1[2] * nums2[1] = 0 * 4 = 0
+The 6th smallest product is 0.
+Example 3:
+
+Input: nums1 = [-2,-1,0,1,2], nums2 = [-3,-1,2,4,5], k = 3
+Output: -6
+Explanation: The 3 smallest products are:
+- nums1[0] * nums2[4] = (-2) * 5 = -10
+- nums1[0] * nums2[3] = (-2) * 4 = -8
+- nums1[4] * nums2[0] = 2 * (-3) = -6
+The 3rd smallest product is -6.
+ 
+
+Constraints:
+
+1 <= nums1.length, nums2.length <= 5 * 104
+-105 <= nums1[i], nums2[j] <= 105
+1 <= k <= nums1.length * nums2.length
+nums1 and nums2 are sorted.
+
+
+
+# java
+
+
+class Solution {
+    private int[] nums1;
+    private int[] nums2;
+
+    public long kthSmallestProduct(int[] nums1, int[] nums2, long k) {
+        this.nums1 = nums1;
+        this.nums2 = nums2;
+        int m = nums1.length;
+        int n = nums2.length;
+        int a = Math.max(Math.abs(nums1[0]), Math.abs(nums1[m - 1]));
+        int b = Math.max(Math.abs(nums2[0]), Math.abs(nums2[n - 1]));
+        long r = (long) a * b;
+        long l = (long) -a * b;
+        while (l < r) {
+            long mid = (l + r) >> 1;
+            if (count(mid) >= k) {
+                r = mid;
+            } else {
+                l = mid + 1;
+            }
+        }
+        return l;
+    }
+
+    private long count(long p) {
+        long cnt = 0;
+        int n = nums2.length;
+        for (int x : nums1) {
+            if (x > 0) {
+                int l = 0, r = n;
+                while (l < r) {
+                    int mid = (l + r) >> 1;
+                    if ((long) x * nums2[mid] > p) {
+                        r = mid;
+                    } else {
+                        l = mid + 1;
+                    }
+                }
+                cnt += l;
+            } else if (x < 0) {
+                int l = 0, r = n;
+                while (l < r) {
+                    int mid = (l + r) >> 1;
+                    if ((long) x * nums2[mid] <= p) {
+                        r = mid;
+                    } else {
+                        l = mid + 1;
+                    }
+                }
+                cnt += n - l;
+            } else if (p >= 0) {
+                cnt += n;
+            }
+        }
+        return cnt;
+    }
+}
+
+or
+
+class Solution {
+  public long kthSmallestProduct(int[] nums1, int[] nums2, long k) {
+    List<Integer> A1 = new ArrayList<>();
+    List<Integer> A2 = new ArrayList<>();
+    List<Integer> B1 = new ArrayList<>();
+    List<Integer> B2 = new ArrayList<>();
+
+    seperate(nums1, A1, A2);
+    seperate(nums2, B1, B2);
+
+    final long negCount = A1.size() * B2.size() + A2.size() * B1.size();
+    int sign = 1;
+
+    if (k > negCount) {
+      k -= negCount; //  Find the (k - negCount)-th positive.
+    } else {
+      k = negCount - k + 1; // Find the (negCount - k + 1)-th abs(negative).
+      sign = -1;
+      List<Integer> temp = B1;
+      B1 = B2;
+      B2 = temp;
+    }
+
+    long l = 0;
+    long r = (long) 1e10;
+
+    while (l < r) {
+      final long m = (l + r) / 2;
+      if (numProductNoGreaterThan(A1, B1, m) + numProductNoGreaterThan(A2, B2, m) >= k)
+        r = m;
+      else
+        l = m + 1;
+    }
+
+    return sign * l;
+  }
+
+  private void seperate(int[] arr, List<Integer> A1, List<Integer> A2) {
+    for (final int a : arr)
+      if (a < 0)
+        A1.add(-a);
+      else
+        A2.add(a);
+    Collections.reverse(A1); // Reverse to sort ascending
+  }
+
+  private long numProductNoGreaterThan(List<Integer> A, List<Integer> B, long m) {
+    long count = 0;
+    int j = B.size() - 1;
+    // For each a, find the first index j s.t. a * B[j] <= m
+    // So numProductNoGreaterThan m for this row will be j + 1
+    for (final long a : A) {
+      while (j >= 0 && a * B.get(j) > m)
+        --j;
+      count += j + 1;
+    }
+    return count;
+  }
+}
+
+
+or
+
+
+// Java Double Binary Search O(log10^10 x MlogN)
+
+
+class Solution {
+    static long INF = (long) 1e10;
+    public long kthSmallestProduct(int[] nums1, int[] nums2, long k) {
+        int m = nums1.length, n = nums2.length;
+        long lo = -INF - 1, hi = INF + 1;
+        while (lo < hi) {            
+            long mid = lo + ((hi - lo) >> 1), cnt = 0;
+            for (int i : nums1) {
+                if (0 <= i) {
+                    int l = 0, r = n - 1, p = 0;
+                    while (l <= r) {
+                        int c = l + ((r - l) >> 1);
+                        long mul = i * (long) nums2[c];
+                        if (mul <= mid) {
+                            p = c + 1;
+                            l = c + 1;
+                        } else r = c - 1;
+                    }
+                    cnt += p;
+                } else {
+                    int l = 0, r = n - 1, p = 0;
+                    while (l <= r) {
+                        int c = l + ((r - l) >> 1);
+                        long mul = i * (long) nums2[c];
+                        if (mul <= mid) {
+                            p = n - c;
+                            r = c - 1;
+                        } else l = c + 1;
+                    }
+                    cnt += p;
+                }
+            }
+            if (cnt >= k) {
+                hi = mid;
+            } else lo = mid + 1L;
+        }
+        return lo;
+    }
+}
+
+
+or
+
+
+class Solution {
+    public long kthSmallestProduct(int[] nums1, int[] nums2, long k) {
+        long l = (long)-1e11;
+        long r = (long)1e11;
+        long res = 0;
+        while ( l<=r ) {
+            long mid = (l+r)/2;
+            // checking whether we have k at least k elements whose product is less than the current product
+            // if yes then we know we have to move left
+            if ( check(mid, nums1, nums2, k) ) {
+                r = mid - 1;
+                res = mid;
+            } else {
+                l = mid + 1;
+            }
+        }
+        return res;
+    }
+    public boolean check ( long mid, int[] nums1, int[] nums2, long k ) {
+        long cnt = 0;
+        for ( int i=0; i<nums1.length; i++ ) {
+            long val = (long) nums1[i];
+            // if current element is 0 and we out current product is >= 0 then we can add the whole second array because 0*anything will be 0
+            if ( val==0 && mid>=0 ) {
+                cnt += nums2.length;
+            } else if ( val<0 ) {
+                // If we encounter negative value we find the minimum index in the second array such that this element * minIndexElement <= current product
+                cnt += findMinIndex(val, mid, nums2);
+            } else if ( val>0 ) {
+                // if we encounter positive element we find max index in the second array such that this element * maxIndexElement <= current product
+                cnt += findMaxIndex(val, mid, nums2);
+            }
+        }
+        // if we have atleast k elements whose product is less than current product
+        return cnt>=k;
+    }
+    public long findMaxIndex( long val, long mid, int[] nums2 ) {
+        int l = 0;
+        int r = nums2.length - 1;
+        // when no element in second array when multiplied by the current element of the first array yields result less that current product we will return res+1 hence -1 + 1 hence 0 coz there are no elements which when multiplied by current element of the first array yield result less than current product.
+        long res = -1;
+        while ( l<=r ) {
+            int m = (l+r)/2;
+            if ( val*nums2[m]<=mid ) {
+                // if our current product is >= val*current element then we move the window to right side in order to find max index with which when multiplied the element of the first array is still less than current product.
+                res = (long)m;
+                l = m + 1; 
+            } else {
+                r = m - 1;
+            }
+        }
+        // so we have found res+1 elements who satisfy our condition. +1 coz res would give index
+        return res+1;
+    }
+    public long findMinIndex( long val, long mid, int[] nums2 ) {
+        int l = 0;
+        int r = nums2.length - 1;
+        // when all elements of second array multiplied by current element of first array yield result > current product then we return 0 coz there are no elements which would yield us result.
+        long res = r + 1;
+        while ( l<=r ) {
+            int m = (l+r)/2;
+            if ( val*nums2[m]<=mid ) {
+                r = m - 1;
+                res = (long)m;
+            } else {
+                l = m + 1;
+            }
+        }
+        return nums2.length - res;
+    }
+}
+
+
+or
+
+
+class Solution {
+    public long kthSmallestProduct(int[] nums1, int[] nums2, long k) {
+        return kthSmallest(nums1, nums2, k);
+    }
+
+	public static long kthSmallest(int[] nums1, int[] nums2, long k) {
+
+		long lo = -1000_000_0000l;
+		long hi = 1000_000_0000l;
+		long ans = 0;
+
+		// Binary Search
+		while (lo <= hi) {
+			long mid = (lo + hi) / 2;
+			if (countNumberOfElements(nums1, nums2, mid) >= k) {
+				ans = mid;
+				hi = mid - 1;
+			} else {
+				lo = mid + 1;
+			}
+		}
+		return ans;
+
+	}
+
+	public static long countNumberOfElements(int[] arr1, int[] arr2, long Dot_pot) {
+		long ans = 0;
+		for (int e1 : arr1) {
+			int count = 0;
+			if (e1 >= 0) {
+				int lo = 0;
+				int hi = arr2.length - 1;
+				while (lo <= hi) {
+					int mid = (lo + hi) / 2;
+					if ((long) e1 * arr2[mid] <= Dot_pot) {
+						count = mid + 1;
+						lo = mid + 1;
+					} else {
+						hi = mid - 1;
+					}
+				}
+				ans = ans + count;
+
+			}
+
+			else {
+
+				int lo = 0;
+				int hi = arr2.length - 1;
+				while (lo <= hi) {
+					int mid = (lo + hi) / 2;
+					if ((long) e1 * arr2[mid] <= Dot_pot) {
+						count = arr2.length - mid;
+						hi = mid - 1;
+
+					} else {
+						lo = mid + 1;
+					}
+				}
+				ans = ans + count;
+
+			}
+
+		}
+		return ans;
+	}
+
+}
