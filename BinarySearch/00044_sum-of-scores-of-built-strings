@@ -1,0 +1,244 @@
+https://leetcode.com/problems/sum-of-scores-of-built-strings/description/
+
+2223. Sum of Scores of Built Strings
+Hard
+Topics
+Companies
+Hint
+You are building a string s of length n one character at a time, prepending each new character to the front of the string. The strings are labeled from 1 to n, where the string with length i is labeled si.
+
+For example, for s = "abaca", s1 == "a", s2 == "ca", s3 == "aca", etc.
+The score of si is the length of the longest common prefix between si and sn (Note that s == sn).
+
+Given the final string s, return the sum of the score of every si.
+
+ 
+
+Example 1:
+
+Input: s = "babab"
+Output: 9
+Explanation:
+For s1 == "b", the longest common prefix is "b" which has a score of 1.
+For s2 == "ab", there is no common prefix so the score is 0.
+For s3 == "bab", the longest common prefix is "bab" which has a score of 3.
+For s4 == "abab", there is no common prefix so the score is 0.
+For s5 == "babab", the longest common prefix is "babab" which has a score of 5.
+The sum of the scores is 1 + 0 + 3 + 0 + 5 = 9, so we return 9.
+Example 2:
+
+Input: s = "azbazbzaz"
+Output: 14
+Explanation: 
+For s2 == "az", the longest common prefix is "az" which has a score of 2.
+For s6 == "azbzaz", the longest common prefix is "azb" which has a score of 3.
+For s9 == "azbazbzaz", the longest common prefix is "azbazbzaz" which has a score of 9.
+For all other si, the score is 0.
+The sum of the scores is 2 + 3 + 9 = 14, so we return 14.
+ 
+
+Constraints:
+
+1 <= s.length <= 105
+s consists of lowercase English letters.
+
+
+
+# java
+
+class Solution {
+  public long sumScores(String s) {
+    final int n = s.length();
+    // https://cp-algorithms.com/string/z-function.html#implementation
+    int[] z = new int[n];
+    // [l, r] := the indices of the rightmost segment match
+    int l = 0;
+    int r = 0;
+
+    for (int i = 1; i < n; ++i) {
+      if (i < r)
+        z[i] = Math.min(r - i, z[i - l]);
+      while (i + z[i] < n && s.charAt(z[i]) == s.charAt(i + z[i]))
+        ++z[i];
+      if (i + z[i] > r) {
+        l = i;
+        r = i + z[i];
+      }
+    }
+
+    return Arrays.stream(z).asLongStream().sum() + n;
+  }
+}
+
+
+or
+
+
+class Solution {
+    public long[] hsh, hsh2, pw, pw2;
+    public int mod = (int) 1e9+7;
+    public long sumScores(String s) {
+        int n = s.length(), base = 131, base2 = 137;
+        hsh = new long[n+1]; pw = new long[n+1];
+        hsh2 = new long[n+1]; pw2 = new long[n+1];
+        pw[0] = 1; pw2[0] = 1;
+        for (int j = 1; j <= n; j++) {
+            hsh[j] = (hsh[j-1]*base + s.charAt(j-1))%mod;
+            pw[j] = pw[j-1]*base%mod;
+            hsh2[j] = (hsh2[j-1]*base2 + s.charAt(j-1))%mod;
+            pw2[j] = pw2[j-1]*base2%mod;
+        }
+        // binary search for score
+        long ans = 0;
+        for (int i = n; i >= 1; i--) {
+            if (s.charAt(i-1)!=s.charAt(0)) continue;
+            int lo = 0, hi = n-i+1, res = 0;
+            while (lo<=hi) {
+                int mid = (lo+hi)>>1;
+                if (getSubstrHash(0, mid)==getSubstrHash(i-1, i+mid-1)) {
+                    lo = mid+1; res = mid;
+                }
+                else hi = mid-1;
+            }
+            ans+=res;
+        }
+        return ans;
+    }
+    public long getSubstrHash(int l, int r){
+        long h1 = (hsh[r] - hsh[l] * pw[r-l] % mod + mod)%mod;
+        long h2 = (hsh2[r] - hsh2[l] * pw2[r-l] % mod + mod)%mod;
+        return (h1<<31) | h2;
+    }
+}
+
+or
+
+
+class Solution {
+    int n;
+    int base = 31;
+    int mod = (int) 1e9 + 7;
+    long[] hash;
+    long[] pows;
+
+    public long sumScores(String s) {
+        n = s.length();
+        if (n == 0) {
+            return 0;
+        }
+
+        hash = new long[n];
+        pows = new long[n];
+        pows[0] = 1;
+        hash[0] = s.charAt(0) - 'a' + 1;
+        for (int i = 1; i < n; i++) {
+            pows[i] = (pows[i-1] * base) % mod;
+            hash[i] = (hash[i-1] * base + (s.charAt(i)-'a'+1)) % mod;
+            if (hash[i] < 0) {
+                hash[i] += mod;
+            }
+        }
+
+        long score = 0;
+        for (int i = n - 1; i > 0; i--) {
+            score += maxPrefixLen(s, i);
+        }
+        score += n;
+
+        return score;
+    }
+
+    private long maxPrefixLen(String s, int start) {
+        int left = 0, right = n - start;
+        while (left < right) {
+            int mid = left + (right - left+1) / 2;
+            if (hash(0, mid-1) == hash(start, start+mid-1)) {
+                left = mid;
+            } else {
+                right = mid - 1;
+            }
+        }
+        return left;
+    }
+
+    private long hash(int start, int end) {
+        if (start == 0) {
+            return hash[end];
+        }
+        long h = (hash[end] - hash[start-1] * pows[end-start+1]) % mod;
+        if (h < 0) {
+            h += mod;
+        }
+        return h;
+    }
+}
+
+
+or
+
+
+class Solution {
+    public long sumScores(String s) {
+        char [] ch = s.toCharArray();
+        long sum = ch.length;
+        int x=0, y=0;
+        int []z = new int[ch.length];
+        
+        for(int i=1; i<ch.length; i++){
+            z[i] = Math.max(0, Math.min(z[i-x], y-i+1));
+            while(i+z[i]<ch.length && ch[z[i]]==ch[i+z[i]]){
+                x = i;
+                y = i+z[i];
+                z[i]++;
+            }
+            sum += z[i];
+        }
+        return sum;
+    }
+}
+
+
+or
+
+
+
+class Solution {
+    public static long sumScores(String s) {
+		int[] ans = patternMatching(s.toCharArray());
+		long sum = s.length();
+		for (int i : ans) {
+			sum += i;
+		}
+		return sum;
+	}
+
+	public static int[] patternMatching(char[] ch) {
+		int[] arr = new int[ch.length];
+		int low = 0;
+		int high = 0;
+		for (int i = 1; i < ch.length; i++) {
+			if (i > high) {
+				low = i;
+				high = i;
+				while (high < ch.length && ch[high] == ch[high - low]) {
+					high++;
+				}
+				arr[i] = high - low;
+				high--;
+			} else {
+				int k = i - low;
+				if (arr[k] < high - i + 1) {
+					arr[i] = arr[k];
+				} else {
+					low = i;
+					while (high < ch.length && ch[high] == ch[high - low]) {
+						high++;
+					}
+					arr[i] = high - low;
+					high--;
+				}
+			}
+		}
+		return arr;
+	}
+}
