@@ -1,0 +1,255 @@
+https://leetcode.com/problems/minimum-space-wasted-from-packaging/description/
+
+1889. Minimum Space Wasted From Packaging
+Hard
+Topics
+Companies
+Hint
+You have n packages that you are trying to place in boxes, one package in each box. There are m suppliers that each produce boxes of different sizes (with infinite supply). A package can be placed in a box if the size of the package is less than or equal to the size of the box.
+
+The package sizes are given as an integer array packages, where packages[i] is the size of the ith package. The suppliers are given as a 2D integer array boxes, where boxes[j] is an array of box sizes that the jth supplier produces.
+
+You want to choose a single supplier and use boxes from them such that the total wasted space is minimized. For each package in a box, we define the space wasted to be size of the box - size of the package. The total wasted space is the sum of the space wasted in all the boxes.
+
+For example, if you have to fit packages with sizes [2,3,5] and the supplier offers boxes of sizes [4,8], you can fit the packages of size-2 and size-3 into two boxes of size-4 and the package with size-5 into a box of size-8. This would result in a waste of (4-2) + (4-3) + (8-5) = 6.
+Return the minimum total wasted space by choosing the box supplier optimally, or -1 if it is impossible to fit all the packages inside boxes. Since the answer may be large, return it modulo 109 + 7.
+
+ 
+
+Example 1:
+
+Input: packages = [2,3,5], boxes = [[4,8],[2,8]]
+Output: 6
+Explanation: It is optimal to choose the first supplier, using two size-4 boxes and one size-8 box.
+The total waste is (4-2) + (4-3) + (8-5) = 6.
+Example 2:
+
+Input: packages = [2,3,5], boxes = [[1,4],[2,3],[3,4]]
+Output: -1
+Explanation: There is no box that the package of size 5 can fit in.
+Example 3:
+
+Input: packages = [3,5,8,10,11,12], boxes = [[12],[11,9],[10,5,14]]
+Output: 9
+Explanation: It is optimal to choose the third supplier, using two size-5 boxes, two size-10 boxes, and two size-14 boxes.
+The total waste is (5-3) + (5-5) + (10-8) + (10-10) + (14-11) + (14-12) = 9.
+ 
+
+Constraints:
+
+n == packages.length
+m == boxes.length
+1 <= n <= 105
+1 <= m <= 105
+1 <= packages[i] <= 105
+1 <= boxes[j].length <= 105
+1 <= boxes[j][k] <= 105
+sum(boxes[j].length) <= 105
+The elements in boxes[j] are distinct.
+
+
+
+#  java
+
+
+class Solution {
+    public int minWastedSpace(int[] packages, int[][] boxes) {
+        int n = packages.length;
+        final long inf = 1L << 62;
+        Arrays.sort(packages);
+        long ans = inf;
+        for (var box : boxes) {
+            Arrays.sort(box);
+            if (packages[n - 1] > box[box.length - 1]) {
+                continue;
+            }
+            long s = 0;
+            int i = 0;
+            for (int b : box) {
+                int j = search(packages, b, i);
+                s += 1L * (j - i) * b;
+                i = j;
+            }
+            ans = Math.min(ans, s);
+        }
+        if (ans == inf) {
+            return -1;
+        }
+        long s = 0;
+        for (int p : packages) {
+            s += p;
+        }
+        final int mod = (int) 1e9 + 7;
+        return (int) ((ans - s) % mod);
+    }
+
+    private int search(int[] nums, int x, int l) {
+        int r = nums.length;
+        while (l < r) {
+            int mid = (l + r) >> 1;
+            if (nums[mid] > x) {
+                r = mid;
+            } else {
+                l = mid + 1;
+            }
+        }
+        return l;
+    }
+}
+
+
+or
+
+
+class Solution {
+  public int minWastedSpace(int[] packages, int[][] boxes) {
+    final int MOD = 1_000_000_007;
+    final long INF = (long) 1e11;
+    final long packagesSum = Arrays.stream(packages).mapToLong(p -> p).sum();
+    long minBoxesSum = INF;
+
+    Arrays.sort(packages);
+
+    for (int[] box : boxes) {
+      Arrays.sort(box);
+      if (box[box.length - 1] < packages[packages.length - 1])
+        continue;
+      long accu = 0;
+      long i = 0;
+      for (final int b : box) {
+        final long j = firstGreaterEqual(packages, b + 1);
+        accu += b * (j - i);
+        i = j;
+      }
+      minBoxesSum = Math.min(minBoxesSum, accu);
+    }
+
+    return minBoxesSum == INF ? -1 : (int) ((minBoxesSum - packagesSum) % MOD);
+  }
+
+  private int firstGreaterEqual(int[] arr, int target) {
+    int l = 0;
+    int r = arr.length;
+    while (l < r) {
+      final int m = (l + r) / 2;
+      if (arr[m] >= target)
+        r = m;
+      else
+        l = m + 1;
+    }
+    return l;
+  }
+}
+
+or
+
+class Solution {
+      private static final int MOD = (int) (1e9 + 7);
+
+    public int minWastedSpace(int[] packages, int[][] boxes) {
+        final int n = packages.length;
+        Arrays.sort(packages);
+        final long[] pre = new long[n + 1];
+        for (int i = 1; i <= n; i++) {
+            pre[i] = pre[i - 1] + packages[i - 1];
+        }
+        long res = (long) 9e18;
+        for (int[] box : boxes) {
+            Arrays.sort(box);
+            if (packages[n - 1] > box[box.length - 1]) {
+                continue;
+            }
+            long curr = 0;
+            int prev = 0;
+            for (int size : box) {
+                if (size < packages[0]) {
+                    continue;
+                }
+                final int next = upperBound(packages, size);
+                final long sum = pre[next + 1] - pre[prev];
+                final long L = next - prev + 1;
+                final long add = (L * size) - sum;
+                prev = next + 1;
+                curr += add;
+            }
+            res = Math.min(res, curr);
+        }
+        return res == (long) 9e18 ? -1 : (int) (res % MOD);
+    }
+
+    private static int upperBound(int[] l, int tar) {
+        int lo = 0, hi = l.length - 1;
+        while (lo < hi) {
+            final int mid = lo + hi + 1 >>> 1;
+            if (l[mid] > tar) {
+                hi = mid - 1;
+            } else {
+                lo = mid;
+            }
+        }
+        return lo;
+    }
+}
+
+or
+
+
+class Solution {
+    public int minWastedSpace(int[] packages, int[][] boxes) {
+        boolean flag = false;
+        int n = packages.length;
+        int m = boxes.length;
+        long min = Long.MAX_VALUE, mod = 1_000_000_007;
+        long[] pre = new long[n];
+        
+        Arrays.sort(packages);
+        
+        pre[0] = packages[0];
+        
+        for(int i = 1; i < n; ++i)
+            pre[i] = pre[i - 1] + packages[i];
+        
+        for(int i = 0; i < m; ++i) {
+            Arrays.sort(boxes[i]);
+            
+            if(boxes[i][boxes[i].length - 1] >= packages[n - 1]) 
+                flag = true;
+        }
+        
+        if(!flag)
+            return -1;
+        
+        for(int[] a : boxes) {
+            m = a.length;
+            int prev = -1;
+            long ans = 0;
+            
+            if(a[m - 1] < packages[n - 1])
+                continue;
+            
+            for(int v : a) {
+                int x = prev + 1, y = n - 1, now = prev;
+                
+                while(x <= y) {
+                    int mid = (x + y) >> 1;
+                    
+                    if(packages[mid] <= v) {
+                        now = mid;
+                        x = mid + 1;
+                    }
+                    else {
+                        y = mid - 1;
+                    }
+                }
+                
+                long prefix = (now >= 0 ? pre[now] : 0) - (prev >= 0 ? pre[prev] : 0);
+                ans += 1l * (now - prev) * v - prefix;
+                prev = now;
+            }
+            
+            min = Math.min(ans, min);
+        }
+        
+        return (int) (min % mod);
+    }
+}
