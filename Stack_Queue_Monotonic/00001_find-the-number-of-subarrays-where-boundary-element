@@ -1,0 +1,154 @@
+https://leetcode.com/problems/find-the-number-of-subarrays-where-boundary-elements-are-maximum/description/
+
+3113. Find the Number of Subarrays Where Boundary Elements Are Maximum
+Hard
+Topics
+Companies
+Hint
+You are given an array of positive integers nums.
+
+Return the number of subarrays of nums, where the first and the last elements of the subarray are equal to the largest element in the subarray.
+
+ 
+
+Example 1:
+
+Input: nums = [1,4,3,3,2]
+
+Output: 6
+
+Explanation:
+
+There are 6 subarrays which have the first and the last elements equal to the largest element of the subarray:
+
+subarray [1,4,3,3,2], with its largest element 1. The first element is 1 and the last element is also 1.
+subarray [1,4,3,3,2], with its largest element 4. The first element is 4 and the last element is also 4.
+subarray [1,4,3,3,2], with its largest element 3. The first element is 3 and the last element is also 3.
+subarray [1,4,3,3,2], with its largest element 3. The first element is 3 and the last element is also 3.
+subarray [1,4,3,3,2], with its largest element 2. The first element is 2 and the last element is also 2.
+subarray [1,4,3,3,2], with its largest element 3. The first element is 3 and the last element is also 3.
+Hence, we return 6.
+
+Example 2:
+
+Input: nums = [3,3,3]
+
+Output: 6
+
+Explanation:
+
+There are 6 subarrays which have the first and the last elements equal to the largest element of the subarray:
+
+subarray [3,3,3], with its largest element 3. The first element is 3 and the last element is also 3.
+subarray [3,3,3], with its largest element 3. The first element is 3 and the last element is also 3.
+subarray [3,3,3], with its largest element 3. The first element is 3 and the last element is also 3.
+subarray [3,3,3], with its largest element 3. The first element is 3 and the last element is also 3.
+subarray [3,3,3], with its largest element 3. The first element is 3 and the last element is also 3.
+subarray [3,3,3], with its largest element 3. The first element is 3 and the last element is also 3.
+Hence, we return 6.
+
+Example 3:
+
+Input: nums = [1]
+
+Output: 1
+
+Explanation:
+
+There is a single subarray of nums which is [1], with its largest element 1. The first element is 1 and the last element is also 1.
+
+Hence, we return 1.
+
+ 
+
+Constraints:
+
+1 <= nums.length <= 105
+1 <= nums[i] <= 109
+
+
+
+# java
+
+
+class Solution {
+  public long numberOfSubarrays(int[] nums) {
+    Deque<int[]> stack = new ArrayDeque<>();
+    long ans = 0;
+    int top = -1;
+
+    for (final int num : nums) {
+      while (!stack.isEmpty() && stack.peek()[0] < num)
+        stack.pop();
+      if (stack.isEmpty() || stack.peek()[0] != num)
+        stack.push(new int[] {num, 0});
+      ans += ++stack.peek()[1];
+    }
+
+    return ans;
+  }
+}
+
+or
+
+
+class Solution {
+    public long numberOfSubarrays(int[] nums) {
+        Deque<int[]> stk = new ArrayDeque<>();
+        long ans = 0;
+        for (int x : nums) {
+            while (!stk.isEmpty() && stk.peek()[0] < x) {
+                stk.pop();
+            }
+            if (stk.isEmpty() || stk.peek()[0] > x) {
+                stk.push(new int[] {x, 1});
+            } else {
+                stk.peek()[1]++;
+            }
+            ans += stk.peek()[1];
+        }
+        return ans;
+    }
+}
+
+or
+
+class Solution {
+    public long numberOfSubarrays(int[] nums) {
+        ArrayDeque<int[]> s = new ArrayDeque<>();
+        long res = 0;
+        for (int c : nums) {
+            while (s.size() > 0 && s.peek()[0] < c)
+                s.pop();
+            if (s.size() == 0 || s.peek()[0] > c)
+                s.push(new int[]{c, 0});
+            res += ++s.peek()[1];
+        }
+        return res;
+    }
+}
+
+
+or
+
+
+class Solution {
+    public long numberOfSubarrays(int[] nums) {
+        int n = nums.length;
+        long[] ans = new long[n];
+        Stack<Integer> s = new Stack<>();
+        for(int i=0;i<n;i++){
+            while(!s.isEmpty() && nums[s.peek()] <= nums[i]){
+                if(nums[s.peek()] == nums[i]) ans[i] += ans[s.peek()];
+                s.pop();
+            }
+            ans[i]++;
+            s.push(i);
+        }
+        long sum = 0;
+        for(int i=0;i<n;i++){
+            sum += ans[i];
+        }
+        return sum;
+    }
+}
