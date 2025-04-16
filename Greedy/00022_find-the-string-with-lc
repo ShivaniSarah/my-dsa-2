@@ -1,0 +1,437 @@
+https://leetcode.com/problems/find-the-string-with-lcp/description/
+
+
+2573. Find the String with LCP
+Hard
+Topics
+Companies
+Hint
+We define the lcp matrix of any 0-indexed string word of n lowercase English letters as an n x n grid such that:
+
+lcp[i][j] is equal to the length of the longest common prefix between the substrings word[i,n-1] and word[j,n-1].
+Given an n x n matrix lcp, return the alphabetically smallest string word that corresponds to lcp. If there is no such string, return an empty string.
+
+A string a is lexicographically smaller than a string b (of the same length) if in the first position where a and b differ, string a has a letter that appears earlier in the alphabet than the corresponding letter in b. For example, "aabd" is lexicographically smaller than "aaca" because the first position they differ is at the third letter, and 'b' comes before 'c'.
+
+ 
+
+Example 1:
+
+Input: lcp = [[4,0,2,0],[0,3,0,1],[2,0,2,0],[0,1,0,1]]
+Output: "abab"
+Explanation: lcp corresponds to any 4 letter string with two alternating letters. The lexicographically smallest of them is "abab".
+Example 2:
+
+Input: lcp = [[4,3,2,1],[3,3,2,1],[2,2,2,1],[1,1,1,1]]
+Output: "aaaa"
+Explanation: lcp corresponds to any 4 letter string with a single distinct letter. The lexicographically smallest of them is "aaaa". 
+Example 3:
+
+Input: lcp = [[4,3,2,1],[3,3,2,1],[2,2,2,1],[1,1,1,3]]
+Output: ""
+Explanation: lcp[3][3] cannot be equal to 3 since word[3,...,3] consists of only a single letter; Thus, no answer exists.
+ 
+
+Constraints:
+
+1 <= n == lcp.length == lcp[i].length <= 1000
+0 <= lcp[i][j] <= n
+
+
+
+# java
+
+class Solution {
+    public String findTheString(int[][] lcp) {
+        int n = lcp.length;
+        char[] s = new char[n];
+        int i = 0;
+        for (char c = 'a'; c <= 'z'; ++c) {
+            while (i < n && s[i] != '\0') {
+                ++i;
+            }
+            if (i == n) {
+                break;
+            }
+            for (int j = i; j < n; ++j) {
+                if (lcp[i][j] > 0) {
+                    s[j] = c;
+                }
+            }
+        }
+        for (i = 0; i < n; ++i) {
+            if (s[i] == '\0') {
+                return "";
+            }
+        }
+        for (i = n - 1; i >= 0; --i) {
+            for (int j = n - 1; j >= 0; --j) {
+                if (s[i] == s[j]) {
+                    if (i == n - 1 || j == n - 1) {
+                        if (lcp[i][j] != 1) {
+                            return "";
+                        }
+                    } else if (lcp[i][j] != lcp[i + 1][j + 1] + 1) {
+                        return "";
+                    }
+                } else if (lcp[i][j] > 0) {
+                    return "";
+                }
+            }
+        }
+        return String.valueOf(s);
+    }
+}
+
+
+or
+
+
+class Solution {
+        public String findTheString(int[][] lcp) {
+        int n = lcp.length, c = 0, A[] = new int[n];
+        for (int i = 0; i < n; ++i) {
+            if (A[i] > 0) continue;
+            if (++c > 26) return "";
+            for (int j = i; j < n; ++j)
+                if (lcp[i][j] > 0)
+                    A[j] = c;
+        }
+        for (int i = 0; i < n; ++i) {
+            for (int j = 0; j < n; ++j) {
+                int v = i + 1 < n && j + 1 < n ? lcp[i + 1][j + 1] : 0;
+                v = A[i] == A[j] ? v + 1 : 0;
+                if (lcp[i][j] != v) return "";
+            }
+        }
+        StringBuilder res = new StringBuilder();
+        for (int a : A)
+            res.append((char)('a' + a - 1));
+        return res.toString();
+    }
+}
+
+
+or
+
+
+// union find
+
+class Solution {
+    class DSU {
+        public int[] roots;
+        public int[] sizes;
+        DSU(int n) {
+            roots = new int[n];
+            sizes = new int[n];
+            for (int i = 0; i < n; i++) {
+                roots[i] = i;
+                sizes[i] = 1;
+            }
+        }
+
+        public int find(int a) {
+            int rootA = roots[a];
+            if (a == rootA) {
+                return a;
+            }
+            roots[a] = find(roots[a]);
+            return roots[a];
+        }
+
+        public void union(int a, int b) {
+            int rootA = find(a);
+            int rootB = find(b);
+            if (rootA == rootB) {
+                return;
+            }
+
+            if (sizes[rootA] > sizes[rootB]) {
+                roots[rootB] = rootA;
+                sizes[rootA] += sizes[rootB];
+            } else {
+                roots[rootA] = rootB;
+                sizes[rootB] += sizes[rootA];
+            }
+        }
+    }
+    public String findTheString(int[][] lcp) {
+        int n = lcp.length;
+        
+        DSU dsu = new DSU(n);
+        for (int i = 0; i < n; i++) {
+            for (int j = i+1; j < n; j++) {
+                if (lcp[i][j] > 0) {
+                    dsu.union(i, j);
+                }
+            }
+        }
+        char c = 'a';
+        char[] ch = new char[n];
+        
+        for (int i = 0; i < n; i++) {
+            int root = dsu.find(i);
+            if (ch[root] == 0) {    
+                if (c > 'z') {
+                    return "";
+                }
+                ch[root] = c;
+                c++;                
+            }
+            ch[i] = ch[root];
+        }
+        for (int start = n-1; start >= 0; start--) {
+            int i = start;
+            int j = n-1;
+            while (i >= 0 && j >= 0) {
+                int cnt = (ch[i] == ch[j]) ? 1 : 0;
+                if (j < (n-1) && cnt > 0) {
+                    cnt += lcp[i+1][j+1];
+                }
+                if (lcp[i][j] != cnt || lcp[j][i] != cnt) {
+                    return "";
+                }
+                i--;
+                j--;
+            }
+        }
+        return String.valueOf(ch);
+    }
+}
+
+or
+
+
+// DSU
+
+class Solution {
+    public String findTheString(int[][] lcp) {
+        int n = lcp.length;
+        int[] parent = new int[n], rank = new int[n], chars = new int[n], str = new int[n];
+        for(int i = 0; i < n; ++i){
+            parent[i] = i;
+            rank[i] = 1;
+        }
+        
+        for(int i = 0; i < n; ++i){
+            for(int j = i + 1; j < n; ++j){
+                if(lcp[i][j] > 0){
+                    union(parent, rank, i, j);
+                }
+            }
+        }
+        
+        int c = 0, par;
+        for(int i = 0; i < n; ++i){
+            par = find(parent, i);
+            if(chars[par] == 0){
+                chars[par] = ++c;
+            }
+            if(c > 26) return ""; // this condition is difficult to think
+            str[i] = chars[par];
+        }
+        // System.out.println(Arrays.toString(str));
+        int val;
+        int[][] lcpNew = new int[n][n];
+        for(int i = n-1; i >= 0; --i){
+            for(int j = n-1; j >= 0; --j){
+                val = (i+1)<n && (j+1)<n ? lcpNew[i+1][j+1] : 0;
+                val = str[i] == str[j] ? 1 + val : 0;
+                lcpNew[i][j] = val;
+                if(lcpNew[i][j] != lcp[i][j]) return "";
+            }
+        }
+        StringBuilder sb = new StringBuilder();
+        for(int e : str){
+            sb.append((char)(e + 'a' - 1));
+        }
+        return sb.toString();
+    }
+    
+    private int find(int[] parent, int x){
+        if(x == parent[x]) return x;
+        return parent[x] = find(parent, parent[x]);
+    }
+    
+    private void union(int[] parent, int[] rank, int u, int v){
+        u = find(parent, u); v= find(parent, v);
+        if(u == v) return;
+        if(rank[u] >= rank[v]){
+            parent[v] = u;
+            rank[u] += rank[v];
+        }
+        else{
+            parent[u] = v;
+            rank[v] += rank[u];
+        }
+        return;
+    }
+}
+
+or
+
+// bests
+
+
+class Solution {
+    public String findTheString(int[][] lcp) {
+        int n = lcp.length;
+        
+        // potential answer
+        char [] arr = new char [n];
+        arr[0] = 'a';
+        
+        char test;
+        boolean found;
+        
+        for (int i = 1; i < n; ++i) {
+            test = 'a';
+            found = false;
+            
+            for (int j = 0; j < i; ++j){
+                test = (char)Math.max(test, arr[j]);
+                
+                if (lcp[i][j] != 0){
+                    found = true;
+                    arr[i] = arr[j];  
+                    break;
+                }    
+            }
+            
+            if (found)
+                continue;
+            
+            ++test;
+            arr[i] = test;
+            
+            
+            // More than 26 characters needed. 
+            if (test > 'z')
+                return "";
+        }
+        
+        // lcp from potential string
+        int [][] dp = new int [n + 1][n + 1];
+        
+        int val;
+        
+        for (int i = n - 1; i >= 0; --i){
+            for (int j = n - 1; j >= 0; --j) {
+                if (arr[i] != arr[j])
+                    val = 0;
+                else
+                    val = 1 + dp[i + 1][j + 1];
+                
+                dp[i][j] = val;
+            }
+        }
+        
+        // compare dp and lcp as both should be same
+        for (int i = n - 1; i >= 0; --i){
+            for (int j = n - 1; j >= 0; --j) {
+                if (dp[i][j] != lcp[i][j])
+                    return "";
+            }
+        }
+        
+        return String.valueOf(arr);
+    }
+}
+
+or
+
+
+// dp 
+
+
+class Solution {
+    public String findTheString(int[][] lcp) {
+        
+        int n = lcp.length;
+        char arr[] = new char[n];
+        arr[0] = 'a';
+
+        for(int i = 1; i < n; i++){
+            char test = 'a';
+            boolean found = false;
+
+            for(int j = 0; j < i; j++){
+                test = (char)Math.max(test, arr[j]);
+
+                if(lcp[i][j] != 0){
+                    found = true;
+                    arr[i] = arr[j];
+                    break;
+                }
+            }
+
+            if(found)
+                continue;
+
+            arr[i] = (char)(++test);
+
+            if(test > 'z')
+                return "";
+        }
+
+
+        int dp[][] = new int[n+1][n+1];
+        
+        for(int i = n-1; i >= 0; i--){
+            for(int j = n-1; j >= 0; j--){
+                int val = 0;
+
+                if(arr[i] == arr[j]){
+                    val = 1 + dp[i+1][j+1];
+                }
+                dp[i][j] = val;
+            }
+        }
+
+        for(int i = 0; i < n; i++){
+            for(int j = 0; j < n; j++){
+                
+                if(dp[i][j] != lcp[i][j])
+                    return "";
+            }
+        }
+
+        StringBuilder result = new StringBuilder();
+        for(char ch : arr)
+            result.append(ch);
+
+        return result.toString();
+    }
+}
+
+or
+
+
+class Solution {
+    public String findTheString(int[][] lcp) {
+        char c = 'a';
+        int n = lcp.length;
+        for (int i = 0; i < n; i++) {
+            if (lcp[i][i] != n - i) return "";
+            for (int j = 1; j < n; j++) if (lcp[i][j] != lcp[j][i]) return "";
+        }
+        char[] output = new char[n];
+        Arrays.fill(output, '*');
+        for (int i = 0; i < n; i++) 
+            if (output[i] == '*') {
+                if (c > 'z') return "";
+                for (int j = i; j < n; j++) if (lcp[i][j] > 0) {
+                    if (output[j] != '*') return "";
+                    output[j] = c;
+                }
+                c++;
+            }
+            else for (int j = i + 1; j < n; j++) if (lcp[i][j] > 0 && output[i] != output[j]) return "";
+        for (int i = 0; i < n; i++) for (int j = i + 1; j < n; j++) if (lcp[i][j] > 0) {
+            int k = 0;
+            while (i + k < n && j + k < n && output[i + k] == output[j + k]) k++;
+            if (lcp[i][j] != k) return "";
+        }
+        return new String(output);
+    }
+}
