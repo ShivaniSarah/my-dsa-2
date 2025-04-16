@@ -1,0 +1,364 @@
+https://leetcode.com/problems/rearranging-fruits/description/
+
+2561. Rearranging Fruits
+Hard
+Topics
+Companies
+Hint
+You have two fruit baskets containing n fruits each. You are given two 0-indexed integer arrays basket1 and basket2 representing the cost of fruit in each basket. You want to make both baskets equal. To do so, you can use the following operation as many times as you want:
+
+Chose two indices i and j, and swap the ith fruit of basket1 with the jth fruit of basket2.
+The cost of the swap is min(basket1[i],basket2[j]).
+Two baskets are considered equal if sorting them according to the fruit cost makes them exactly the same baskets.
+
+Return the minimum cost to make both the baskets equal or -1 if impossible.
+
+ 
+
+Example 1:
+
+Input: basket1 = [4,2,2,2], basket2 = [1,4,1,2]
+Output: 1
+Explanation: Swap index 1 of basket1 with index 0 of basket2, which has cost 1. Now basket1 = [4,1,2,2] and basket2 = [2,4,1,2]. Rearranging both the arrays makes them equal.
+Example 2:
+
+Input: basket1 = [2,3,4,1], basket2 = [3,2,5,1]
+Output: -1
+Explanation: It can be shown that it is impossible to make both the baskets equal.
+ 
+
+Constraints:
+
+basket1.length == basket2.length
+1 <= basket1.length <= 105
+1 <= basket1[i],basket2[i] <= 109
+
+
+
+# java
+
+class Solution {
+  public long minCost(int[] basket1, int[] basket2) {
+    long ans = 0;
+    List<Integer> swapped = new ArrayList<>();
+    Map<Integer, Integer> count = new HashMap<>();
+
+    for (final int b : basket1)
+      count.merge(b, 1, Integer::sum);
+
+    for (final int b : basket2)
+      count.merge(b, -1, Integer::sum);
+
+    for (Map.Entry<Integer, Integer> entry : count.entrySet()) {
+      final Integer num = entry.getKey();
+      final Integer freq = entry.getValue();
+      if (freq % 2 != 0)
+        return -1;
+      for (int i = 0; i < Math.abs(freq) / 2; ++i)
+        swapped.add(num);
+    }
+
+    final int minNum =
+        Math.min(Arrays.stream(basket1).min().getAsInt(), Arrays.stream(basket2).min().getAsInt());
+    Collections.sort(swapped);
+
+    for (int i = 0; i < swapped.size() / 2; ++i)
+      ans += Math.min(minNum * 2, swapped.get(i));
+    return ans;
+  }
+}
+
+
+or
+
+
+class Solution {
+    public long minCost(int[] basket1, int[] basket2) {
+        int n = basket1.length;
+        Map<Integer, Integer> cnt = new HashMap<>();
+        for (int i = 0; i < n; ++i) {
+            cnt.merge(basket1[i], 1, Integer::sum);
+            cnt.merge(basket2[i], -1, Integer::sum);
+        }
+        int mi = 1 << 30;
+        List<Integer> nums = new ArrayList<>();
+        for (var e : cnt.entrySet()) {
+            int x = e.getKey(), v = e.getValue();
+            if (v % 2 != 0) {
+                return -1;
+            }
+            for (int i = Math.abs(v) / 2; i > 0; --i) {
+                nums.add(x);
+            }
+            mi = Math.min(mi, x);
+        }
+        Collections.sort(nums);
+        int m = nums.size();
+        long ans = 0;
+        for (int i = 0; i < m / 2; ++i) {
+            ans += Math.min(nums.get(i), mi * 2);
+        }
+        return ans;
+    }
+}
+
+
+or
+
+
+class Solution {
+        public long minCost(int[] A, int[] B) {
+        TreeMap<Integer, Integer> count = new TreeMap<>();
+        for (int a : A)
+            count.merge(a, 1, Integer::sum);
+        for (int a : B)
+            count.merge(a, -1, Integer::sum);
+        List<Integer> swaps = new ArrayList<>();
+        long res = 0, small = count.firstKey();
+        for (int a : count.keySet()) {
+            if (count.get(a) % 2 > 0) return -1;
+            int v = Math.abs(count.get(a)) / 2;
+            for (int i = 0; i < v; ++i)
+                swaps.add(a);
+        }
+        for (int i = 0; i < swaps.size() / 2; ++i)
+            res += Math.min(swaps.get(i), small * 2);
+        return res;
+    }
+}
+
+
+or
+
+class Solution {
+    public long minCost(int[] basket1, int[] basket2) {
+        Map<Integer, Integer> cnt = new HashMap<>();
+        for (int c: basket1) 
+            cnt.put(c, cnt.getOrDefault(c, 0) + 1);
+        for (int c: basket2) 
+            cnt.put(c, cnt.getOrDefault(c, 0) - 1);
+        List<Integer> last = new ArrayList<>();
+        for (Map.Entry<Integer, Integer> e: cnt.entrySet()) {
+            int v = e.getValue();
+            // if v is odd, an even distribution is never possible
+            if (v % 2 != 0) return -1;
+            // the count of transferred k is |v|/2
+            for (int i = 0; i < Math.abs(v) / 2; ++i)
+                last.add(e.getKey());
+        }
+        // find the min of two input arrays as the intermediate
+        int minx = Math.min(Arrays.stream(basket1).min().getAsInt(),
+                            Arrays.stream(basket2).min().getAsInt());
+        // Use quickselect instead of sort can get a better complexity
+        Collections.sort(last);
+        long res = 0;
+        // The first half may be the cost
+        for (int i = 0; i < last.size() / 2; ++i) 
+            res += Math.min(last.get(i), minx * 2);
+        return res;
+    }
+}
+
+
+or
+
+
+class Solution {
+    public long minCost(int[] basket1, int[] basket2) {
+        int min=basket1[0];
+        HashMap<Integer,Integer> hm=new HashMap<>();
+        for(int f:basket1){
+            min=Math.min(min,f);
+            hm.put(f,hm.getOrDefault(f,0)+1);
+        }
+
+        for(int f:basket2){
+            min=Math.min(min,f);
+            hm.put(f,hm.getOrDefault(f,0)-1);
+            
+        }
+
+        PriorityQueue<Integer> pq=new PriorityQueue<>();
+        for(int key:hm.keySet()){
+            if(hm.get(key)%2!=0){
+                return -1;
+            }
+
+            for(int i=1;i<=Math.abs(hm.get(key))/2;i++){
+                pq.add(key);
+            }
+        }
+
+
+        int k=pq.size()/2;
+        long ans=0;
+        while(k-->0){
+            if(pq.peek()<2*min){
+                ans+=pq.remove();
+            }else{
+                ans+=2*min;
+            }
+        }
+
+        return ans;
+        
+    }
+}
+
+
+or
+
+class Solution {
+    public long minCost(int[] basket1, int[] basket2) {
+        var ac = new HashMap<Integer, Integer>();
+        var cm = new HashMap<Integer, Integer>();
+        for (int i = 0; i < basket1.length; i++) {
+            ac.merge(basket1[i], 1, Integer::sum);
+            cm.merge(basket1[i], 1, Integer::sum);
+            cm.merge(basket2[i], 1, Integer::sum);
+        }
+
+        int min = Integer.MAX_VALUE;
+        var m = new TreeMap<Integer, Integer>();
+        for (var e : cm.entrySet()) {
+            if (e.getValue() % 2 == 1) {
+                return -1;
+            }
+            min = Math.min(min, e.getKey());
+            var missingCount = ac.getOrDefault(e.getKey(), 0) - e.getValue() / 2;
+            if (missingCount == 0) {
+                continue;
+            }
+            // we don't care if missingCount is positive or negative, we care that it's != 0
+            // i.e. arrays have different count of this number
+            m.merge(e.getKey(), Math.abs(missingCount), Integer::sum);
+        }
+
+        long res = 0;
+        while (m.size() > 0) {
+            if (m.firstKey() <= min * 2) {
+                // swap min missing with max missing
+                res += m.firstKey();
+                if (m.merge(m.firstKey(), -1, Integer::sum) == 0) {
+                    m.remove(m.firstKey());
+                }
+                if (m.merge(m.lastKey(), -1, Integer::sum) == 0) {
+                    m.remove(m.lastKey());
+                }
+            } else {
+                // use min twice to swap two largest
+                res += min * 2;
+                if (m.merge(m.lastKey(), -1, Integer::sum) == 0) {
+                    m.remove(m.lastKey());
+                }
+                if (m.merge(m.lastKey(), -1, Integer::sum) == 0) {
+                    m.remove(m.lastKey());
+                }
+            }
+        }
+        return res;
+    }
+}
+
+or
+
+class Solution {
+    public long minCost(final int[] basket1, final int[] basket2) {
+        final int n = basket1.length;
+        final Map<Integer, Integer> counts = new HashMap<>();
+
+        for(int i = 0; i < n; ++i)
+            counts.put(basket1[i], counts.getOrDefault(basket1[i], 0) + 1);
+
+        for(int i = 0; i < n; ++i)
+            counts.put(basket2[i], counts.getOrDefault(basket2[i], 0) - 1);
+
+        final List<Integer> swaps = new ArrayList<>();
+
+        int min = Integer.MAX_VALUE;
+
+        for(final Map.Entry<Integer, Integer> entry : counts.entrySet()) {
+            final int num = entry.getKey(), count = entry.getValue();
+
+            if(count % 2 > 0)
+                return -1;
+
+            min = Math.min(num, min);
+
+            for(int i = 0; i < Math.abs(count) / 2; ++i)
+                swaps.add(num);
+        }
+
+        Collections.sort(swaps);
+
+        long result = 0;
+
+        for(int i = 0; i < swaps.size() / 2; ++i)
+            result += Math.min(swaps.get(i), min * 2);
+
+        return result;
+    }
+}
+
+
+or
+
+
+// bets
+
+
+class Solution {
+    public long minCost(int[] basket1, int[] basket2) {
+        Map<Integer, Integer> countMap = new HashMap<>();
+        long ans = 0;
+        int mn = Integer.MAX_VALUE;
+        List<Integer> a = new ArrayList<>();
+        List<Integer> b = new ArrayList<>();
+
+        // Count occurrences in basket1 and find minimum element
+        for (int num : basket1) {
+            countMap.put(num, countMap.getOrDefault(num, 0) + 1);
+            mn = Math.min(mn, num);
+        }
+
+        // Count occurrences in basket2 and find minimum element
+        for (int num : basket2) {
+            countMap.put(num, countMap.getOrDefault(num, 0) - 1);
+            mn = Math.min(mn, num);
+        }
+
+        // Separate swapping elements from both baskets
+        for (Map.Entry<Integer, Integer> entry : countMap.entrySet()) {
+            int count = entry.getValue();
+            int num = entry.getKey();
+            if (count % 2 != 0) {
+                return -1; // Return -1 if any number has odd count
+            }
+            int halfCount = count / 2;
+            if (halfCount > 0) {
+                while (halfCount-- > 0) {
+                    a.add(num);
+                }
+            } else if (halfCount < 0) {
+                halfCount = -halfCount;
+                while (halfCount-- > 0) {
+                    b.add(num);
+                }
+            }
+        }
+
+        if (a.size() != b.size()) {
+            return -1; // Return -1 if the sizes of the two lists are not equal
+        }
+
+        int l = 0, r = b.size() - 1;
+        while (l < a.size()) {
+            ans += 2 * mn < Math.min(a.get(l), b.get(r)) ? 2 * mn : Math.min(a.get(l), b.get(r));
+            l++;
+            r--;
+        }
+
+        return ans;
+    }
+}
+
