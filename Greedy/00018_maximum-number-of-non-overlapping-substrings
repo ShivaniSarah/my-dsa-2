@@ -1,0 +1,608 @@
+https://leetcode.com/problems/maximum-number-of-non-overlapping-substrings/description/
+
+https://leetcode.ca/2020-01-28-1520-Maximum-Number-of-Non-Overlapping-Substrings/
+
+
+1520. Maximum Number of Non-Overlapping Substrings
+Hard
+Topics
+Companies
+Hint
+Given a string s of lowercase letters, you need to find the maximum number of non-empty substrings of s that meet the following conditions:
+
+The substrings do not overlap, that is for any two substrings s[i..j] and s[x..y], either j < x or i > y is true.
+A substring that contains a certain character c must also contain all occurrences of c.
+Find the maximum number of substrings that meet the above conditions. If there are multiple solutions with the same number of substrings, return the one with minimum total length. It can be shown that there exists a unique solution of minimum total length.
+
+Notice that you can return the substrings in any order.
+
+ 
+
+Example 1:
+
+Input: s = "adefaddaccc"
+Output: ["e","f","ccc"]
+Explanation: The following are all the possible substrings that meet the conditions:
+[
+  "adefaddaccc"
+  "adefadda",
+  "ef",
+  "e",
+  "f",
+  "ccc",
+]
+If we choose the first string, we cannot choose anything else and we'd get only 1. If we choose "adefadda", we are left with "ccc" which is the only one that doesn't overlap, thus obtaining 2 substrings. Notice also, that it's not optimal to choose "ef" since it can be split into two. Therefore, the optimal way is to choose ["e","f","ccc"] which gives us 3 substrings. No other solution of the same number of substrings exist.
+Example 2:
+
+Input: s = "abbaccd"
+Output: ["d","bb","cc"]
+Explanation: Notice that while the set of substrings ["d","abba","cc"] also has length 3, it's considered incorrect since it has larger total length.
+ 
+
+Constraints:
+
+1 <= s.length <= 105
+s contains only lowercase English letters.
+
+
+# java
+
+
+// dp
+
+
+class Solution {
+    public List<String> maxNumOfSubstrings(String s) {
+        int n = s.length();
+        int[] left = new int[26], right = new int[26];
+        Arrays.fill(left, -1);
+        Arrays.fill(right, -1);
+
+        for (int i = 0; i < n; ++i) {
+            int c = s.charAt(i) - 'a';
+            if (left[c] == -1) left[c] = i;
+            right[c] = i;
+        }
+
+        for (int i = 0; i < 26; ++i) {
+            if (left[i] == -1) continue;
+            for (int j = left[i] + 1; j < right[i]; ++j) {
+                int ch = s.charAt(j) - 'a';
+                if (left[ch] < left[i]) j = left[ch] - 1; // rewind
+                left[i] = Math.min(left[i], left[ch]);
+                right[i] = Math.max(right[i], right[ch]);
+            }
+        }
+
+        int[] dp = new int[n + 1];
+        int[] pick = new int[n + 1];
+        int[] len = new int[n + 1];
+        Arrays.fill(pick, -1);
+        Arrays.fill(len, n + 1);
+
+        for (int i = 0; i < n; ++i) {
+            len[i + 1] = len[i];
+            pick[i + 1] = pick[i];
+            dp[i + 1] = dp[i];
+
+            int j = 0;
+            for (; j < 26; ++j) {
+                if (right[j] == i) break;
+            }
+
+            if (j == 26 || dp[left[j]] + 1 < dp[i + 1]) continue;
+
+            int currLen = right[j] - left[j] + 1;
+            if (dp[left[j]] + 1 > dp[i + 1] || len[left[j]] + currLen < len[i]) {
+                len[i + 1] = len[left[j]] + currLen;
+                pick[i + 1] = j;
+            }
+
+            dp[i + 1] = Math.max(dp[i + 1], dp[left[j]] + 1);
+        }
+
+        List<String> ans = new ArrayList<>();
+        for (int p = pick[n]; p != -1; p = pick[left[p]]) {
+            ans.add(s.substring(left[p], right[p] + 1));
+        }
+
+        Collections.reverse(ans); // reverse to match order of reconstruction
+        return ans;
+    }
+}
+
+
+or
+
+
+// greedy
+
+class Solution {
+    private int getRightEdge(String s, int i, int[] left, int[] right) {
+        int R = right[s.charAt(i) - 'a'];
+        for (int j = i; j <= R; ++j) {
+            if (left[s.charAt(j) - 'a'] < i) return -1;
+            R = Math.max(R, right[s.charAt(j) - 'a']);
+        }
+        return R;
+    }
+
+    public List<String> maxNumOfSubstrings(String s) {
+        int n = s.length();
+        int[] left = new int[26], right = new int[26];
+        Arrays.fill(left, -1);
+        Arrays.fill(right, -1);
+
+        for (int i = 0; i < n; ++i) {
+            int c = s.charAt(i) - 'a';
+            if (left[c] == -1) left[c] = i;
+            right[c] = i;
+        }
+
+        List<String> ans = new ArrayList<>();
+        int R = -1;
+
+        for (int i = 0; i < n; ++i) {
+            int nextR = getRightEdge(s, i, left, right);
+            if (nextR == -1) continue;
+            if (i > R) ans.add(""); // start a new substring if no overlap
+            R = nextR;
+            ans.set(ans.size() - 1, s.substring(i, R + 1));
+        }
+
+        return ans;
+    }
+}
+
+
+or
+
+// Interval Scheduling Maximization Problem (ISMP)
+// First get the covering ranges of all the characters in s. There are at most 26 ranges.
+// Then the problem becomes a classic problem – finding the maximum set of non-overlapping intervals,
+// aka, Interval Scheduling Maximization Problem.
+
+
+class Solution {
+    public List<String> maxNumOfSubstrings(String s) {
+        int n = s.length();
+        int[] left = new int[26], right = new int[26];
+        Arrays.fill(left, -1);
+        Arrays.fill(right, -1);
+
+        for (int i = 0; i < n; ++i) {
+            int c = s.charAt(i) - 'a';
+            if (left[c] == -1) left[c] = i;
+            right[c] = i;
+        }
+
+        List<int[]> ranges = new ArrayList<>();
+        for (int i = 0; i < 26; ++i) {
+            if (left[i] == -1) continue;
+            int first = left[i], last = right[i];
+            boolean valid = true;
+            for (int j = first; j <= last; ++j) {
+                int ch = s.charAt(j) - 'a';
+                if (left[ch] < first) {
+                    valid = false;
+                    break;
+                }
+                first = Math.min(first, left[ch]);
+                last = Math.max(last, right[ch]);
+            }
+            if (valid && first == left[i]) {
+                ranges.add(new int[]{last, first});
+            }
+        }
+
+        ranges.sort(Comparator.comparingInt(a -> a[0]));
+        List<String> ans = new ArrayList<>();
+        int end = -1;
+        for (int[] range : ranges) {
+            int first = range[1], last = range[0];
+            if (first > end) {
+                ans.add(s.substring(first, last + 1));
+                end = last;
+            }
+        }
+
+        return ans;
+    }
+}
+
+
+or
+
+class Solution {
+    public List<String> maxNumOfSubstrings(String s) {
+        Map<Character, int[]> startEndMap = new HashMap<Character, int[]>();
+        int length = s.length();
+        for (int i = 0; i < length; i++) {
+            char c = s.charAt(i);
+            int[] startEnd = startEndMap.getOrDefault(c, new int[]{-1, -1});
+            if (startEnd[0] < 0)
+                startEnd[0] = i;
+            startEnd[1] = i;
+            startEndMap.put(c, startEnd);
+        }
+        int[] endIndices = new int[length];
+        Arrays.fill(endIndices, -1);
+        for (int i = 0; i < length; i++) {
+            char c = s.charAt(i);
+            int[] startEnd = startEndMap.get(c);
+            if (startEnd[0] != i)
+                continue;
+            boolean flag = true;
+            int curEnd = startEnd[1];
+            for (int j = i + 1; j < length; j++) {
+                if (j > curEnd)
+                    break;
+                char nextC = s.charAt(j);
+                int[] nextStartEnd = startEndMap.get(nextC);
+                if (nextStartEnd[0] < i) {
+                    flag = false;
+                    break;
+                }
+                curEnd = Math.max(curEnd, nextStartEnd[1]);
+            }
+            if (flag)
+                endIndices[i] = curEnd;
+        }
+        List<String> list = new ArrayList<String>();
+        int curStart = -1, curEnd = -1;
+        for (int i = 0; i < length; i++) {
+            if (i == curEnd) {
+                list.add(s.substring(curStart, curEnd + 1));
+                continue;
+            }
+            int end = endIndices[i];
+            if (end < 0)
+                continue;
+            if (curEnd < i) {
+                curStart = i;
+                curEnd = end;
+            } else if (i > curStart && end < curEnd) {
+                curStart = i;
+                curEnd = end;
+            }
+            if (i == curEnd)
+                list.add(s.substring(curStart, curEnd + 1));
+        }
+        return list;
+    }
+}
+
+
+or
+
+class Solution {
+    public List<String> maxNumOfSubstrings(String s) {
+        int n = s.length();
+        List<String> ans = new ArrayList<>();
+
+        int[] leftmost = new int[26];
+        int[] rightmost = new int[26];
+        Arrays.fill(leftmost, n);
+        Arrays.fill(rightmost, -1);
+
+        for (int i = 0; i < n; ++i) {
+            int c = s.charAt(i) - 'a';
+            leftmost[c] = Math.min(leftmost[c], i);
+            rightmost[c] = i;
+        }
+
+        int right = -1;
+
+        for (int i = 0; i < n; ++i) {
+            if (i != leftmost[s.charAt(i) - 'a']) continue;
+
+            int newRight = getNewRight(i, s, leftmost, rightmost);
+            if (newRight == -1) continue;
+
+            if (i <= right && !ans.isEmpty()) {
+                ans.set(ans.size() - 1, s.substring(i, newRight + 1));
+            } else {
+                ans.add(s.substring(i, newRight + 1));
+            }
+            right = newRight;
+        }
+
+        return ans;
+    }
+
+    private int getNewRight(int i, String s, int[] leftmost, int[] rightmost) {
+        int right = rightmost[s.charAt(i) - 'a'];
+        for (int j = i; j <= right; ++j) {
+            int c = s.charAt(j) - 'a';
+            if (leftmost[c] < i) return -1;
+            right = Math.max(right, rightmost[c]);
+        }
+        return right;
+    }
+}
+
+
+or
+
+
+class Solution {
+    public List<String> maxNumOfSubstrings(String s) {
+        
+        List<String> res=new ArrayList<>();
+        
+        Map<Character,int[]> map=new HashMap<>();
+        
+        for(int i=0;i<s.length();i++){
+            if(map.containsKey(s.charAt(i))){
+                map.get(s.charAt(i))[1]=i;
+            }else{
+                map.put(s.charAt(i),new int[]{i,i});
+            }
+        }
+        
+        int prevEnd=-1;
+        for(int i=0;i<s.length();i++){
+            
+            int start=map.get(s.charAt(i))[0];
+            //if i is the left most index of this character only then we can start a substring here
+            if(start==i){
+                int newEnd= getRightMost(s,map,i);
+                if(newEnd!= -1){
+                    //if a new substring is found
+                    if(newEnd>prevEnd){
+                        res.add("");
+                    }
+                    prevEnd=newEnd;
+                    // if new end is less than the prev End which means inside prev substring we found a more shorter substring
+                    res.set(res.size()-1,s.substring(i,prevEnd+1));     
+                }
+            }
+            
+            
+        }
+        
+        return res;
+      
+    }
+    
+    public int getRightMost(String s,Map<Character,int[]> map,int start){
+        int end=map.get(s.charAt(start))[1];
+        
+        for(int i=start;i<=end;i++){
+            //if any inside substring has a start before this substring, then we will return -1,
+            //which means we cannot start a substring at index i as it contains a char whose start
+            //is less than this i .
+            if(map.get(s.charAt(i))[0]<start) return -1;
+            end=Math.max(end,map.get(s.charAt(i))[1]);              
+        }
+        
+        return end;
+    }
+    
+    
+}
+
+
+or
+
+class Solution {
+    public List<String> maxNumOfSubstrings(String s) {
+	// record first and last position for each character
+	int[] first = new int[26];
+	Arrays.fill(first, s.length());
+	int[] last = new int[26];
+	Arrays.fill(last, -1);
+	for (int i = 0; i < s.length(); i++) {
+		int c = s.charAt(i) - 'a';
+		first[c] = Math.min(first[c], i);
+		last[c] = Math.max(last[c], i);
+	}
+
+	// make valid substrings starting from every index (record the ending index)
+	int[] l = new int[s.length()];
+	Arrays.fill(l, -1);
+
+	for (int i = 0; i < s.length(); i++) {
+		if (last[s.charAt(i) - 'a'] == -1) continue;
+		if (first[s.charAt(i) - 'a'] != i) continue;
+
+		int c = i;
+		int max = last[s.charAt(c) - 'a'];
+		while (true) {
+			if (c == max) {
+				l[i] = max;
+				break;
+			}
+			c++;
+			if (first[s.charAt(c) - 'a'] < i) break;
+			max = Math.max(max, last[s.charAt(c) - 'a']);
+		}
+	}
+
+	// find the minimum last index every time from the list.
+	List<String> ans = new ArrayList<>();
+	int start = 0;
+	while (true) {
+		int min = Integer.MAX_VALUE;
+		int minIndex = -1;
+		for (int i = start; i <= Math.min(min, s.length() - 1); i++) {
+			if (l[i] != -1  && l[i] <= min) {
+				min = l[i];
+				minIndex = i;
+			}
+		}
+		if (minIndex == -1) break;
+		ans.add(s.substring(minIndex, l[minIndex] + 1));
+		start = min + 1;
+	}
+	return ans;
+}
+    
+}
+
+
+or
+
+
+// kosaraju
+
+import java.util.*;
+
+class Solution {
+    public List<String> maxNumOfSubstrings(String s) {
+        int n = s.length();
+        // Step 1: Record first and last occurrence for each letter.
+        int[] left = new int[26], right = new int[26];
+        Arrays.fill(left, -1);
+        Arrays.fill(right, -1);
+        for (int i = 0; i < n; i++) {
+            int c = s.charAt(i) - 'a';
+            if (left[c] == -1) left[c] = i;
+            right[c] = i;
+        }
+        
+        // Step 2: For each letter, try to compute a candidate interval via expansion.
+        List<int[]> candidates = new ArrayList<>();
+        for (int c = 0; c < 26; c++) {
+            if (left[c] == -1) continue;
+            int start = left[c], end = right[c];
+            boolean valid = true;
+            // Expand the interval to include all occurrences of characters inside.
+            for (int j = start; j <= end; j++) {
+                int cc = s.charAt(j) - 'a';
+                if (left[cc] < start) {
+                    valid = false;
+                    break;
+                }
+                end = Math.max(end, right[cc]);
+            }
+            // Recheck validity.
+            if (valid) {
+                for (int j = start; j <= end; j++) {
+                    int cc = s.charAt(j) - 'a';
+                    if (left[cc] < start || right[cc] > end) {
+                        valid = false;
+                        break;
+                    }
+                }
+            }
+            if (valid) {
+                candidates.add(new int[]{start, end});
+            }
+        }
+        
+        // Remove duplicate intervals (possible when different letters yield the same candidate)
+        candidates.sort((a, b) -> a[0] - b[0]);
+        List<int[]> uniqueCandidates = new ArrayList<>();
+        for (int[] intv : candidates) {
+            if (uniqueCandidates.isEmpty() || uniqueCandidates.get(uniqueCandidates.size()-1)[0] != intv[0]
+                    || uniqueCandidates.get(uniqueCandidates.size()-1)[1] != intv[1]) {
+                uniqueCandidates.add(intv);
+            }
+        }
+        candidates = uniqueCandidates;
+        int m = candidates.size();
+        
+        // Step 3: Build a directed graph among candidate intervals.
+        // We'll create a node for each candidate. For candidates i and j,
+        // if they overlap and candidate i starts before candidate j, add an edge i -> j.
+        List<List<Integer>> graph = new ArrayList<>();
+        List<List<Integer>> graphT = new ArrayList<>();
+        for (int i = 0; i < m; i++) {
+            graph.add(new ArrayList<>());
+            graphT.add(new ArrayList<>());
+        }
+        for (int i = 0; i < m; i++) {
+            int[] intv1 = candidates.get(i);
+            for (int j = 0; j < m; j++) {
+                if (i == j) continue;
+                int[] intv2 = candidates.get(j);
+                // Check if intervals overlap.
+                if (intv1[0] < intv2[0] && !(intv1[1] < intv2[0] || intv2[1] < intv1[0])) {
+                    graph.get(i).add(j);
+                    graphT.get(j).add(i);
+                }
+            }
+        }
+        
+        // Step 4: Run Kosaraju to get strongly connected components (SCCs).
+        boolean[] visited = new boolean[m];
+        Deque<Integer> stack = new ArrayDeque<>();
+        for (int i = 0; i < m; i++) {
+            if (!visited[i]) {
+                dfs(i, graph, visited, stack);
+            }
+        }
+        Arrays.fill(visited, false);
+        List<List<Integer>> sccs = new ArrayList<>();
+        while (!stack.isEmpty()) {
+            int node = stack.pop();
+            if (!visited[node]) {
+                List<Integer> component = new ArrayList<>();
+                dfsT(node, graphT, visited, component);
+                sccs.add(component);
+            }
+        }
+        
+        // Step 5: From each SCC, choose the candidate interval with smallest length.
+        List<int[]> chosen = new ArrayList<>();
+        for (List<Integer> comp : sccs) {
+            int[] best = null;
+            for (int idx : comp) {
+                int[] cur = candidates.get(idx);
+                if (best == null) {
+                    best = cur;
+                } else {
+                    int lenBest = best[1] - best[0];
+                    int lenCur = cur[1] - cur[0];
+                    if (lenCur < lenBest) {
+                        best = cur;
+                    }
+                }
+            }
+            chosen.add(best);
+        }
+        
+        // Step 6: Greedily select non-overlapping intervals.
+        chosen.sort((a, b) -> Integer.compare(a[1], b[1]));
+        List<int[]> resultIntervals = new ArrayList<>();
+        int prevEnd = -1;
+        for (int[] intv : chosen) {
+            if (intv[0] > prevEnd) {
+                resultIntervals.add(intv);
+                prevEnd = intv[1];
+            }
+        }
+        
+        // Sort by start to return substrings in order.
+        resultIntervals.sort((a, b) -> Integer.compare(a[0], b[0]));
+        List<String> result = new ArrayList<>();
+        for (int[] intv : resultIntervals) {
+            result.add(s.substring(intv[0], intv[1] + 1));
+        }
+        return result;
+    }
+    
+    // DFS for the original graph.
+    private void dfs(int node, List<List<Integer>> graph, boolean[] visited, Deque<Integer> stack) {
+        visited[node] = true;
+        for (int nei : graph.get(node)) {
+            if (!visited[nei]) {
+                dfs(nei, graph, visited, stack);
+            }
+        }
+        stack.push(node);
+    }
+    
+    // DFS for the transpose graph.
+    private void dfsT(int node, List<List<Integer>> graphT, boolean[] visited, List<Integer> component) {
+        visited[node] = true;
+        component.add(node);
+        for (int nei : graphT.get(node)) {
+            if (!visited[nei]) {
+                dfsT(nei, graphT, visited, component);
+            }
+        }
+    }
+}
+
