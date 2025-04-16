@@ -1,0 +1,260 @@
+https://leetcode.com/problems/smallest-k-length-subsequence-with-occurrences-of-a-letter/description/
+
+
+2030. Smallest K-Length Subsequence With Occurrences of a Letter
+Hard
+Topics
+Companies
+Hint
+You are given a string s, an integer k, a letter letter, and an integer repetition.
+
+Return the lexicographically smallest subsequence of s of length k that has the letter letter appear at least repetition times. The test cases are generated so that the letter appears in s at least repetition times.
+
+A subsequence is a string that can be derived from another string by deleting some or no characters without changing the order of the remaining characters.
+
+A string a is lexicographically smaller than a string b if in the first position where a and b differ, string a has a letter that appears earlier in the alphabet than the corresponding letter in b.
+
+ 
+
+Example 1:
+
+Input: s = "leet", k = 3, letter = "e", repetition = 1
+Output: "eet"
+Explanation: There are four subsequences of length 3 that have the letter 'e' appear at least 1 time:
+- "lee" (from "leet")
+- "let" (from "leet")
+- "let" (from "leet")
+- "eet" (from "leet")
+The lexicographically smallest subsequence among them is "eet".
+Example 2:
+
+example-2
+Input: s = "leetcode", k = 4, letter = "e", repetition = 2
+Output: "ecde"
+Explanation: "ecde" is the lexicographically smallest subsequence of length 4 that has the letter "e" appear at least 2 times.
+Example 3:
+
+Input: s = "bb", k = 2, letter = "b", repetition = 2
+Output: "bb"
+Explanation: "bb" is the only subsequence of length 2 that has the letter "b" appear at least 2 times.
+ 
+
+Constraints:
+
+1 <= repetition <= k <= s.length <= 5 * 104
+s consists of lowercase English letters.
+letter is a lowercase English letter, and appears in s at least repetition times.
+
+
+# java
+
+
+class Solution {
+  public String smallestSubsequence(String s, int k, char letter, int repetition) {
+    StringBuilder sb = new StringBuilder();
+    Deque<Character> stack = new ArrayDeque<>();
+    int required = repetition;
+    int nLetters = (int) s.chars().filter(c -> c == letter).count();
+
+    for (int i = 0; i < s.length(); ++i) {
+      final char c = s.charAt(i);
+      while (!stack.isEmpty() && stack.peek() > c && stack.size() + s.length() - i - 1 >= k &&
+             (stack.peek() != letter || nLetters > required))
+        if (stack.pop() == letter)
+          ++required;
+      if (stack.size() < k)
+        if (c == letter) {
+          stack.push(c);
+          --required;
+        } else if (k - stack.size() > required) {
+          stack.push(c);
+        }
+      if (c == letter)
+        --nLetters;
+    }
+
+    for (final char c : stack)
+      sb.append(c);
+
+    return sb.reverse().toString();
+  }
+}
+
+or
+
+class Solution {
+    int n;
+    char[] arr;
+    int[] sizes, pointers;
+    int[][] indices;
+    
+    public String smallestSubsequence(String s, int k, char letter, int r) {
+        init(s);
+        char[] ans = new char[k];
+        int c = letter - 'a';
+        for(int i=0; i<k-r; ++i) {
+            int rth = (r == 0 ? n : indices[c][sizes[c] - r]), x = Math.min(rth, n - (k-i));
+            for(int j=0; j<26; ++j) if(pointers[j] < sizes[j]) {
+                int first = indices[j][pointers[j]];
+                if(x >= first) {
+                    ans[i] = arr[first];
+                    if(j == c && r > 0)
+                        --r;
+                    for(j=0; j<26; ++j)
+                        while(pointers[j] < sizes[j] && indices[j][pointers[j]] <= first)
+                            ++pointers[j];
+                    break;
+                }
+            }
+        }
+        for(int i=k-r; i<k; ++i)
+            ans[i] = letter;
+        return String.valueOf(ans);
+    }
+    
+    private void init(String s) {
+        arr = s.toCharArray();
+        n = arr.length;
+        sizes = new int[26];
+        pointers = new int[26];
+        for(char c: arr)
+            ++sizes[c-'a'];
+        indices = new int[26][];
+        for(int i=0; i<26; ++i) {
+            indices[i] = new int[sizes[i]];
+            sizes[i] = 0;
+        }
+        for(int i=0; i<n; ++i) {
+            int c = arr[i] - 'a';
+            indices[c][sizes[c]++] = i;
+        }
+    }
+}
+
+
+or
+
+
+class Solution {
+    public String smallestSubsequence(String s, int k, char letter, int repetition) {
+        int sl= s.length();
+        int letter_left=0;
+        int letter_taken=0;
+        for(int idx=0;idx<sl;idx++){
+            if(s.charAt(idx)==letter) letter_left++;
+        }
+        //Stack<Character> st = new Stack<>();
+        StringBuilder sb=new StringBuilder("z".repeat(k));
+        int sbidx=-1;
+        for(int idx=0;idx<sl;idx++){
+            char c=s.charAt(idx);
+            while(sbidx>=0 && sb.charAt(sbidx)>c && (sl-idx+sbidx+1>k)){
+                if(sb.charAt(sbidx)==letter){
+                    if(letter_left+letter_taken<=repetition) break;
+                    letter_taken--;
+                }
+                sbidx--;
+            }
+            if(sbidx+1<k){
+                if(c==letter){
+                    sb.setCharAt(++sbidx,c);
+                    letter_taken++;
+                }
+                else if(k-(sbidx+1)>repetition-letter_taken) {
+                    //System.out.println(k);
+                    sb.setCharAt(++sbidx,c);
+                }
+            }
+            if(c==letter) letter_left--;
+            //System.out.println("IDX = "+idx+" char = "+c+" letter_left = "+letter_left+" Taken = "+letter_taken );
+            //System.out.println(sb.toString().substring(0,sbidx+1));
+            //System.out.println(sbidx);
+            
+            //System.out.println("------------");
+            
+        }
+    
+        return sb.toString();
+    }
+}
+
+
+or
+
+class Solution {
+    public String smallestSubsequence(String s, int k, char letter, int r) {
+        int n_letters = 0;
+        for (int i = 0; i < s.length(); i++)
+            if (s.charAt(i) == letter)
+                n_letters ++;
+        
+        Stack<Character> stack = new Stack<>();
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            while (!stack.isEmpty() && stack.peek() > c && (s.length() - i + stack.size() > k) && (stack.peek() != letter || n_letters > r)) {
+                if (stack.pop() == letter) r ++;
+            }
+            
+            if (stack.size() < k) {
+                if (c == letter) {
+                    stack.push(c);
+                    r --;
+                } else if (k - stack.size() > r) {
+                    stack.push(c);
+                }
+            }
+            
+            if (c == letter) n_letters --;
+        }
+        
+        StringBuilder sb = new StringBuilder(stack.size());
+        for(Character c : stack) sb.append(c);
+        return sb.toString();
+    }
+}
+
+
+or
+
+public class Solution {
+    public String smallestSubsequence(String s, int k, char letter, int rep) {
+        int total = 0;
+        for (char ch : s.toCharArray()) {
+            if (ch == letter) total++;
+        }
+
+        int extra = total - rep;
+        int remove = s.length() - k;
+        StringBuilder mono = new StringBuilder();
+        StringBuilder res = new StringBuilder();
+
+        for (char ch : s.toCharArray()) {
+            while (mono.length() > 0 && mono.charAt(mono.length() - 1) > ch && remove > 0) {
+                char last = mono.charAt(mono.length() - 1);
+                if (last == letter && extra == 0) break;
+                if (last == letter) extra--;
+                mono.deleteCharAt(mono.length() - 1);
+                remove--;
+            }
+            mono.append(ch);
+        }
+
+        int n = mono.length();
+        for (int i = 0; res.length() < k && i < n; ++i) {
+            char ch = mono.charAt(i);
+            if (ch != letter && res.length() + Math.max(rep, 0) >= k) {
+                continue;
+            }
+            res.append(ch);
+            if (ch == letter) rep--;
+        }
+
+        return res.toString();
+    }
+}
+
+
+
+or
+
+
