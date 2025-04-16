@@ -1,0 +1,557 @@
+https://leetcode.com/problems/sum-of-total-strength-of-wizards/description/
+
+
+2281. Sum of Total Strength of Wizards
+Hard
+Topics
+Companies
+Hint
+As the ruler of a kingdom, you have an army of wizards at your command.
+
+You are given a 0-indexed integer array strength, where strength[i] denotes the strength of the ith wizard. For a contiguous group of wizards (i.e. the wizards' strengths form a subarray of strength), the total strength is defined as the product of the following two values:
+
+The strength of the weakest wizard in the group.
+The total of all the individual strengths of the wizards in the group.
+Return the sum of the total strengths of all contiguous groups of wizards. Since the answer may be very large, return it modulo 109 + 7.
+
+A subarray is a contiguous non-empty sequence of elements within an array.
+
+ 
+
+Example 1:
+
+Input: strength = [1,3,1,2]
+Output: 44
+Explanation: The following are all the contiguous groups of wizards:
+- [1] from [1,3,1,2] has a total strength of min([1]) * sum([1]) = 1 * 1 = 1
+- [3] from [1,3,1,2] has a total strength of min([3]) * sum([3]) = 3 * 3 = 9
+- [1] from [1,3,1,2] has a total strength of min([1]) * sum([1]) = 1 * 1 = 1
+- [2] from [1,3,1,2] has a total strength of min([2]) * sum([2]) = 2 * 2 = 4
+- [1,3] from [1,3,1,2] has a total strength of min([1,3]) * sum([1,3]) = 1 * 4 = 4
+- [3,1] from [1,3,1,2] has a total strength of min([3,1]) * sum([3,1]) = 1 * 4 = 4
+- [1,2] from [1,3,1,2] has a total strength of min([1,2]) * sum([1,2]) = 1 * 3 = 3
+- [1,3,1] from [1,3,1,2] has a total strength of min([1,3,1]) * sum([1,3,1]) = 1 * 5 = 5
+- [3,1,2] from [1,3,1,2] has a total strength of min([3,1,2]) * sum([3,1,2]) = 1 * 6 = 6
+- [1,3,1,2] from [1,3,1,2] has a total strength of min([1,3,1,2]) * sum([1,3,1,2]) = 1 * 7 = 7
+The sum of all the total strengths is 1 + 9 + 1 + 4 + 4 + 4 + 3 + 5 + 6 + 7 = 44.
+Example 2:
+
+Input: strength = [5,4,6]
+Output: 213
+Explanation: The following are all the contiguous groups of wizards: 
+- [5] from [5,4,6] has a total strength of min([5]) * sum([5]) = 5 * 5 = 25
+- [4] from [5,4,6] has a total strength of min([4]) * sum([4]) = 4 * 4 = 16
+- [6] from [5,4,6] has a total strength of min([6]) * sum([6]) = 6 * 6 = 36
+- [5,4] from [5,4,6] has a total strength of min([5,4]) * sum([5,4]) = 4 * 9 = 36
+- [4,6] from [5,4,6] has a total strength of min([4,6]) * sum([4,6]) = 4 * 10 = 40
+- [5,4,6] from [5,4,6] has a total strength of min([5,4,6]) * sum([5,4,6]) = 4 * 15 = 60
+The sum of all the total strengths is 25 + 16 + 36 + 36 + 40 + 60 = 213.
+ 
+
+Constraints:
+
+1 <= strength.length <= 105
+1 <= strength[i] <= 109
+
+
+
+# java
+
+
+class Solution {
+    public int totalStrength(int[] strength) {
+        int n = strength.length;
+        int[] left = new int[n];
+        int[] right = new int[n];
+        Arrays.fill(left, -1);
+        Arrays.fill(right, n);
+        Deque<Integer> stk = new ArrayDeque<>();
+        for (int i = 0; i < n; ++i) {
+            while (!stk.isEmpty() && strength[stk.peek()] >= strength[i]) {
+                stk.pop();
+            }
+            if (!stk.isEmpty()) {
+                left[i] = stk.peek();
+            }
+            stk.push(i);
+        }
+        stk.clear();
+        for (int i = n - 1; i >= 0; --i) {
+            while (!stk.isEmpty() && strength[stk.peek()] > strength[i]) {
+                stk.pop();
+            }
+            if (!stk.isEmpty()) {
+                right[i] = stk.peek();
+            }
+            stk.push(i);
+        }
+        int mod = (int) 1e9 + 7;
+        int[] s = new int[n + 1];
+        for (int i = 0; i < n; ++i) {
+            s[i + 1] = (s[i] + strength[i]) % mod;
+        }
+        int[] ss = new int[n + 2];
+        for (int i = 0; i < n + 1; ++i) {
+            ss[i + 1] = (ss[i] + s[i]) % mod;
+        }
+        long ans = 0;
+        for (int i = 0; i < n; ++i) {
+            int v = strength[i];
+            int l = left[i] + 1, r = right[i] - 1;
+            long a = (long) (i - l + 1) * (ss[r + 2] - ss[i + 1]);
+            long b = (long) (r - i + 1) * (ss[i + 1] - ss[l]);
+            ans = (ans + v * ((a - b) % mod)) % mod;
+        }
+        return (int) (ans + mod) % mod;
+    }
+}
+
+
+or
+
+
+class Solution {
+  public int totalStrength(int[] strength) {
+    final int MOD = 1_000_000_007;
+    final int n = strength.length;
+    long[] prefix = new long[n];
+    long[] prefixOfPrefix = new long[n + 1];
+    // left[i] := the next index on the left (if any)
+    //            s.t. nums[left[i]] <= nums[i]
+    int[] left = new int[n];
+    Arrays.fill(left, -1);
+    // right[i] := the next index on the right (if any)
+    //             s.t. nums[right[i]] < nums[i]
+    int[] right = new int[n];
+    Arrays.fill(right, n);
+    Deque<Integer> stack = new ArrayDeque<>();
+
+    for (int i = 0; i < n; ++i)
+      prefix[i] = i == 0 ? strength[0] : (strength[i] + prefix[i - 1]) % MOD;
+
+    for (int i = 0; i < n; ++i)
+      prefixOfPrefix[i + 1] = (prefixOfPrefix[i] + prefix[i]) % MOD;
+
+    for (int i = n - 1; i >= 0; --i) {
+      while (!stack.isEmpty() && strength[stack.peek()] >= strength[i])
+        left[stack.pop()] = i;
+      stack.push(i);
+    }
+
+    stack.clear();
+
+    for (int i = 0; i < n; ++i) {
+      while (!stack.isEmpty() && strength[stack.peek()] > strength[i])
+        right[stack.pop()] = i;
+      stack.push(i);
+    }
+
+    long ans = 0;
+
+    // For each strength[i] as minimum, calculate sum.
+    for (int i = 0; i < n; ++i) {
+      final int l = left[i];
+      final int r = right[i];
+      final long leftSum = prefixOfPrefix[i] - prefixOfPrefix[Math.max(0, l)];
+      final long rightSum = prefixOfPrefix[r] - prefixOfPrefix[i];
+      final int leftLen = i - l;
+      final int rightLen = r - i;
+      ans += strength[i] * (rightSum * leftLen % MOD - leftSum * rightLen % MOD + MOD) % MOD;
+      ans %= MOD;
+    }
+
+    return (int) ans;
+  }
+}
+
+
+or
+
+
+class Solution {
+    //time O(n), space O(n)
+    public int totalStrength(int[] strength) {
+        
+        int MOD = 1000000007;
+        int n = strength.length;
+        long[] pOfP = prefixOfPrefixSum(strength,n);
+        int[] leftSmaller = prevSmaller(strength,n);
+        
+        int[] rightSmallerOrEqual = nextSmallerOrEqual(strength,n);
+        
+        long res =0;
+        for(int i=0;i<n;i++){
+            int left = leftSmaller[i];
+            int right = rightSmallerOrEqual[i];
+            
+            long val = (i-left)*(pOfP[right-1+1]-pOfP[i-1+1])%MOD + MOD - 
+                     (right-i)*(pOfP[i-1+1]-pOfP[left-1+1<0 ? 0 : left-1+1])%MOD;
+            
+            val = (strength[i]*val)%MOD;
+            res += val;
+            res %= MOD;
+        }
+        
+        return (int)res;
+    }
+    
+    long[] prefixOfPrefixSum(int[] arr, int n){ 
+        long[] res = new long[n+1];
+        long sum = 0;
+        res[0] = 0;
+        for(int i=1 ;i<=n ;i++){
+            sum+=arr[i-1];
+            sum %= 1000000007;
+            res[i] = (res[i-1]+sum)%1000000007;
+        }
+        return res;
+    }
+        
+    int[] prevSmaller(int[] arr, int n){
+        int res[] = new int[n];
+        Deque<Integer> st = new ArrayDeque<>();
+        for(int i=0;i<n;i++){
+            while(!st.isEmpty() && arr[st.peek()]>=arr[i]) st.pop();
+            res[i] = st.isEmpty() ? -1 : st.peek(); 
+            st.push(i);
+        }
+        return res;
+    }
+    int[] nextSmallerOrEqual(int[] arr, int n){
+        int res[] = new int[n];
+       Deque<Integer> st = new ArrayDeque<>();
+        for(int i=n-1;i>=0;i--){
+            while(!st.isEmpty() && arr[st.peek()]>arr[i]) st.pop();
+            res[i] = st.isEmpty() ? n : st.peek();
+            st.push(i);
+        }
+        return res;
+    }
+}
+
+
+or
+
+
+class Solution {
+    public int totalStrength(int[] strength) {
+        int mod = 1000000007;
+        
+        int len = strength.length;
+        
+        long[] prefix = prefixSum(strength, len, mod);
+        
+        Deque<Integer> stack = new ArrayDeque<>();
+        stack.push(-1);
+
+        long ans = 0;
+        for(int i = 0; i < len; i++) {
+            while(stack.peek() != -1 && strength[i] <= strength[stack.peek()]) {
+                int mid = stack.pop();
+                int left = stack.peek() + 1;
+                int right = i - 1;
+                
+                int n = (mid - left);
+                int t = (right - mid);
+                
+                long val = (1l * (1 + n) * (prefix[right + 2] - prefix[mid + 1]) + mod) % mod;
+                val -= (1l * (1 + t) * (prefix[mid + 1] - prefix[left]) + mod) % mod;
+                val *= strength[mid];
+                
+                ans += val;
+                ans %= mod;
+            }
+            
+            stack.push(i);
+        }
+        
+        int right = len - 1;
+        while(stack.peek() != -1) {
+            int mid = stack.pop();
+            int left = stack.peek() + 1;
+            
+            int n = (mid - left);
+            int t = (right - mid);
+
+            long val = (1l * (1 + n) * (prefix[right + 2] - prefix[mid + 1]) + mod) % mod;
+            val -= (1l * (1 + t) * (prefix[mid + 1] - prefix[left]) + mod) % mod;
+            val *= strength[mid];
+
+            ans += val;
+            ans %= mod;
+        }
+        
+        return (int)((ans + mod) % mod);
+    }
+    
+    private long[] prefixSum(int[] strength, int len, int mod) {
+        long[] prefix = new long[len + 1];
+        
+        for(int i = 0; i < len; i++) {
+            prefix[i + 1] = prefix[i] + strength[i];
+        }
+        
+        long[] doublePrefix = new long[len + 2];
+        for(int i = 0; i <= len; i++) {
+            doublePrefix[i + 1] = (doublePrefix[i] + prefix[i]) % mod;
+        }
+
+        return doublePrefix;
+    }
+}
+
+or
+
+
+class Solution {
+    public int totalStrength(int[] strength) {
+        long mod = (long)(1e9 + 7);
+        int n = strength.length;
+        // prefixSums[I] = sum of STR[0...I]
+        long[] prefixSums = new long[n];
+        /*
+            prefix2Sums is a bit different
+            it's not a prefixSum of prefixSums
+            
+            but rather prefix2Sums[I] = sum of STR[I to I] + STR[I-1 to I] + STR[I-2 to I] + ... STR[0 to I]
+            this is used in a very trickly way to compute in constant time:
+            a special range(M, I)
+            that is STR(M to I) + STR(M+1 to I) + ... + STR(I to I)
+        */
+        long[] prefix2Sums = new long[n];
+        long sum = 0L; // for prefix arrays
+        long ans = 0L;
+        // contributions[I] = contribution to answer of all arrays ending at I
+        long[] contributions = new long[n];
+        // monotonic increase (non-decreasing) stack in terms of values of the incides 
+        Deque<Integer> indexStack = new ArrayDeque<>();
+        long stackScore = 0L;
+        for(int i=0; i<n; i++) {
+            // build prefix arrays
+            sum += strength[i];
+            sum = sum % mod;
+            prefixSums[i] = sum;
+            prefix2Sums[i] = (i == 0)? strength[0] : (prefix2Sums[i-1] + (i+1)*(long)strength[i]) % mod;
+            
+            while(!indexStack.isEmpty() && strength[indexStack.peekLast()] > strength[i]) {
+                // enforce monotonic and adjust stackScore
+                int popped = indexStack.removeLast();
+                int prevTopIndex = indexStack.isEmpty()? -1 : indexStack.peekLast();
+                stackScore -= (((long)strength[popped])*(popped - prevTopIndex) % mod);
+            }
+            int lastMinIndex = indexStack.isEmpty()? -1 : indexStack.peekLast();
+            long contributionAfterLastMinIndex = (long)(strength[i])*
+                (prefix2Sums[i] - ((lastMinIndex == -1)? 0 : ((lastMinIndex+1)*(prefixSums[i] - prefixSums[lastMinIndex]) % mod) + prefix2Sums[lastMinIndex]));
+            contributionAfterLastMinIndex = (contributionAfterLastMinIndex + mod) % mod;
+            long contribution = contributionAfterLastMinIndex;
+            if (lastMinIndex != -1) {
+                contribution += contributions[lastMinIndex] + (stackScore*(prefixSums[i] - prefixSums[lastMinIndex]) % mod);
+                contribution = contribution % mod;
+            }
+            contributions[i] = (contribution + mod) % mod;
+            
+            indexStack.addLast(i);
+            stackScore += ((long)(strength[i])*(i - lastMinIndex)) % mod;
+            stackScore = stackScore % mod;
+            
+            ans += contributions[i];
+            ans = ans % mod;
+        }
+        return (int)ans;
+    }
+}
+
+or
+
+
+class Solution {
+    public int totalStrength(int[] a) {
+        long MOD = 1000000007;
+        int n = a.length;
+        long [] prefix = new long[n+1];
+        long[] prefix_sum = new long[n+2];
+
+        for(int i = 0; i < n; i++){
+            prefix[i+1] = (prefix[i] + a[i])%MOD; 
+        }
+
+        for(int i = 0; i <= n; i++){
+            prefix_sum[i+1] = (prefix_sum[i] + prefix[i]) % MOD;
+        }
+
+        Stack<Integer> st = new Stack<>();
+        int[] left = new int[n];
+        int[] right = new int[n];
+
+        Arrays.fill(left, -1);
+        for(int i = 0; i < n; i++){
+            while(!st.empty() && a[st.peek()] >= a[i]){
+                st.pop();
+            }
+            if(st.empty()) left[i] = -1;
+            else left[i] = st.peek();
+
+            st.push(i);
+        }
+
+        st.clear();
+        Arrays.fill(right, n);
+        for(int i = n-1; i >=0; i--){
+            while(!st.empty() && a[st.peek()] > a[i]){
+                st.pop();
+            }
+            if(st.empty()) right[i] = n;
+            else right[i] = st.peek();
+
+            st.push(i);
+        }
+
+        long res = 0;
+        for(int i = 0; i < n; i++){
+            int l = left[i];
+            int r = right[i];
+            long part1 = (prefix_sum[r + 1] - prefix_sum[i + 1]) * (i - l) % MOD;
+            long part2 = (prefix_sum[i + 1] - prefix_sum[l + 1]) * (r - i) % MOD;
+            long product = (part1 - part2 ) % MOD ;
+            if (product < 0) {
+                product += MOD; 
+            }   
+            res = (res + (product * a[i]) % MOD) % MOD;     
+        }
+        if (res < 0) {
+            res += MOD; 
+        }
+        return (int) (res % MOD);
+    }
+}
+
+
+or
+
+
+class Solution {
+    //time O(n), space O(n)
+    public int totalStrength(int[] strength) {
+        
+        int MOD = 1000000007;
+        int n = strength.length;
+        long[] pOfP = prefixOfPrefixSum(strength,n);
+        int[] leftSmaller = prevSmaller(strength,n);
+        
+        int[] rightSmallerOrEqual = nextSmallerOrEqual(strength,n);
+
+        long res =0;
+        for(int i=0;i<n;i++){
+            int left = leftSmaller[i];
+            int right = rightSmallerOrEqual[i];
+            
+            long val = (i-left)*(pOfP[right-1+1]-pOfP[i-1+1])%MOD + MOD - 
+                     (right-i)*(pOfP[i-1+1]-pOfP[left-1+1<0 ? 0 : left-1+1])%MOD;
+            
+            val = (strength[i]*val)%MOD;
+            res += val;
+            res %= MOD;
+        }
+        
+        return (int)res;
+    }
+    
+    //prefix sum of prefix sum
+    long[] prefixOfPrefixSum(int[] arr, int n){ 
+        long[] res = new long[n+1];
+        long sum = 0;
+        res[0] = 0;
+        for(int i=1 ;i<=n ;i++){
+            sum+=arr[i-1];
+            sum %= 1000000007;
+            res[i] = (res[i-1]+sum)%1000000007;
+        }
+        return res;
+    }
+        
+    int[] prevSmaller(int[] arr, int n){
+        int res[] = new int[n];
+        Deque<Integer> st = new ArrayDeque<>();
+        for(int i=0;i<n;i++){
+            while(!st.isEmpty() && arr[st.peek()]>=arr[i]) st.pop();
+            res[i] = st.isEmpty() ? -1 : st.peek(); 
+            st.push(i);
+        }
+        return res;
+    }
+    int[] nextSmallerOrEqual(int[] arr, int n){
+        int res[] = new int[n];
+       Deque<Integer> st = new ArrayDeque<>();
+        for(int i=n-1;i>=0;i--){
+            while(!st.isEmpty() && arr[st.peek()]>arr[i]) st.pop();
+            res[i] = st.isEmpty() ? n : st.peek();
+            st.push(i);
+        }
+        return res;
+    }
+}
+
+or
+
+
+class Solution {
+    //time O(n), space O(n)
+    public int totalStrength(int[] strength) {
+        
+        int MOD = 1000000007;
+        int n = strength.length;
+        long[] pOfP = prefixOfPrefixSum(strength,n);
+        int[] leftSmaller = prevSmaller(strength,n);
+        
+        int[] rightSmallerOrEqual = nextSmallerOrEqual(strength,n);
+
+        long res =0;
+        for(int i=0;i<n;i++){
+            int left = leftSmaller[i];
+            int right = rightSmallerOrEqual[i];
+            
+            long val = (i-left)*(pOfP[right-1+1]-pOfP[i-1+1])%MOD + MOD - 
+                     (right-i)*(pOfP[i-1+1]-pOfP[left-1+1<0 ? 0 : left-1+1])%MOD;
+            
+            val = (strength[i]*val)%MOD;
+            res += val;
+            res %= MOD;
+        }
+        
+        return (int)res;
+    }
+    
+    //prefix sum of prefix sum
+    long[] prefixOfPrefixSum(int[] arr, int n){ 
+        long[] res = new long[n+1];
+        long sum = 0;
+        res[0] = 0;
+        for(int i=1 ;i<=n ;i++){
+            sum+=arr[i-1];
+            sum %= 1000000007;
+            res[i] = (res[i-1]+sum)%1000000007;
+        }
+        return res;
+    }
+        
+    int[] prevSmaller(int[] arr, int n){
+        int res[] = new int[n];
+        Deque<Integer> st = new ArrayDeque<>();
+        for(int i=0;i<n;i++){
+            while(!st.isEmpty() && arr[st.peek()]>=arr[i]) st.pop();
+            res[i] = st.isEmpty() ? -1 : st.peek(); 
+            st.push(i);
+        }
+        return res;
+    }
+    int[] nextSmallerOrEqual(int[] arr, int n){
+        int res[] = new int[n];
+       Deque<Integer> st = new ArrayDeque<>();
+        for(int i=n-1;i>=0;i--){
+            while(!st.isEmpty() && arr[st.peek()]>arr[i]) st.pop();
+            res[i] = st.isEmpty() ? n : st.peek();
+            st.push(i);
+        }
+        return res;
+    }
+}
