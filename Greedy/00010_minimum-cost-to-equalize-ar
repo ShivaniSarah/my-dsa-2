@@ -1,0 +1,194 @@
+https://leetcode.com/problems/minimum-cost-to-equalize-array/description/
+
+3139. Minimum Cost to Equalize Array
+Hard
+Topics
+Companies
+Hint
+You are given an integer array nums and two integers cost1 and cost2. You are allowed to perform either of the following operations any number of times:
+
+Choose an index i from nums and increase nums[i] by 1 for a cost of cost1.
+Choose two different indices i, j, from nums and increase nums[i] and nums[j] by 1 for a cost of cost2.
+Return the minimum cost required to make all elements in the array equal.
+
+Since the answer may be very large, return it modulo 109 + 7.
+
+ 
+
+Example 1:
+
+Input: nums = [4,1], cost1 = 5, cost2 = 2
+
+Output: 15
+
+Explanation:
+
+The following operations can be performed to make the values equal:
+
+Increase nums[1] by 1 for a cost of 5. nums becomes [4,2].
+Increase nums[1] by 1 for a cost of 5. nums becomes [4,3].
+Increase nums[1] by 1 for a cost of 5. nums becomes [4,4].
+The total cost is 15.
+
+Example 2:
+
+Input: nums = [2,3,3,3,5], cost1 = 2, cost2 = 1
+
+Output: 6
+
+Explanation:
+
+The following operations can be performed to make the values equal:
+
+Increase nums[0] and nums[1] by 1 for a cost of 1. nums becomes [3,4,3,3,5].
+Increase nums[0] and nums[2] by 1 for a cost of 1. nums becomes [4,4,4,3,5].
+Increase nums[0] and nums[3] by 1 for a cost of 1. nums becomes [5,4,4,4,5].
+Increase nums[1] and nums[2] by 1 for a cost of 1. nums becomes [5,5,5,4,5].
+Increase nums[3] by 1 for a cost of 2. nums becomes [5,5,5,5,5].
+The total cost is 6.
+
+Example 3:
+
+Input: nums = [3,5,3], cost1 = 1, cost2 = 3
+
+Output: 4
+
+Explanation:
+
+The following operations can be performed to make the values equal:
+
+Increase nums[0] by 1 for a cost of 1. nums becomes [4,5,3].
+Increase nums[0] by 1 for a cost of 1. nums becomes [5,5,3].
+Increase nums[2] by 1 for a cost of 1. nums becomes [5,5,4].
+Increase nums[2] by 1 for a cost of 1. nums becomes [5,5,5].
+The total cost is 4.
+
+ 
+
+Constraints:
+
+1 <= nums.length <= 105
+1 <= nums[i] <= 106
+1 <= cost1 <= 106
+1 <= cost2 <= 106
+
+
+# java
+
+
+class Solution {
+  public int minCostToEqualizeArray(int[] nums, int cost1, int cost2) {
+    final int MOD = 1_000_000_007;
+    final int n = nums.length;
+    final int minNum = Arrays.stream(nums).min().getAsInt();
+    final int maxNum = Arrays.stream(nums).max().getAsInt();
+    final long sum = Arrays.stream(nums).asLongStream().sum();
+    long ans = Long.MAX_VALUE;
+
+    if (cost1 * 2 <= cost2 || n < 3) {
+      final long totalGap = 1L * maxNum * n - sum;
+      return (int) ((cost1 * totalGap) % MOD);
+    }
+
+    for (int target = maxNum; target < 2 * maxNum; ++target) {
+      final int maxGap = target - minNum;
+      final long totalGap = 1L * target * n - sum;
+      final long pairs = Math.min(totalGap / 2, totalGap - maxGap);
+      ans = Math.min(ans, cost1 * (totalGap - 2 * pairs) + cost2 * pairs);
+    }
+
+    return (int) (ans % MOD);
+  }
+}
+
+or
+
+
+// best
+
+
+class Solution {
+      public int minCostToEqualizeArray(int[] A, int c1, int c2) {
+        int ma = A[0], mi = A[0], n = A.length, mod = 1000000007;
+        long total = 0;
+        for (int a: A) {
+            mi = Math.min(mi, a);
+            ma = Math.max(ma, a);
+            total += a;
+        }
+        total = 1l * ma * n - total;
+
+        // case 1
+        if (c1 * 2 <= c2 || n <= 2) {
+            return (int) ((total * c1) % mod);
+        }
+
+        // case 2
+        long op1 = Math.max(0L, (ma - mi) * 2L - total);
+        long op2 = total - op1;
+        long res = (op1 + op2 % 2) * c1 + op2 / 2 * c2;
+
+        // case 3
+        total += op1 / (n - 2) * n;
+        op1 %= n - 2;
+        op2 = total - op1;
+        res = Math.min(res, (op1 + op2 % 2) * c1 + op2 / 2 * c2);
+
+        // case 4
+        for (int i = 0; i < 2; i++) {
+            total += n;
+            res = Math.min(res, total % 2 * c1 + total / 2 * c2);
+        }
+        return (int) (res % mod);
+    }
+}
+
+or
+
+class Solution {
+    int[] a;
+    int n, c1, c2;
+    final int mod = 1000000007;
+
+    long solve(long mv, long sum) {
+        if (c2 >= c1 * 2)
+            return sum * c1;
+        if (mv * 2 <= sum)
+            return (sum / 2) * c2 + (sum & 1) * c1;
+        else
+            return (2 * mv - sum) * c1 + (sum - mv) * c2;
+    }
+
+    public int minCostToEqualizeArray(int[] nums, int cost1, int cost2) {
+        if (nums.length == 1)
+            return 0;
+        a = nums;
+        n = a.length;
+        c1 = cost1;
+        c2 = cost2;
+        int mx = 0;
+        for (int v : nums) {
+            mx = Math.max(mx, v);
+        }
+        long sum = 0, mv = 0;
+        for (int i = 0; i < n; i++) {
+            mv = Math.max(mv, mx - a[i]);
+            sum += mx - a[i];
+        }
+        if (nums.length == 2)
+            return (int) (solve(mv, sum) % mod);
+        long ans = (long) 9e18;
+        int ad = 0;
+        for (;; ad++) {
+            ans = Math.min(ans, solve(mv, sum));
+            if (mv * 2 <= sum)
+                break;
+            mv++;
+            sum += n;
+        }
+        mv++;
+        sum += n;
+        ans = Math.min(ans, solve(mv, sum));
+        return (int) (ans % mod);
+    }
+}
