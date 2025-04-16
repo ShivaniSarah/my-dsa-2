@@ -1,0 +1,351 @@
+https://leetcode.com/problems/minimum-operations-to-form-subsequence-with-target-sum/description/
+
+2835. Minimum Operations to Form Subsequence With Target Sum
+Hard
+Topics
+Companies
+Hint
+You are given a 0-indexed array nums consisting of non-negative powers of 2, and an integer target.
+
+In one operation, you must apply the following changes to the array:
+
+Choose any element of the array nums[i] such that nums[i] > 1.
+Remove nums[i] from the array.
+Add two occurrences of nums[i] / 2 to the end of nums.
+Return the minimum number of operations you need to perform so that nums contains a subsequence whose elements sum to target. If it is impossible to obtain such a subsequence, return -1.
+
+A subsequence is an array that can be derived from another array by deleting some or no elements without changing the order of the remaining elements.
+
+ 
+
+Example 1:
+
+Input: nums = [1,2,8], target = 7
+Output: 1
+Explanation: In the first operation, we choose element nums[2]. The array becomes equal to nums = [1,2,4,4].
+At this stage, nums contains the subsequence [1,2,4] which sums up to 7.
+It can be shown that there is no shorter sequence of operations that results in a subsequnce that sums up to 7.
+Example 2:
+
+Input: nums = [1,32,1,2], target = 12
+Output: 2
+Explanation: In the first operation, we choose element nums[1]. The array becomes equal to nums = [1,1,2,16,16].
+In the second operation, we choose element nums[3]. The array becomes equal to nums = [1,1,2,16,8,8]
+At this stage, nums contains the subsequence [1,1,2,8] which sums up to 12.
+It can be shown that there is no shorter sequence of operations that results in a subsequence that sums up to 12.
+Example 3:
+
+Input: nums = [1,32,1], target = 35
+Output: -1
+Explanation: It can be shown that no sequence of operations results in a subsequence that sums up to 35.
+ 
+
+Constraints:
+
+1 <= nums.length <= 1000
+1 <= nums[i] <= 230
+nums consists only of non-negative powers of two.
+1 <= target < 231
+
+
+# java
+
+class Solution {
+    public int minOperations(List<Integer> nums, int target) {
+        long s = 0;
+        int[] cnt = new int[32];
+        for (int x : nums) {
+            s += x;
+            for (int i = 0; i < 32; ++i) {
+                if ((x >> i & 1) == 1) {
+                    ++cnt[i];
+                }
+            }
+        }
+        if (s < target) {
+            return -1;
+        }
+        int i = 0, j = 0;
+        int ans = 0;
+        while (true) {
+            while (i < 32 && (target >> i & 1) == 0) {
+                ++i;
+            }
+            if (i == 32) {
+                return ans;
+            }
+            while (j < i) {
+                cnt[j + 1] += cnt[j] / 2;
+                cnt[j] %= 2;
+                ++j;
+            }
+            while (cnt[j] == 0) {
+                cnt[j] = 1;
+                ++j;
+            }
+            ans += j - i;
+            --cnt[j];
+            j = i;
+            ++i;
+        }
+    }
+}
+
+or
+
+class Solution {
+  public int minOperations(List<Integer> nums, int target) {
+    final int NO_MISSING_BIT = 31;
+    final int maxBit = 31;
+    int ans = 0;
+    int minMissingBit = NO_MISSING_BIT;
+    // count[i] := the number of occurrences of 2^i
+    int[] count = new int[maxBit + 1];
+
+    for (final int num : nums)
+      ++count[(int) (Math.log(num) / Math.log(2))];
+
+    for (int bit = 0; bit < maxBit; ++bit) {
+      // Check if `bit` is in the target.
+      if ((target >> bit & 1) == 1) {
+        // If there are available bits, use one bit.
+        if (count[bit] > 0)
+          --count[bit];
+        else
+          minMissingBit = Math.min(minMissingBit, bit);
+      }
+      // If we previously missed a bit and there are available bits.
+      if (minMissingBit != NO_MISSING_BIT && count[bit] > 0) {
+        --count[bit];
+        // Count the operations to break `bit` into `minMissingBit`.
+        ans += bit - minMissingBit;
+        minMissingBit = NO_MISSING_BIT; // Set it to an the invalid value.
+      }
+      // Combining smaller numbers costs nothing.
+      count[bit + 1] += count[bit] / 2;
+    }
+
+    // Check if all target bits have been covered, otherwise return -1.
+    return minMissingBit == NO_MISSING_BIT ? ans : -1;
+  }
+}
+
+
+or
+
+
+class Solution {
+    public int minOperations(List<Integer> nums, int target) {
+        // by default it is minHeap. So, make it maxHeap.
+        PriorityQueue<Integer> pq = new PriorityQueue<>((a, b)->b-a);
+        long sum = 0;
+        for(int num : nums){
+            sum += num;
+            pq.add(num);
+        }
+        int opt = 0;
+        while(target>0){
+            int front = pq.poll();
+            sum -= front;
+
+            if(front <= target) {
+                target -= front;
+            }
+            else if(front > target && sum < target) {
+                opt++;
+                sum += front;
+                pq.offer(front/2);
+                pq.offer(front/2);
+            }
+            if(pq.isEmpty() && target != 0) {
+                if(front > target && front != 1) {
+                    opt++;
+                    sum += front;
+                    pq.offer(front/2);
+                    pq.offer(front/2);
+                }
+                else {
+                    return -1;
+                }
+            }
+        }
+        return opt;
+    }
+}
+
+
+or
+
+
+class Solution {
+    public int minOperations(List<Integer> nums, int target) {
+        long sum = 0;
+        int max = 0;
+        for (int num : nums) {
+            max = Math.max(max, num);
+            sum += num;
+        }
+        
+        if (sum < target) {
+            return -1;
+        } else if (sum == target) {
+            return 0;
+        }
+        
+        TreeMap<Integer, Integer> freqs = new TreeMap<>();
+        for (int num : nums) {
+            freqs.put(num, freqs.getOrDefault(num , 0) + 1);
+        }
+        
+        int ops = 0;
+        for (int i = 0, pow = 1; i < 32 && pow < max && target > 0; i++, pow *= 2) {
+            boolean need = (((target >> i) & 1) == 1);
+            
+            if (need) {
+                target -= pow;
+                
+                if (freqs.containsKey(pow)) {
+                    int freq = freqs.remove(pow);
+                    if (freq > 1) {
+                        freqs.put(pow, freq - 1);
+                    }
+                } else {
+                    int key = freqs.ceilingKey(pow);
+                    int freq = freqs.remove(key);
+                    if (freq > 1) {
+                        freqs.put(key, freq - 1);
+                    }
+                    
+                    while (key != pow) {
+                        ops++;
+                        key /= 2;
+                        freqs.put(key, freqs.getOrDefault(key , 0) + 1);
+                    }
+                }
+            }
+            
+            for (int x = 1; x <= pow; x *= 2) {
+                if (freqs.getOrDefault(x, 0) > 1) {
+                    int f = freqs.get(x);
+                    freqs.put(x * 2, freqs.getOrDefault(x * 2, 0) + f / 2);
+                    freqs.put(x, 1);
+                }
+            }
+            
+        }
+        
+        return ops;
+    }
+}
+
+
+or
+
+
+class Solution {
+    public int minOperations(List<Integer> nums, int target) {
+
+        List<Integer> cnt = new ArrayList<>(32);
+         for (int i = 0; i < 32; i++) {
+            cnt.add(0);
+        }
+
+       //store frequencies of all 
+        for (int num : nums) {
+            int pwr = 0;
+            while (num % 2 == 0) {
+                pwr++;
+                num /= 2;
+            }
+            //each power count of numbers 
+            cnt.set(pwr, cnt.get(pwr) + 1);
+           
+        }
+
+        
+        int sum_can_make = 0, result = 0;
+        
+        //starting from least significant bit 
+        for (int i = 0; i < 31; i++) {
+            // CASE 1- If target this bit is not set than take elements from map and we can use it if we had to make any sum 
+            if ((target & (1 << i)) == 0) {
+               
+                sum_can_make += cnt.get(i) * (1 << i);
+                continue;
+            }
+            
+            // CASE 2 -if there is bit available and target is also 1 than we only need 1 bit other we will take out 
+            if (cnt.get(i) > 0) {
+                //reduce one
+                cnt.set(i, cnt.get(i) - 1);
+                //kept remaining with us 
+                sum_can_make += cnt.get(i) * (1 << i);
+
+                continue;
+            } 
+            //CASE 3  - target bit is set but there is no num of this power so 
+                //CASE 3.1 break from bigger elements but it will cost you 
+                //CASE 3.2 take from the elements we already have of left out, combining has no cost 
+            if (sum_can_make >= (1 << i)) {
+               sum_can_make -= (1 << i);
+                continue;
+            }
+
+            //now found the nearest element above than this number and try to break it until we make our required element 
+            boolean found = false;
+            for (int j = i + 1; j < 31; j++) {
+                if (cnt.get(j) == 0) {
+                    continue;
+                }
+                found = true;
+                //break elements until we reach to our required bit than stop breaking 
+                for (int k = j; k > i; k--) {
+                    cnt.set(k, cnt.get(k) - 1);
+                    cnt.set(k - 1, cnt.get(k - 1) + 2);
+                    result++;
+                }
+                //once we set than came out of this 
+                break;
+            }
+
+            if (!found) {
+                //we than can't set this bit from anything 
+                return -1;
+            }
+            // we have to do case 2 at this particular point so remain there only till now we only achieve to set this bit in cnt 
+            i--;
+        }
+        
+        return result;
+    }
+}
+
+or
+
+
+class Solution {
+    public int minOperations(List<Integer> nums, int target) {
+        long totalSum=0;
+        for(int n: nums) totalSum+=n;
+        if(totalSum<target) return -1;
+        PriorityQueue<Integer> pq=new PriorityQueue<>((a,b)->a>=b?-1:1);
+        for(int n: nums) pq.add(n);
+        int count=0;
+        while(!pq.isEmpty()) {
+            int next=pq.remove();
+            totalSum-=next;
+            if(target==0) return count;
+            else if(totalSum>=target) {} // point A
+            else if(next>target) { // point B
+                totalSum+=next;
+                pq.add(next/2);
+                pq.add(next/2);
+                count++;
+            } else {
+                target-=next; // point C
+            }
+        }
+        if(target==0) return count;
+        return -1;
+    }
+}
