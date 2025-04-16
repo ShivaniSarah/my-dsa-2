@@ -1,0 +1,211 @@
+https://leetcode.com/problems/set-intersection-size-at-least-two/description/
+
+757. Set Intersection Size At Least Two
+Hard
+Topics
+Companies
+You are given a 2D integer array intervals where intervals[i] = [starti, endi] represents all the integers from starti to endi inclusively.
+
+A containing set is an array nums where each interval from intervals has at least two integers in nums.
+
+For example, if intervals = [[1,3], [3,7], [8,9]], then [1,2,4,7,8,9] and [2,3,4,8,9] are containing sets.
+Return the minimum possible size of a containing set.
+
+ 
+
+Example 1:
+
+Input: intervals = [[1,3],[3,7],[8,9]]
+Output: 5
+Explanation: let nums = [2, 3, 4, 8, 9].
+It can be shown that there cannot be any containing array of size 4.
+Example 2:
+
+Input: intervals = [[1,3],[1,4],[2,5],[3,5]]
+Output: 3
+Explanation: let nums = [2, 3, 4].
+It can be shown that there cannot be any containing array of size 2.
+Example 3:
+
+Input: intervals = [[1,2],[2,3],[2,4],[4,5]]
+Output: 5
+Explanation: let nums = [1, 2, 3, 4, 5].
+It can be shown that there cannot be any containing array of size 4.
+ 
+
+Constraints:
+
+1 <= intervals.length <= 3000
+intervals[i].length == 2
+0 <= starti < endi <= 108
+
+
+# java
+
+class Solution {
+  public int intersectionSizeTwo(int[][] intervals) {
+    int ans = 0;
+    int mx = -1;
+    int secondMax = -1;
+
+    Arrays.sort(intervals, Comparator.comparingInt((int[] interval) -> interval[1])
+                               .thenComparingInt((int[] interval) -> - interval[0]));
+
+    for (int[] interval : intervals) {
+      final int start = interval[0];
+      final int end = interval[1];
+      // The maximum and the second maximum still satisfy.
+      if (mx >= start && secondMax >= start)
+        continue;
+      if (mx >= start) {
+        // The maximum still satisfy.
+        secondMax = mx;
+        mx = end; // Add `end` to the set.
+        ans += 1;
+      } else {
+        // The maximum and the second maximum can't satisfy.
+        mx = end;            // Add `end` to the set.
+        secondMax = end - 1; // Add `end - 1` to the set.
+        ans += 2;
+      }
+    }
+
+    return ans;
+  }
+}
+
+
+or
+
+class Solution {
+    public int intersectionSizeTwo(int[][] intervals) {
+        Arrays.sort(intervals, (a, b) -> a[1] == b[1] ? b[0] - a[0] : a[1] - b[1]);
+        int ans = 0;
+        int s = -1, e = -1;
+        for (int[] v : intervals) {
+            int a = v[0], b = v[1];
+            if (a <= s) {
+                continue;
+            }
+            if (a > e) {
+                ans += 2;
+                s = b - 1;
+                e = b;
+            } else {
+                ans += 1;
+                s = e;
+                e = b;
+            }
+        }
+        return ans;
+    }
+}
+
+or
+
+class Solution {
+        public int intersectionSizeTwo(int[][] intervals) {
+        int n = intervals.length;
+        Arrays.sort(intervals, (a, b) -> a[1] == b[1] ? a[0] - b[0] : a[1] - b[1]); // Sort intervals: 1- end 2- start- O(nlogn)
+        List<Integer> res = new ArrayList<>();
+        res.add(intervals[0][1] - 1); // Add one before end
+        res.add(intervals[0][1]); // Add end
+        for (int i = 1; i < n; i++) { // O(n)
+            int start = intervals[i][0], end = intervals[i][1], size = res.size(), last = res.get(size - 1), secondLast = res.get(size - 2);
+            if (start > last) { // We need to add two fresh points
+                res.add(end - 1);
+                res.add(end);
+            } else if (start == last) res.add(end); // We already added one. We need to add the end of this interval
+            else if (start > secondLast) res.add(end); // We already added last. We need one more
+        }
+        return res.size();
+    }
+}
+
+
+
+or
+
+
+import java.util.*;
+
+class Solution {
+    public int intersectionSizeTwo(int[][] intervals) {
+        Arrays.sort(intervals, (a, b) -> 
+            a[1] == b[1] ? b[0] - a[0] : a[1] - b[1]);
+
+        int maxEnd = intervals[0][1];
+        int secondMaxEnd = intervals[0][1] - 1;
+        int setSize = 2;
+
+        for (int i = 1; i < intervals.length; ++i) {
+            int start = intervals[i][0];
+            int end = intervals[i][1];
+
+            if (maxEnd >= start && secondMaxEnd >= start) {
+                continue;
+            } else if (maxEnd >= start) {
+                secondMaxEnd = maxEnd;
+                maxEnd = end;
+                setSize += 1;
+            } else {
+                maxEnd = end;
+                secondMaxEnd = end - 1;
+                setSize += 2;
+            }
+        }
+
+        return setSize;
+    }
+}
+
+
+or
+
+
+class Solution {
+  public int intersectionSizeTwo(int[][] intervals) {
+    int n = intervals.length;
+
+    // sort by increasing start values
+    // note: resolution is done using decreasing end values 
+    // as this will allow shortest interval to be processed later easing removing of redundant intervals
+    Arrays.sort(intervals, (a, b) -> {
+      if (a[0] == b[0]) {
+        return b[1] - a[1];
+      }
+      return a[0] - b[0];
+    });
+
+    // remove redundant intervals
+    int i = 1;
+    int j = 0;
+    for (; i<n; ++i) {
+      while(j>=0 && intervals[j][1] >= intervals[i][1]) {
+        --j;
+      }
+      ++j;
+      
+      intervals[j][0] = intervals[i][0];
+      intervals[j][1] = intervals[i][1];
+    }
+    n = j+1;
+
+    // final greedy count, p1 and p2 are last two points chosen
+    int p1 = -1;
+    int p2 = -1;
+    int ans = 0;
+    for (i = 0; i<n; ++i) {
+      if (intervals[i][0] > p2) {
+        p1 = intervals[i][1] - 1;
+        p2 = intervals[i][1];
+        ans += 2;
+      } else if (intervals[i][0] > p1) {
+        p1 = p2;
+        p2 = intervals[i][1];
+        ++ans;
+      }
+    }
+    return ans;
+  }
+}
