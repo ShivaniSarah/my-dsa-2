@@ -1,0 +1,299 @@
+https://leetcode.com/problems/the-score-of-students-solving-math-expression/description/
+
+2019. The Score of Students Solving Math Expression
+Hard
+Topics
+Companies
+Hint
+You are given a string s that contains digits 0-9, addition symbols '+', and multiplication symbols '*' only, representing a valid math expression of single digit numbers (e.g., 3+5*2). This expression was given to n elementary school students. The students were instructed to get the answer of the expression by following this order of operations:
+
+Compute multiplication, reading from left to right; Then,
+Compute addition, reading from left to right.
+You are given an integer array answers of length n, which are the submitted answers of the students in no particular order. You are asked to grade the answers, by following these rules:
+
+If an answer equals the correct answer of the expression, this student will be rewarded 5 points;
+Otherwise, if the answer could be interpreted as if the student applied the operators in the wrong order but had correct arithmetic, this student will be rewarded 2 points;
+Otherwise, this student will be rewarded 0 points.
+Return the sum of the points of the students.
+
+ 
+
+Example 1:
+
+
+Input: s = "7+3*1*2", answers = [20,13,42]
+Output: 7
+Explanation: As illustrated above, the correct answer of the expression is 13, therefore one student is rewarded 5 points: [20,13,42]
+A student might have applied the operators in this wrong order: ((7+3)*1)*2 = 20. Therefore one student is rewarded 2 points: [20,13,42]
+The points for the students are: [2,5,0]. The sum of the points is 2+5+0=7.
+Example 2:
+
+Input: s = "3+5*2", answers = [13,0,10,13,13,16,16]
+Output: 19
+Explanation: The correct answer of the expression is 13, therefore three students are rewarded 5 points each: [13,0,10,13,13,16,16]
+A student might have applied the operators in this wrong order: ((3+5)*2 = 16. Therefore two students are rewarded 2 points: [13,0,10,13,13,16,16]
+The points for the students are: [5,0,0,5,5,2,2]. The sum of the points is 5+0+0+5+5+2+2=19.
+Example 3:
+
+Input: s = "6+0*1", answers = [12,9,6,4,8,6]
+Output: 10
+Explanation: The correct answer of the expression is 6.
+If a student had incorrectly done (6+0)*1, the answer would also be 6.
+By the rules of grading, the students will still be rewarded 5 points (as they got the correct answer), not 2 points.
+The points for the students are: [0,0,5,0,0,5]. The sum of the points is 10.
+ 
+
+Constraints:
+
+3 <= s.length <= 31
+s represents a valid expression that contains only digits 0-9, '+', and '*' only.
+All the integer operands in the expression are in the inclusive range [0, 9].
+1 <= The count of all operators ('+' and '*') in the math expression <= 15
+Test data are generated such that the correct answer of the expression is in the range of [0, 1000].
+n == answers.length
+1 <= n <= 104
+0 <= answers[i] <= 1000
+
+
+
+# java
+
+
+class Solution {
+    public int scoreOfStudents(String s, int[] answers) {
+        int n = s.length();
+        int x = cal(s);
+        int m = (n + 1) >> 1;
+        Set<Integer>[][] f = new Set[m][m];
+        for (int i = 0; i < m; ++i) {
+            for (int j = 0; j < m; ++j) {
+                f[i][j] = new HashSet<>();
+            }
+            f[i][i].add(s.charAt(i << 1) - '0');
+        }
+        for (int i = m - 1; i >= 0; --i) {
+            for (int j = i; j < m; ++j) {
+                for (int k = i; k < j; ++k) {
+                    for (int l : f[i][k]) {
+                        for (int r : f[k + 1][j]) {
+                            char op = s.charAt(k << 1 | 1);
+                            if (op == '+' && l + r <= 1000) {
+                                f[i][j].add(l + r);
+                            } else if (op == '*' && l * r <= 1000) {
+                                f[i][j].add(l * r);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        int[] cnt = new int[1001];
+        for (int ans : answers) {
+            ++cnt[ans];
+        }
+        int ans = 5 * cnt[x];
+        for (int i = 0; i <= 1000; ++i) {
+            if (i != x && f[0][m - 1].contains(i)) {
+                ans += 2 * cnt[i];
+            }
+        }
+        return ans;
+    }
+
+    private int cal(String s) {
+        int res = 0, pre = s.charAt(0) - '0';
+        for (int i = 1; i < s.length(); i += 2) {
+            char op = s.charAt(i);
+            int cur = s.charAt(i + 1) - '0';
+            if (op == '*') {
+                pre *= cur;
+            } else {
+                res += pre;
+                pre = cur;
+            }
+        }
+        res += pre;
+        return res;
+    }
+}
+
+
+or
+
+
+class Solution {
+  public int scoreOfStudents(String s, int[] answers) {
+    final int n = s.length() / 2 + 1;
+    int ans = 0;
+    Set<Integer>[][] dp = new Set[n][n];
+    Map<Integer, Integer> count = new HashMap<>();
+
+    for (int i = 0; i < n; ++i)
+      for (int j = i; j < n; ++j)
+        dp[i][j] = new HashSet<>();
+
+    for (int i = 0; i < n; ++i)
+      dp[i][i].add(s.charAt(i * 2) - '0');
+
+    for (int d = 1; d < n; ++d)
+      for (int i = 0; i + d < n; ++i) {
+        final int j = i + d;
+        for (int k = i; k < j; ++k) {
+          final char op = s.charAt(k * 2 + 1);
+          for (final int a : dp[i][k])
+            for (final int b : dp[k + 1][j]) {
+              final int res = func(op, a, b);
+              if (res <= 1000)
+                dp[i][j].add(res);
+            }
+        }
+      }
+
+    final int correctAnswer = eval(s);
+
+    for (final int answer : answers)
+      count.merge(answer, 1, Integer::sum);
+
+    for (final int answer : count.keySet())
+      if (answer == correctAnswer)
+        ans += 5 * count.get(answer);
+      else if (dp[0][n - 1].contains(answer))
+        ans += 2 * count.get(answer);
+
+    return ans;
+  }
+
+  private int eval(final String s) {
+    int ans = 0;
+    int currNum = 0;
+    int prevNum = 0;
+    char op = '+';
+
+    for (int i = 0; i < s.length(); ++i) {
+      final char c = s.charAt(i);
+      if (Character.isDigit(c))
+        currNum = currNum * 10 + (c - '0');
+      if (!Character.isDigit(c) || i == s.length() - 1) {
+        if (op == '+') {
+          ans += prevNum;
+          prevNum = currNum;
+        } else if (op == '*') {
+          prevNum = prevNum * currNum;
+        }
+        op = c;
+        currNum = 0;
+      }
+    }
+
+    return ans + prevNum;
+  }
+
+  private int func(char op, int a, int b) {
+    if (op == '+')
+      return a + b;
+    return a * b;
+  }
+}
+
+or
+
+
+
+class Solution {
+    
+    HashMap<String , HashSet<Integer>> cache ;
+    
+    public int scoreOfStudents(String s, int[] answers) {
+        
+        cache = new HashMap();
+        HashSet<Integer> total_possible_ans = getPossibleAns(s);
+        
+        int correct_ans = getCorrectAns(s);
+        
+        int total_score = 0 ;
+        for(int i=0 ; i<answers.length ; i++){
+            if(answers[i] == correct_ans){
+                total_score += 5 ;
+            }else if(total_possible_ans.contains(answers[i])){
+                total_score += 2 ;
+            }
+        }
+        
+        return total_score ;        
+    }
+    
+    
+    
+    public HashSet<Integer> getPossibleAns(String s){
+        
+        if(cache.containsKey(s)){
+            return cache.get(s) ;
+        }
+        
+        HashSet<Integer> possible_ans = new HashSet() ;
+        
+        for(int i = 0 ; i<s.length() ; i++){
+            
+            char cur = s.charAt(i) ;
+            HashSet<Integer> left = new HashSet() ;
+            HashSet<Integer> right = new HashSet() ;
+            
+            if(cur == '+' || cur == '*'){
+                left = getPossibleAns(s.substring(0 , i));
+                right = getPossibleAns(s.substring(i+1));
+            }
+            
+            for(Integer l : left){
+                for(Integer r : right){                    
+                    if(cur == '+'){
+                        if(l+r > 1000) continue ; // skiping for ans that are greater than 1000
+                        possible_ans.add(l+r);                      
+                    }else if(cur == '*'){
+                        if(l*r > 1000) continue ; // skiping for ans that are greater than 1000
+                        possible_ans.add(l*r);
+                    }                    
+                }
+            }            
+        }
+        
+        if(possible_ans.isEmpty() && s.length() <= 1){
+            possible_ans.add(Integer.parseInt(s));
+        }
+
+        cache.put(s , possible_ans);
+        
+        return possible_ans ;        
+    }
+    
+    public int getCorrectAns(String s) {
+        
+        Stack<Integer> stack = new Stack() ;
+        
+        for(int i = 0 ; i<s.length() ; i++){
+            
+            // push only integers into stack
+            if(s.charAt(i) != '+' && s.charAt(i) != '*'){
+                stack.push(Character.getNumericValue(s.charAt(i))) ;
+            }
+            
+            // If operator is '*' , then take the last element from stack and multiply with next element
+            // Also push into stack , and then increment i also , to avoid pushing the same next element into stack again
+            if(s.charAt(i) == '*'){
+                int cur = stack.pop();
+                int next = Character.getNumericValue(s.charAt(i+1)) ;
+                stack.push(cur * next);
+                i++ ;
+            }            
+        }
+        
+        // Now sum all the element in the stack to get result for '+' operator
+        int total_sum = stack.pop() ;
+        
+        while(!stack.isEmpty()){
+            total_sum += stack.pop() ;
+        }
+        
+        return total_sum ;
+    }
+
+}
