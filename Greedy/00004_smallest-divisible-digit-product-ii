@@ -1,0 +1,596 @@
+https://leetcode.com/problems/smallest-divisible-digit-product-ii/description/
+
+3348. Smallest Divisible Digit Product II
+Hard
+Topics
+Companies
+Hint
+You are given a string num which represents a positive integer, and an integer t.
+
+A number is called zero-free if none of its digits are 0.
+
+Return a string representing the smallest zero-free number greater than or equal to num such that the product of its digits is divisible by t. If no such number exists, return "-1".
+
+ 
+
+Example 1:
+
+Input: num = "1234", t = 256
+
+Output: "1488"
+
+Explanation:
+
+The smallest zero-free number that is greater than 1234 and has the product of its digits divisible by 256 is 1488, with the product of its digits equal to 256.
+
+Example 2:
+
+Input: num = "12355", t = 50
+
+Output: "12355"
+
+Explanation:
+
+12355 is already zero-free and has the product of its digits divisible by 50, with the product of its digits equal to 150.
+
+Example 3:
+
+Input: num = "11111", t = 26
+
+Output: "-1"
+
+Explanation:
+
+No number greater than 11111 has the product of its digits divisible by 26.
+
+ 
+
+Constraints:
+
+2 <= num.length <= 2 * 105
+num consists only of digits in the range ['0', '9'].
+num does not contain leading zeros.
+1 <= t <= 1014
+
+
+# java
+
+class Solution {
+  public String smallestNumber(String num, long t) {
+    Pair<Map<Integer, Integer>, Boolean> primeCountResult = getPrimeCount(t);
+    Map<Integer, Integer> primeCount = primeCountResult.getKey();
+    boolean isDivisible = primeCountResult.getValue();
+    if (!isDivisible)
+      return "-1";
+
+    Map<Integer, Integer> factorCount = getFactorCount(primeCount);
+    if (sumValues(factorCount) > num.length())
+      return construct(factorCount);
+
+    Map<Integer, Integer> primeCountPrefix = getPrimeCount(num);
+    int firstZeroIndex = num.indexOf('0');
+    if (firstZeroIndex == -1) {
+      firstZeroIndex = num.length();
+      if (isSubset(primeCount, primeCountPrefix))
+        return num;
+    }
+
+    for (int i = num.length() - 1; i >= 0; --i) {
+      final int d = num.charAt(i) - '0';
+      // Remove the current digit's factors from primeCountPrefix.
+      primeCountPrefix = subtract(primeCountPrefix, FACTOR_COUNTS.get(d));
+      final int spaceAfterThisDigit = num.length() - 1 - i;
+      if (i > firstZeroIndex)
+        continue;
+      for (int biggerDigit = d + 1; biggerDigit < 10; ++biggerDigit) {
+        // Compute the required factors after replacing with a larger digit.
+        Map<Integer, Integer> factorsAfterReplacement = getFactorCount(
+            subtract(subtract(primeCount, primeCountPrefix), FACTOR_COUNTS.get(biggerDigit)));
+        // Check if the replacement is possible within the available space.
+        if (sumValues(factorsAfterReplacement) <= spaceAfterThisDigit) {
+          // Fill extra space with '1', if any, and construct the result.
+          final int fillOnes = spaceAfterThisDigit - sumValues(factorsAfterReplacement);
+          return num.substring(0, i) + // Keep the prefix unchanged.
+              biggerDigit +            // Replace the current digit.
+              "1".repeat(fillOnes) + // Fill remaining space with '1'.
+              construct(factorsAfterReplacement);
+        }
+      }
+    }
+
+    // No solution of the same length exists, so we need to extend the number
+    // by prepending '1's and adding the required factors.
+    Map<Integer, Integer> factorsAfterExtension = getFactorCount(primeCount);
+    return "1".repeat(num.length() + 1 - sumValues(factorsAfterExtension)) +
+        construct(factorsAfterExtension);
+  }
+
+  private static final Map<Integer, Map<Integer, Integer>> FACTOR_COUNTS = Map.of(
+      0, Map.of(), 1, Map.of(), 2, Map.of(2, 1), 3, Map.of(3, 1), 4, Map.of(2, 2), 5, Map.of(5, 1),
+      6, Map.of(2, 1, 3, 1), 7, Map.of(7, 1), 8, Map.of(2, 3), 9, Map.of(3, 2));
+
+  // Returns the prime count of t and if t is divisible by 2, 3, 5, 7.
+  private Pair<Map<Integer, Integer>, Boolean> getPrimeCount(long t) {
+    Map<Integer, Integer> count = new HashMap<>(Map.of(2, 0, 3, 0, 5, 0, 7, 0));
+    for (int prime : new int[] {2, 3, 5, 7}) {
+      while (t % prime == 0) {
+        t /= prime;
+        count.put(prime, count.get(prime) + 1);
+      }
+    }
+    return new Pair<>(count, t == 1);
+  }
+
+  // Returns the prime count of `num`.
+  private Map<Integer, Integer> getPrimeCount(String num) {
+    Map<Integer, Integer> count = new HashMap<>(Map.of(2, 0, 3, 0, 5, 0, 7, 0));
+    for (final char c : num.toCharArray()) {
+      Map<Integer, Integer> digitFactors = FACTOR_COUNTS.get(c - '0');
+      for (Map.Entry<Integer, Integer> entry : digitFactors.entrySet()) {
+        final int prime = entry.getKey();
+        final int freq = entry.getValue();
+        count.merge(prime, freq, Integer::sum);
+      }
+    }
+    return count;
+  }
+
+  private Map<Integer, Integer> getFactorCount(Map<Integer, Integer> count) {
+    // 2^3 = 8
+    final int count8 = count.get(2) / 3;
+    final int remaining2 = count.get(2) % 3;
+    // 3^2 = 9
+    final int count9 = count.get(3) / 2;
+    int count3 = count.get(3) % 2;
+    // 2^2 = 4
+    int count4 = remaining2 / 2;
+    int count2 = remaining2 % 2;
+    // Combine 2 and 3 to 6 if both are present
+    int count6 = 0;
+    if (count2 == 1 && count3 == 1) {
+      count2 = 0;
+      count3 = 0;
+      count6 = 1;
+    }
+    // Combine 3 and 4 to 2 and 6 if both are present
+    if (count3 == 1 && count4 == 1) {
+      count2 = 1;
+      count6 = 1;
+      count3 = 0;
+      count4 = 0;
+    }
+    return Map.of(2, count2, 3, count3, 4, count4, 5, count.get(5), 6, count6, 7, count.get(7), 8,
+                  count8, 9, count9);
+  }
+
+  private String construct(Map<Integer, Integer> factors) {
+    StringBuilder sb = new StringBuilder();
+    for (int digit = 2; digit < 10; ++digit)
+      sb.append(String.valueOf(digit).repeat(factors.get(digit)));
+    return sb.toString();
+  }
+
+  // Returns true if a is a subset of b.
+  private boolean isSubset(Map<Integer, Integer> a, Map<Integer, Integer> b) {
+    for (Map.Entry<Integer, Integer> entry : a.entrySet())
+      if (b.get(entry.getKey()) < entry.getValue())
+        return false;
+    return true;
+  }
+
+  // Returns a - b.
+  private Map<Integer, Integer> subtract(Map<Integer, Integer> a, Map<Integer, Integer> b) {
+    Map<Integer, Integer> res = new HashMap<>(a);
+    for (Map.Entry<Integer, Integer> entry : b.entrySet()) {
+      final int key = entry.getKey();
+      final int value = entry.getValue();
+      res.put(key, Math.max(0, res.get(key) - value));
+    }
+    return res;
+  }
+
+  // Returns the sum of the values in `count`.
+  private int sumValues(Map<Integer, Integer> count) {
+    return count.values().stream().mapToInt(Integer::intValue).sum();
+  }
+}
+
+
+or
+
+
+// best
+
+
+class Solution {
+  int primes[] = new int[]{2, 3, 5, 7}, maxPrime = primes[primes.length - 1];
+
+public String smallestNumber(String num, long t) {
+    int primeCount[] = new int[maxPrime + 1], numLength = num.length(), minLength, firstZeroIndexFromLeft = 0;
+    for (int prime : primes) for (; t % prime == 0; t /= prime) primeCount[prime]++;
+    if (t != 1) return "-1";
+    if (numLength < (minLength = getMinLength(primeCount))) return buildSuffix(primeCount, minLength, new char[minLength]);
+    char[] result = new char[numLength + 1];
+    for (int i = 0; firstZeroIndexFromLeft < numLength && (result[++i] = num.charAt(firstZeroIndexFromLeft)) != '0'; firstZeroIndexFromLeft++) logNum(primeCount, result[i], -1);
+    if (getMinLength(primeCount) == 0) {
+        if (firstZeroIndexFromLeft == numLength) return num;
+        Arrays.fill(result, ++firstZeroIndexFromLeft, result.length, '1');
+        return new String(result, 1, numLength);
+    }
+    for (int last = numLength - 1, end = Math.min(firstZeroIndexFromLeft, last); end >= 0; end--)
+        for (logNum(primeCount, result[end + 1], 1); ++result[end + 1] <= '9'; logNum(primeCount, result[end + 1], 1)) {
+            logNum(primeCount, result[end + 1], -1);
+            if (getMinLength(primeCount) <= last - end) return buildSuffix(primeCount, last - end, result);
+        }
+    return buildSuffix(primeCount, result.length, result);
+}
+
+void logNum(int[] primeCount, int num, int value) {
+    if (num < '2') return;
+    if (num == '9') primeCount[3] += value << 1;
+    else if (num == '4') primeCount[2] += value << 1;
+    else if (num == '8') primeCount[2] += value * 3;
+    else if (num == '6') {
+        primeCount[2] += value;
+        primeCount[3] += value;
+    } else primeCount[num - '0'] += value;
+}
+
+String buildSuffix(int[] primeCount, int targetLength, char[] result) {
+    int index = result.length;
+    for (; primeCount[3] > 1; primeCount[3] -= 2) result[--index] = '9';
+    for (; primeCount[2] > 2; primeCount[2] -= 3) result[--index] = '8';
+    while (primeCount[7]-- > 0) result[--index] = '7';
+    if (primeCount[2] > 0 && primeCount[3] > 0) {
+        result[--index] = '6';
+        primeCount[2]--;
+        primeCount[3]--;
+    }
+    while (primeCount[5]-- > 0) result[--index] = '5';
+    for (; primeCount[2] > 1; primeCount[2] -= 2) result[--index] = '4';
+    for (; primeCount[3] > 0; primeCount[3]--) result[--index] = '3';
+    for (; primeCount[2] > 0; primeCount[2]--) result[--index] = '2';
+    while (index + targetLength != result.length) result[--index] = '1';
+    return targetLength == result.length ? new String(result) : new String(result, 1, result.length - 1);
+}
+
+int getMinLength(int[] primeCount) {
+    int count2 = Math.max(0, primeCount[2]), count3 = Math.max(0, primeCount[3]), count23 = (count3 & 1) + (count2 % 3);
+    return (count3 >> 1) + (count2 / 3) + Math.max(0, primeCount[7]) + Math.max(0, primeCount[5]) + (count23 == 3 ? 2 : count23 > 0 ? 1 : 0);
+}
+}
+
+
+or
+
+
+class Solution {
+    public static final int[][] DIVISORS = new int[][]{{0, 0, 0, 0}, {0, 0, 0, 0}, 
+    {1, 0, 0, 0}, {0, 1, 0, 0}, {2, 0, 0, 0}, {0, 0, 1, 0}, 
+    {1, 1, 0, 0}, {0, 0, 0, 1}, {3, 0, 0, 0}, {0, 2, 0, 0}};
+    public String smallestNumber(String num, long t) {
+        /*a digit product is trivially the product of 1 digit numbers, meaning it cannot create >= two digit primes such as  11, 13, etc.
+        so the prime factorization of a digit product = 2^a * 3^b * 5^c * 7^d.
+        Thus can trivially filter out with -1 return any t's with prime factors > 7.
+        
+        So from here assume t = 2^(twoCnt) * 3^(threeCnt) * 5^(fiveCnt) * 7^(sevenCnt), 
+        this means the res > num needs to have a digit product with at least twoCnt 2's, threeCnt 3's, fiveCnt 5's, and sevenCnt 7's.
+
+        The only way to get the 5 and 7 factors from digit prod is directly from 5's and 7's, while 3 can come from {3, 6, 9}, 2's {2, 4, 6, 8}
+        5 and 7 cases have trivial constraint that res must have at least fiveCnt 5's and sevenCnt 7's, while the constraints on 2/3 are more complicated.
+
+        should start with num and modify to fit constraints from right to left to minimize changes to nums. Can only rise the rightmost changed value, but can lower any others.
+        
+        Can calculate a min length to reach a valid digit product as 
+        minLen = fiveCnt + sevenCnt + ceil(twoCnt/3) + ceil(threeCnt/2) - (1 if threeCnt % 2 == 1 and twoCnt % 3 == 1 (can use 6))
+
+        ensure this is optimal:
+        note using >= two 6's is always suboptimal for absolute digit count minimization ignoring values as 
+        two 6's give 2-2 and 2-3 whereas a 9 and 8 gives 3-2 and 2-3 in same digit cnt, providing an additional 2.
+        although this diff state may be benegicial when lining up a 6 reduction, but this only occ if another 6 is used making 3-2, 3-3 which we can say is def worse than 3-2 4-3
+
+
+        Can limit 3 occ to 1 as > 1 can be achieved by 9 using some 9's in combo instead.
+        limit 2 occ to 1 for same reason with 4's and 8's. 
+        4 occ to 2 as three 4's is same as 2 8's for mults. 
+
+        Thus max cnts: {2: 1, 3: 1, 4: 2, 6: 2} 
+        If minLen > num.length, then instead of modifying num try to create the absolute minimum num with valid digit product from scracth.
+
+        for large cnts, if threeCnt % 2 == 0 then trying to use a 3 instead of a nine to justify a 6 reduction through mod change uses an extra move in 
+        s selection as have a even amount of 3's, so tryign to use a 3 to manipualte to make 6 worth it uses 2 moves for 3 + 6 whereas nine would have been a single move
+        which could have been followed by any 2,4,8 for same combined 2+3 efficiency.
+
+        Thus, threeCnt % 2 == 1 is a strict condition for 6 to be worth it. 
+        if have twoCnt % 3 == 2, can use ceil(twoCnt/3) - 1 eights (one less) to get 2-twos remaining, can use a 2 from here to get 
+        to the same state as before in digits used but with 1 two remaining. Since this is inherently worse than the zero twos remainning using 8's six reduction
+        isn't opt. For twoCnt % 3 == 0, similar logic. 
+
+        Thus formula is optimal strat.
+
+        other cases have num.length >= minLen, in this case res.length = num.length or res.length = num.length + 1, so only ever need to consider extensions of at most 1.
+        In the one extensionn case, res.length-1 = minLen, meaning case form a valid digit product without "using" the first number, 
+        so can calculate the minimum using "1 (suffix is constructed min possible num with valid product)"
+
+        Thus, the extension case is handled, so only consider cases of right to left modification and default to extension case if no such mod gets valid string.
+        
+        */
+        int twoCnt = 0, threeCnt = 0, fiveCnt = 0, sevenCnt = 0, m = num.length();
+        while(t % 2 == 0) {
+            t /= 2;
+            twoCnt++;
+        }
+        while(t % 3 == 0) {
+            t /= 3;
+            threeCnt++;
+        }
+        while(t % 5 == 0) {
+            t /= 5;
+            fiveCnt++;
+        }
+        while(t % 7 == 0) {
+            t /= 7;
+            sevenCnt++;
+        }
+        
+        if(t > 1) return "-1";
+        int[] c = new int[4];
+        for(int i = 0; i < m; i++) {
+            if(num.charAt(i) == '0') {
+                c[0] = -1; //set so it can't return num as the 0 makes prod sum 0.
+                break;
+            }
+            for(int j = 0; j < 4; j++) c[j] += DIVISORS[num.charAt(i)-'0'][j];
+        }
+        if(c[0] >= twoCnt && c[1] >= threeCnt && c[2] >= fiveCnt && c[3] >= sevenCnt) return num;
+
+        int minLen = calcMinLen(twoCnt, threeCnt, fiveCnt, sevenCnt);
+        if(minLen > m) return new String(constructMin(twoCnt, threeCnt, fiveCnt, sevenCnt));
+        
+        char[] res = num.toCharArray();
+
+        int r2 = twoCnt, r3 = threeCnt, r5 = fiveCnt, r7 = sevenCnt, pr2 = 0, pr3 = 0, pr5 = 0, pr7 = 0;
+        int leftChange = -1, leftChangeVal = 1;
+        
+        for(int i = 0; i < m; i++) {
+            int dig = res[i]-'0';
+
+            /*have calculated how much is remaining after take num to i-1th index, still have m-i indices to go so if minLen of remaining <= m-i-1
+            , then know that can definitely create it by incrementing current digit as the leftmost change and allowing the other m-i-1 to act as "free variables" to create
+            a min construction to goal. So test all values that this can be incremented up to, seeing if it can act as a valid leftmost change.*/
+            for(int inc = dig + 1; inc < 10; inc++) {
+                if(calcMinLen(Math.max(r2-DIVISORS[inc][0], 0), Math.max(r3-DIVISORS[inc][1], 0), Math.max(r5-DIVISORS[inc][2], 0), Math.max(r7-DIVISORS[inc][3], 0)) <= m-i-1) {
+                    leftChange = i;
+                    leftChangeVal = inc;
+                    break;
+                }
+            }
+            
+
+            if(i == leftChange) {
+                pr2 = r2;
+                pr3 = r3;
+                pr5 = r5;
+                pr7 = r7;
+            }
+            
+            if(dig == 0) { //if have a zero, cannot have zeros so must be changed meaning the leftmost change cannnot occur to the right of this, so break
+                break;
+            }
+
+            r2 -= DIVISORS[dig][0];
+            r3 -= DIVISORS[dig][1];
+            r5 -= DIVISORS[dig][2];
+            r7 -= DIVISORS[dig][3];
+        }
+
+        if(leftChange == -1) {
+            char[] extended = new char[m + 1];
+            Arrays.fill(extended, '1');
+            char[] min = constructMin(twoCnt, threeCnt, fiveCnt, sevenCnt);
+            System.arraycopy(min, 0, extended, m - min.length + 1, min.length);
+            return new String(extended);
+        }
+        res[leftChange] = (char)(leftChangeVal + '0');
+        if(leftChange == m-1) return new String(res);
+
+        char[] min = constructMin(Math.max(pr2 - DIVISORS[leftChangeVal][0], 0), 
+        Math.max(pr3 - DIVISORS[leftChangeVal][1], 0), Math.max(pr5 - DIVISORS[leftChangeVal][2], 0), 
+        Math.max(pr7 - DIVISORS[leftChangeVal][3], 0));
+        Arrays.fill(res, leftChange+1, m - min.length, '1');
+        System.arraycopy(min, 0, res, m - min.length, min.length);
+        return new String(res);
+    }
+
+    private int calcMinLen(int c2, int c3, int c5, int c7) {
+        return c5 + c7 + ((2 + c2)/3) + ((1 + c3)/2) - (c3 % 2 == 1 && c2 % 3 == 1 ? 1 : 0);
+    }
+
+   private char[] constructMin(int c2, int c3, int c5, int c7) {
+        int minLen = calcMinLen(c2, c3, c5, c7);
+        char[] res = new char[minLen];
+
+        for(int i = minLen-1; i >= 0; i--) {
+            if(c3 >= 2) {
+                res[i] = '9';
+                c3 -= 2;
+            } else if(c2 >= 3) {
+                res[i] = '8';
+                c2 -= 3;
+            } else if(c7 > 0) {
+                res[i] = '7';
+                c7--;
+            } else if(c2 >= 1 && c3 == 1) { //c2 1 works cause 6 > 23 and c2 = 2 cause 26 < 34
+                res[i] = '6';
+                c2--;
+                c3--;
+            } else if(c5 > 0) {
+                res[i] = '5';
+                c5--;
+            } else if(c2 >= 2) {
+                res[i] = '4';
+                c2 -= 2;
+            } else if(c3 > 0) {
+                res[i] = '3';
+                c3--;
+            } else if(c2 > 0) {
+                res[i] = '2';
+                c2--;
+            } else {
+                res[i] = '1';
+            }
+        }
+
+        return res;
+   } 
+}  
+
+
+
+or
+
+
+// best
+
+
+import java.util.Arrays;
+
+public class Solution {
+    int primes[] = new int[] { 2, 3, 5, 7 };
+    int maxPrime = primes[primes.length - 1];
+
+    public String smallestNumber(String num, long t) {
+        int primeCount[] = new int[maxPrime + 1];
+        int numLength = num.length();
+        int minLength;
+        int firstZeroIndexFromLeft = 0;
+
+        // Calculate the prime factors of t
+        for (int prime : primes) {
+            while (t % prime == 0) {
+                t /= prime;
+                primeCount[prime]++;
+            }
+        }
+
+        // If t is not fully factorizable by the given primes, return -1
+        if (t != 1) {
+            return "-1";
+        }
+
+        // Calculate the minimum length required
+        minLength = getMinLength(primeCount);
+
+        // If num's length is less than the required minimum length, build the smallest number
+        if (numLength < minLength) {
+            return buildSuffix(primeCount, minLength, new char[minLength]);
+        }
+
+        char[] result = new char[numLength + 1];
+
+        for (int i = 0; firstZeroIndexFromLeft < numLength
+                && (result[++i] = num.charAt(firstZeroIndexFromLeft)) != '0'; firstZeroIndexFromLeft++) {
+            logNum(primeCount, result[i], -1);
+        }
+
+        if (getMinLength(primeCount) == 0) {
+            if (firstZeroIndexFromLeft == numLength) {
+                return num;
+            }
+            Arrays.fill(result, ++firstZeroIndexFromLeft, result.length, '1');
+            return new String(result, 1, numLength);
+        }
+
+        for (int last = numLength - 1, end = Math.min(firstZeroIndexFromLeft, last); end >= 0; end--) {
+            for (logNum(primeCount, result[end + 1], 1); ++result[end + 1] <= '9'; logNum(primeCount, result[end + 1], 1)) {
+                logNum(primeCount, result[end + 1], -1);
+                if (getMinLength(primeCount) <= last - end) {
+                    return buildSuffix(primeCount, last - end, result);
+                }
+            }
+        }
+
+        // Build and return the final result
+        return buildSuffix(primeCount, result.length, result);
+    }
+
+    // Update primeCount based on the digit value
+    void logNum(int[] primeCount, int num, int value) {
+        if (num < '2') {
+            return;
+        }
+
+        if (num == '9') {
+            primeCount[3] += value << 1;
+        } else if (num == '4') {
+            primeCount[2] += value << 1;
+        } else if (num == '8') {
+            primeCount[2] += value * 3;
+        } else if (num == '6') {
+            primeCount[2] += value;
+            primeCount[3] += value;
+        } else {
+            primeCount[num - '0'] += value;
+        }
+    }
+
+    // Construct the smallest valid number using the prime factors
+    String buildSuffix(int[] primeCount, int targetLength, char[] result) {
+        int index = result.length;
+
+        while (primeCount[3] > 1) {
+            primeCount[3] -= 2;
+            result[--index] = '9';
+        }
+
+        while (primeCount[2] > 2) {
+            primeCount[2] -= 3;
+            result[--index] = '8';
+        }
+
+        while (primeCount[7]-- > 0) {
+            result[--index] = '7';
+        }
+
+        if (primeCount[2] > 0 && primeCount[3] > 0) {
+            result[--index] = '6';
+            primeCount[2]--;
+            primeCount[3]--;
+        }
+
+        while (primeCount[5]-- > 0) {
+            result[--index] = '5';
+        }
+
+        while (primeCount[2] > 1) {
+            primeCount[2] -= 2;
+            result[--index] = '4';
+        }
+
+        while (primeCount[3] > 0) {
+            primeCount[3]--;
+            result[--index] = '3';
+        }
+
+        while (primeCount[2] > 0) {
+            primeCount[2]--;
+            result[--index] = '2';
+        }
+
+        while (index + targetLength != result.length) {
+            result[--index] = '1';
+        }
+
+        return targetLength == result.length ? new String(result) : new String(result, 1, result.length - 1);
+    }
+
+    // Calculate the minimum length required based on the prime factors
+    int getMinLength(int[] primeCount) {
+        int count2 = Math.max(0, primeCount[2]);
+        int count3 = Math.max(0, primeCount[3]);
+        int count23 = (count3 & 1) + (count2 % 3);
+
+        return (count3 >> 1) + (count2 / 3) + Math.max(0, primeCount[7]) + Math.max(0, primeCount[5])
+                + (count23 == 3 ? 2 : count23 > 0 ? 1 : 0);
+    }
+}
