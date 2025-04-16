@@ -1,0 +1,292 @@
+https://leetcode.com/problems/minimum-possible-integer-after-at-most-k-adjacent-swaps-on-digits/description/
+
+1505. Minimum Possible Integer After at Most K Adjacent Swaps On Digits
+Hard
+Topics
+Companies
+Hint
+You are given a string num representing the digits of a very large integer and an integer k. You are allowed to swap any two adjacent digits of the integer at most k times.
+
+Return the minimum integer you can obtain also as a string.
+
+ 
+
+Example 1:
+
+
+Input: num = "4321", k = 4
+Output: "1342"
+Explanation: The steps to obtain the minimum integer from 4321 with 4 adjacent swaps are shown.
+Example 2:
+
+Input: num = "100", k = 1
+Output: "010"
+Explanation: It's ok for the output to have leading zeros, but the input is guaranteed not to have any leading zeros.
+Example 3:
+
+Input: num = "36789", k = 1000
+Output: "36789"
+Explanation: We can keep the number without any swaps.
+ 
+
+Constraints:
+
+1 <= num.length <= 3 * 104
+num consists of only digits and does not contain leading zeros.
+1 <= k <= 109
+
+
+# java
+
+class Solution {
+    public String minInteger(String num, int k) {
+        Queue<Integer>[] pos = new Queue[10];
+        for (int i = 0; i < 10; ++i) {
+            pos[i] = new ArrayDeque<>();
+        }
+        int n = num.length();
+        for (int i = 0; i < n; ++i) {
+            pos[num.charAt(i) - '0'].offer(i + 1);
+        }
+        StringBuilder ans = new StringBuilder();
+        BinaryIndexedTree tree = new BinaryIndexedTree(n);
+        for (int i = 1; i <= n; ++i) {
+            for (int v = 0; v < 10; ++v) {
+                if (!pos[v].isEmpty()) {
+                    Queue<Integer> q = pos[v];
+                    int j = q.peek();
+                    int dist = tree.query(n) - tree.query(j) + j - i;
+                    if (dist <= k) {
+                        k -= dist;
+                        q.poll();
+                        ans.append(v);
+                        tree.update(j, 1);
+                        break;
+                    }
+                }
+            }
+        }
+        return ans.toString();
+    }
+}
+
+class BinaryIndexedTree {
+    private int n;
+    private int[] c;
+
+    public BinaryIndexedTree(int n) {
+        this.n = n;
+        c = new int[n + 1];
+    }
+
+    public void update(int x, int delta) {
+        while (x <= n) {
+            c[x] += delta;
+            x += lowbit(x);
+        }
+    }
+
+    public int query(int x) {
+        int s = 0;
+        while (x > 0) {
+            s += c[x];
+            x -= lowbit(x);
+        }
+        return s;
+    }
+
+    public static int lowbit(int x) {
+        return x & -x;
+    }
+}
+
+
+or
+
+class Solution {
+    public String minInteger(String num, int k) {
+        //pqs stores the location of each digit.
+        List<Queue<Integer>> pqs = new ArrayList<>();
+        for (int i = 0; i <= 9; ++i) {
+            pqs.add(new LinkedList<>());
+        }
+
+        for (int i = 0; i < num.length(); ++i) {
+            pqs.get(num.charAt(i) - '0').add(i);
+        }
+        String ans = "";
+        SegmentTree seg = new SegmentTree(num.length());
+
+        for (int i = 0; i < num.length(); ++i) {
+            // At each location, try to place 0....9
+            for (int digit = 0; digit <= 9; ++digit) {
+                // is there any occurrence of digit left?
+                if (pqs.get(digit).size() != 0) {
+                    // yes, there is a occurrence of digit at pos
+                    Integer pos = pqs.get(digit).peek();
+					// Since few numbers already shifted to left, this `pos` might be outdated.
+                    // we try to find how many number already got shifted that were to the left of pos.
+                    int shift = seg.getCountLessThan(pos);
+                    // (pos - shift) is number of steps to make digit move from pos to i.
+                    if (pos - shift <= k) {
+                        k -= pos - shift;
+                        seg.add(pos); // Add pos to our segment tree.
+                        pqs.get(digit).remove();
+                        ans += digit;
+                        break;
+                    }
+                }
+            }
+        }
+        return ans;
+    }
+
+    class SegmentTree {
+        int[] nodes;
+        int n;
+
+        public SegmentTree(int max) {
+            nodes = new int[4 * (max)];
+            n = max;
+        }
+
+        public void add(int num) {
+            addUtil(num, 0, n, 0);
+        }
+
+        private void addUtil(int num, int l, int r, int node) {
+            if (num < l || num > r) {
+                return;
+            }
+            if (l == r) {
+                nodes[node]++;
+                return;
+            }
+            int mid = (l + r) / 2;
+            addUtil(num, l, mid, 2 * node + 1);
+            addUtil(num, mid + 1, r, 2 * node + 2);
+            nodes[node] = nodes[2 * node + 1] + nodes[2 * node + 2];
+        }
+
+        // Essentialy it tells count of numbers < num.
+        public int getCountLessThan(int num) {
+            return getUtil(0, num, 0, n, 0);
+        }
+
+        private int getUtil(int ql, int qr, int l, int r, int node) {
+            if (qr < l || ql > r) return 0;
+            if (ql <= l && qr >= r) {
+                return nodes[node];
+            }
+
+            int mid = (l + r) / 2;
+            return getUtil(ql, qr, l, mid, 2 * node + 1) + getUtil(ql, qr, mid + 1, r, 2 * node + 2);
+        }
+    }
+
+}
+
+or
+
+//  best
+
+// Time O(NlogN) [30ms submitted once]
+// Space O(N)
+class Solution {
+    public String minInteger(String num, int k) {
+        StringBuilder sb = new StringBuilder();
+        char[] A = num.toCharArray();
+        int[] bit = new int[A.length+2];
+        Queue<Integer>[] queue = new ArrayDeque[10];
+        Arrays.setAll(queue, o -> new ArrayDeque<>());
+        for (int i = 0; i < A.length; i++){ // track indexes for each digit
+            queue[A[i]-'0'].offer(i);
+        }
+        for (int i = 0; i < A.length; i++){ // solve for each position
+            for (int j = 0; j < 10; j++){ // from the best to worst
+                if (!queue[j].isEmpty()){
+                    int cost = queue[j].peek() - i + (i - sum(bit, queue[j].peek())); // cost needed to move to the head.
+                    if (cost <= k){
+                        k -= cost;
+                        sb.append(j);
+                        add(bit, queue[j].poll(), 1);
+                        break;
+                    }
+                }
+            }
+        }
+        return sb.toString();
+    }
+
+    private void add(int[] bit, int idx, int inc){
+        for (++idx; idx < bit.length; idx += idx & -idx){
+            bit[idx]+=inc;
+        }
+    }
+
+    private int sum(int[] bit, int idx){
+        int ans = 0;
+        for (++idx; idx > 0; idx -= idx & -idx){
+            ans += bit[idx];
+        }
+        return ans;
+    }
+}
+
+or
+
+class Solution {
+    public String minInteger(String num, int k) {
+        int n = num.length();
+        Queue<Integer>[] q = new LinkedList[10];
+        for(int i = 0; i <= 9; i++) q[i] = new LinkedList<Integer>();
+        for(int i = 0; i < n; i++) q[num.charAt(i)-'0'].add(i);
+        
+        fenWickTree ft = new fenWickTree(n);
+        StringBuilder ans = new StringBuilder();
+        for(int i = 0; i < n; i++) {
+            for(int d = 0; d <= 9; d++) {
+                if(q[d].isEmpty()) continue;
+                int pos = q[d].peek();
+                int alreadyMoved = ft.getSum(pos+1);
+                int reqSwaps = pos - alreadyMoved;
+                if(reqSwaps <= k) {
+                    k -= reqSwaps;
+                    char c = (char)(d+'0');
+                    ans.append(c);
+                    q[d].poll();
+                    ft.update(pos+1);
+                    break;
+                }
+            }
+        }
+        
+        return ans.toString();
+    }
+    
+    static class fenWickTree {
+        int[] tree;
+        int n;
+        fenWickTree(int n) {
+            tree = new int[n+1];
+            this.n = n;
+        }
+        
+        public void update(int idx) {
+            while(idx <= n) {
+                tree[idx]++;
+                idx += idx&-idx;
+            }
+        }
+        
+        public int getSum(int idx) {
+            int sum = 0;
+            while(idx > 0) {
+                sum += tree[idx];
+                idx -= idx&-idx;
+            }
+            
+            return sum;
+        }
+    }
+}
