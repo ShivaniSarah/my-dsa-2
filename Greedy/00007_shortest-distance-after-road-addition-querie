@@ -1,0 +1,347 @@
+https://leetcode.com/problems/shortest-distance-after-road-addition-queries-ii/description/
+
+3244. Shortest Distance After Road Addition Queries II
+Hard
+Topics
+Companies
+You are given an integer n and a 2D integer array queries.
+
+There are n cities numbered from 0 to n - 1. Initially, there is a unidirectional road from city i to city i + 1 for all 0 <= i < n - 1.
+
+queries[i] = [ui, vi] represents the addition of a new unidirectional road from city ui to city vi. After each query, you need to find the length of the shortest path from city 0 to city n - 1.
+
+There are no two queries such that queries[i][0] < queries[j][0] < queries[i][1] < queries[j][1].
+
+Return an array answer where for each i in the range [0, queries.length - 1], answer[i] is the length of the shortest path from city 0 to city n - 1 after processing the first i + 1 queries.
+
+ 
+
+Example 1:
+
+Input: n = 5, queries = [[2,4],[0,2],[0,4]]
+
+Output: [3,2,1]
+
+Explanation:
+
+
+
+After the addition of the road from 2 to 4, the length of the shortest path from 0 to 4 is 3.
+
+
+
+After the addition of the road from 0 to 2, the length of the shortest path from 0 to 4 is 2.
+
+
+
+After the addition of the road from 0 to 4, the length of the shortest path from 0 to 4 is 1.
+
+Example 2:
+
+Input: n = 4, queries = [[0,3],[0,2]]
+
+Output: [1,1]
+
+Explanation:
+
+
+
+After the addition of the road from 0 to 3, the length of the shortest path from 0 to 3 is 1.
+
+
+
+After the addition of the road from 0 to 2, the length of the shortest path remains 1.
+
+ 
+
+Constraints:
+
+3 <= n <= 105
+1 <= queries.length <= 105
+queries[i].length == 2
+0 <= queries[i][0] < queries[i][1] < n
+1 < queries[i][1] - queries[i][0]
+There are no repeated roads among the queries.
+There are no two queries such that i != j and queries[i][0] < queries[j][0] < queries[i][1] < queries[j][1].
+
+
+
+# java
+
+//best
+
+
+class Solution {
+    public int[] shortestDistanceAfterQueries(int n, int[][] queries) {
+        int[] nxt = new int[n - 1];
+        for (int i = 1; i < n; ++i) {
+            nxt[i - 1] = i;
+        }
+        int m = queries.length;
+        int cnt = n - 1;
+        int[] ans = new int[m];
+        for (int i = 0; i < m; ++i) {
+            int u = queries[i][0], v = queries[i][1];
+            if (nxt[u] > 0 && nxt[u] < v) {
+                int j = nxt[u];
+                while (j < v) {
+                    --cnt;
+                    int t = nxt[j];
+                    nxt[j] = 0;
+                    j = t;
+                }
+                nxt[u] = v;
+            }
+            ans[i] = cnt;
+        }
+        return ans;
+    }
+}
+
+
+or
+
+
+class Solution {
+  public int[] shortestDistanceAfterQueries(int n, int[][] queries) {
+    int[] ans = new int[queries.length];
+    Map<Integer, Integer> nodeToFarthestNode = new HashMap<>();
+
+    for (int i = 0; i < n - 1; ++i)
+      nodeToFarthestNode.put(i, i + 1);
+
+    for (int i = 0; i < queries.length; ++i) {
+      final int u = queries[i][0];
+      final int v = queries[i][1];
+      // If `u` exists in the map and `v` is farther than the current farthest
+      // node for `u`, we need to update the map and remove intermediate nodes.
+      if (nodeToFarthestNode.containsKey(u) && nodeToFarthestNode.get(u) < v) {
+        int node = nodeToFarthestNode.get(u);
+        while (node < v)
+          node = nodeToFarthestNode.remove(node);
+        nodeToFarthestNode.put(u, v);
+      }
+      ans[i] = nodeToFarthestNode.size();
+    }
+
+    return ans;
+  }
+}
+
+
+or
+
+
+class Solution {
+    public int[] shortestDistanceAfterQueries(int n, int[][] queries) {
+        HashMap<Integer, Integer> map = new HashMap<>();
+        for(int i=0;i<n-1;i++) {
+            map.put(i, i+1);
+        }
+
+        int m = queries.length;
+        int[] ans = new int[m];
+        for(int i=0;i<m;i++) {
+            if(map.containsKey(queries[i][0]) && map.get(queries[i][0]) < queries[i][1]) {
+                int j = queries[i][0];
+                while(j < queries[i][1]) {
+                    j = map.remove(j);
+                }
+                map.put(queries[i][0], queries[i][1]);
+            }
+            ans[i] = map.size();
+        }
+
+        return ans;
+    }
+}
+
+or
+
+
+class Solution {
+    public int[] shortestDistanceAfterQueries(int n, int[][] queries) {
+        // Intuition: Queries are non overlapping so it means that
+        // each query basically removes some nodes from the path
+        // from node 0 to node n - 1
+        // Hence no need of bfs just need to keep track of the number of nodes
+
+        // Map of road from node 0 to node n - 1 (Just a straight line)
+        Map<Integer, Integer> road = new HashMap<>();
+
+        for (int i = 0; i < n - 1; i++)
+            road.put(i, i + 1);
+
+        int[] res = new int[queries.length];
+        int j = 0;
+        
+        for (int[] q : queries) {
+            // check if the nodes that will be removed by this query
+            // have already been removed by some other query
+            // for example: 0 -> 3, followed by 1 -> 2
+            if (!road.containsKey(q[0]) || road.get(q[0]) > q[1]) {
+                res[j++] = road.size();
+                continue;
+            }
+
+            // otherwise remove the nodes
+            int u = q[0];
+            int v = q[1];
+            while (road.get(u) != v) {
+                int k = road.get(u);
+                road.put(u, road.get(k));
+                road.remove(k);
+            }
+
+            // current condition of road (Still a straight line)
+            // System.out.println(road);
+            res[j++] = road.size();
+        }
+
+        return res;
+    }
+}
+
+or
+
+
+class Solution {
+    public int[] shortestDistanceAfterQueries(int n, int[][] queries) {
+        int[] rst = new int[queries.length];
+        TreeSet<Integer> set = IntStream.range(0, n)
+            .boxed()
+            .collect(Collectors.toCollection(TreeSet::new));
+        int k = 0;
+
+        for (int[] q : queries) {
+            set.subSet(q[0], false, q[1], false).clear();
+            rst[k++] = set.size() - 1;
+        }
+
+        return rst;
+    }
+}
+
+
+or
+
+
+class Solution {
+    List<Integer> list;
+
+    public int[] shortestDistanceAfterQueries(int n, int[][] queries) {
+        list = new ArrayList<>();
+        for (int i = 0; i < n; i++)
+            list.add(i);
+        int m = queries.length;
+        int[] ans = new int[m];
+        for (int i = 0; i < m; i++) {
+            erase(queries[i][0] + 1, queries[i][1] - 1);
+            ans[i] = list.size() - 1;
+        }
+        return ans;
+    }
+
+    private void erase(int l, int r) {
+        int lower = lowerBound(l);
+        int upper = upperBound(r);
+        list.subList(lower, upper).clear();
+    }
+
+    private int lowerBound(int target) {
+        int start = 0, end = list.size(), mid;
+        while (start < end) {
+            mid = (start + end) / 2;
+            if (target <= list.get(mid))
+                end = mid;
+            else
+                start = mid + 1;
+        }
+        return start;
+    }
+
+    private int upperBound(int target) {
+        int start = 0, end = list.size(), mid;
+        while (start < end) {
+            mid = (start + end) / 2;
+            if (list.get(mid) <= target)
+                start = mid + 1;
+            else
+                end = mid;
+        }
+        return start;
+    }
+}
+
+or
+
+
+class Solution {
+    public int[] shortestDistanceAfterQueries(int n, int[][] queries) {
+        Map<Integer, Integer> d = new HashMap<>();
+        for (int i = 0; i < n - 1; ++i) {
+            d.put(i, i + 1);
+        }
+        int res[] = new int[queries.length], qi = 0;
+        for (int[] q : queries) {
+            int i = q[0], j = q[1];
+            if (d.containsKey(i) && d.get(i) < j) {
+                int v = i;
+                while (v < j && d.containsKey(v)) {
+                    v = d.remove(v);
+                }
+                d.put(i, j);
+            }
+            res[qi++] = d.size();
+        }
+        return res;
+    }
+}
+
+or
+
+
+class Solution {
+    
+
+    public int[] shortestDistanceAfterQueries(int n, int[][] queries) {
+        List<Integer> res = new ArrayList<>();
+        Node[] arr = new Node[n];
+        arr[0] = new Node(0);
+        for(int i = 1; i < n; i++) {
+            arr[i] = new Node(i);
+            arr[i-1].next = arr[i];
+        }
+
+        int count = n-1;
+
+        for (int[] query : queries) {
+            int u = query[0];
+            int v = query[1];
+            if(u < v) {
+                Node t = arr[u];
+                while(t != null && t.next != null && t.next.key != v && arr[v] != null) {
+                    Node temp = t.next;
+                    t.next = t.next.next;
+                    arr[temp.key] = null;
+                    count--;
+                }
+            }
+            res.add(count);
+        }
+
+        return res.stream().mapToInt(i -> i).toArray();
+
+
+
+    }
+}
+
+class Node {
+    int key;
+    Node next;
+
+    public Node(int key) {
+        this.key = key;
+    }
+}
