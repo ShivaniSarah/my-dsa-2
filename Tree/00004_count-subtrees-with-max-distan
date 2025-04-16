@@ -1,0 +1,428 @@
+https://leetcode.com/problems/count-subtrees-with-max-distance-between-cities/description/
+
+
+1617. Count Subtrees With Max Distance Between Cities
+Hard
+Topics
+Companies
+Hint
+There are n cities numbered from 1 to n. You are given an array edges of size n-1, where edges[i] = [ui, vi] represents a bidirectional edge between cities ui and vi. There exists a unique path between each pair of cities. In other words, the cities form a tree.
+
+A subtree is a subset of cities where every city is reachable from every other city in the subset, where the path between each pair passes through only the cities from the subset. Two subtrees are different if there is a city in one subtree that is not present in the other.
+
+For each d from 1 to n-1, find the number of subtrees in which the maximum distance between any two cities in the subtree is equal to d.
+
+Return an array of size n-1 where the dth element (1-indexed) is the number of subtrees in which the maximum distance between any two cities is equal to d.
+
+Notice that the distance between the two cities is the number of edges in the path between them.
+
+ 
+
+Example 1:
+
+
+
+Input: n = 4, edges = [[1,2],[2,3],[2,4]]
+Output: [3,4,0]
+Explanation:
+The subtrees with subsets {1,2}, {2,3} and {2,4} have a max distance of 1.
+The subtrees with subsets {1,2,3}, {1,2,4}, {2,3,4} and {1,2,3,4} have a max distance of 2.
+No subtree has two nodes where the max distance between them is 3.
+Example 2:
+
+Input: n = 2, edges = [[1,2]]
+Output: [1]
+Example 3:
+
+Input: n = 3, edges = [[1,2],[2,3]]
+Output: [2,1]
+ 
+
+Constraints:
+
+2 <= n <= 15
+edges.length == n-1
+edges[i].length == 2
+1 <= ui, vi <= n
+All pairs (ui, vi) are distinct.
+
+
+
+# java
+
+
+class Solution {
+
+    List<Integer>[] tree, subTree;
+    int subTreeRoot, maxPath;
+    boolean[] inStack; // do not allow to travel upwards in the rooted tree
+    int[] ans;
+
+    public int[] countSubgraphsForEachDiameter(int n, int[][] edges) {
+        buildTree(n, edges);
+        ans = new int[n - 1];
+        solve(0);
+        return ans;
+    }
+
+    private void buildTree(int n, int[][] edges) {
+        tree = new List[n];
+        subTree = new List[n];
+        inStack = new boolean[n];
+        for (int i = 0; i < n; ++i) {
+            tree[i] = new ArrayList<>();
+            subTree[i] = new ArrayList<>();
+        }
+        for (int[] e : edges) {
+            tree[e[0] - 1].add(e[1] - 1);
+            tree[e[1] - 1].add(e[0] - 1);
+        }
+    }
+
+    private void solve(int i) {
+        subTreeRoot = i;
+        inStack[i] = true;
+        buildSubTree(0, 0, Collections.singletonList(i), new ArrayList<>());
+        for (int e : tree[i]) {
+            if (inStack[e]) {
+                continue;
+            } 
+            solve(e);
+        }
+    }
+
+    private void buildSubTree(int i, int j, List<Integer> fronteer, List<Integer> next) {
+        if (i >= fronteer.size()) {
+            buildNextLevel(next);
+            return;
+        }
+        int curr = fronteer.get(i);
+        if (j >= tree[curr].size()) {
+            buildSubTree(i + 1, 0, fronteer, next);
+        } else {
+            int succ = tree[curr].get(j);
+            if (inStack[succ]) {
+                buildSubTree(i, j + 1, fronteer, next);
+                return;
+            }
+            inStack[succ] = true;
+            next.add(succ);
+            subTree[curr].add(succ);
+            buildSubTree(i, j + 1, fronteer, next);
+            next.remove(next.size() - 1);
+            subTree[curr].remove(subTree[curr].size() - 1);
+            buildSubTree(i, j + 1, fronteer, next);
+            inStack[succ] = false;
+        }
+    }
+
+    private void buildNextLevel(List<Integer> next) {
+        if (next.isEmpty()) { // subTree is done, add it to the answer
+            maxPath = 0;
+            computeMaxPath(subTreeRoot);
+            if (maxPath > 1) {
+                ++ans[maxPath - 2];
+            }
+        } else {
+            buildSubTree(0, 0, next, new ArrayList<>());
+        }
+    }
+
+    private int computeMaxPath(int i) {
+        int max = 0, prevMax = 0;
+        for (int child : subTree[i]) {
+            int h = computeMaxPath(child);
+            if (h >= max) {
+                prevMax = max;
+                max = h;
+            } else {
+                prevMax = Integer.max(prevMax, h);
+            }
+        }
+        maxPath = Integer.max(maxPath, prevMax + max + 1);
+        return max + 1;
+    }
+}
+
+
+or
+
+
+// Bitmask + Floyd Warshall
+
+class Solution {
+    public int[] countSubgraphsForEachDiameter(int n, int[][] edges) {
+        int INF = n;
+        int[][] dist = new int[n][n];
+
+        // Initialize distance matrix
+        for (int[] row : dist) Arrays.fill(row, INF);
+        for (int[] e : edges) {
+            dist[e[0] - 1][e[1] - 1] = 1;
+            dist[e[1] - 1][e[0] - 1] = 1;
+        }
+
+        // Floyd-Warshall to compute all-pairs shortest path
+        for (int k = 0; k < n; k++)
+            for (int i = 0; i < n; i++)
+                for (int j = 0; j < n; j++)
+                    dist[i][j] = Math.min(dist[i][j], dist[i][k] + dist[k][j]);
+
+        int[] ans = new int[n - 1];
+        int totalStates = 1 << n;
+
+        for (int state = 0; state < totalStates; state++) {
+            int d = maxDistance(state, dist, n);
+            if (d > 0) ans[d - 1]++;
+        }
+
+        return ans;
+    }
+
+    private int maxDistance(int state, int[][] dist, int n) {
+        int cntEdge = 0, cntCity = 0, maxDist = 0;
+
+        for (int i = 0; i < n; i++) {
+            if (((state >> i) & 1) == 0) continue;
+            cntCity++;
+
+            for (int j = i + 1; j < n; j++) {
+                if (((state >> j) & 1) == 0) continue;
+                if (dist[i][j] == 1) cntEdge++;
+                maxDist = Math.max(maxDist, dist[i][j]);
+            }
+        }
+
+        if (cntCity < 2 || cntEdge != cntCity - 1) return 0; // not a tree
+        return maxDist;
+    }
+}
+
+
+or
+
+// Bitmask + BFS every cities
+
+import java.util.*;
+
+class Solution {
+    public int[] countSubgraphsForEachDiameter(int n, int[][] edges) {
+        List<Integer>[] graph = new ArrayList[n];
+        for (int i = 0; i < n; i++) graph[i] = new ArrayList<>();
+        for (int[] edge : edges) {
+            int u = edge[0] - 1, v = edge[1] - 1;
+            graph[u].add(v);
+            graph[v].add(u);
+        }
+
+        int[] result = new int[n - 1];
+
+        for (int state = 1; state < (1 << n); state++) {
+            Set<Integer> cities = new HashSet<>();
+            for (int i = 0; i < n; i++) {
+                if (((state >> i) & 1) == 1) cities.add(i);
+            }
+
+            if (cities.size() <= 1) continue;
+
+            int diameter = getMaxDistance(graph, cities, n);
+            if (diameter > 0) result[diameter - 1]++;
+        }
+
+        return result;
+    }
+
+    private int getMaxDistance(List<Integer>[] graph, Set<Integer> cities, int n) {
+        for (int start : cities) {
+            int[] bfsResult = bfs(start, graph, cities, n);
+            if (bfsResult == null) return 0; // not connected
+            int farthest = bfsResult[0];
+            int farthestNode = bfsResult[1];
+
+            bfsResult = bfs(farthestNode, graph, cities, n);
+            if (bfsResult == null) return 0;
+            return bfsResult[0];
+        }
+        return 0;
+    }
+
+    private int[] bfs(int src, List<Integer>[] graph, Set<Integer> cities, int n) {
+        Queue<int[]> q = new LinkedList<>();
+        boolean[] visited = new boolean[n];
+        q.offer(new int[]{src, 0});
+        visited[src] = true;
+        int visitedCount = 1;
+        int maxDist = 0;
+        int farthestNode = src;
+
+        while (!q.isEmpty()) {
+            int[] curr = q.poll();
+            int u = curr[0], d = curr[1];
+            if (d > maxDist) {
+                maxDist = d;
+                farthestNode = u;
+            }
+            for (int v : graph[u]) {
+                if (!visited[v] && cities.contains(v)) {
+                    visited[v] = true;
+                    visitedCount++;
+                    q.offer(new int[]{v, d + 1});
+                }
+            }
+        }
+
+        if (visitedCount < cities.size()) return null; // disconnected
+        return new int[]{maxDist, farthestNode};
+    }
+}
+
+
+
+
+or
+
+// Bitmask + Diamter of the tree (BFS 2 times)
+
+import java.util.*;
+
+class Solution {
+    public int[] countSubgraphsForEachDiameter(int n, int[][] edges) {
+        List<Integer>[] graph = new ArrayList[n];
+        for (int i = 0; i < n; i++) graph[i] = new ArrayList<>();
+        for (int[] e : edges) {
+            graph[e[0] - 1].add(e[1] - 1);
+            graph[e[1] - 1].add(e[0] - 1);
+        }
+
+        int[] ans = new int[n - 1];
+        for (int state = 1; state < (1 << n); state++) {
+            int d = maxDistance(state, graph, n);
+            if (d > 0) ans[d - 1]++;
+        }
+        return ans;
+    }
+
+    private int maxDistance(int state, List<Integer>[] graph, int n) {
+        int anyNode = -1, cntCity = 0;
+        for (int i = 0; i < n; i++) {
+            if (((state >> i) & 1) == 1) {
+                anyNode = i;
+                cntCity++;
+            }
+        }
+
+        BFSResult firstBfs = bfs(anyNode, state, graph, n);
+        if (firstBfs.visitedSize < cntCity) return 0;
+
+        BFSResult secondBfs = bfs(firstBfs.farthestNode, state, graph, n);
+        return secondBfs.farthestDist;
+    }
+
+    private BFSResult bfs(int src, int state, List<Integer>[] graph, int n) {
+        Queue<int[]> q = new LinkedList<>();
+        boolean[] visited = new boolean[n];
+        q.offer(new int[]{src, 0});
+        visited[src] = true;
+        int farthestNode = src, farthestDist = 0, visitedSize = 1;
+
+        while (!q.isEmpty()) {
+            int[] curr = q.poll();
+            int u = curr[0], d = curr[1];
+            farthestNode = u;
+            farthestDist = d;
+            for (int v : graph[u]) {
+                if (!visited[v] && ((state >> v) & 1) == 1) {
+                    visited[v] = true;
+                    q.offer(new int[]{v, d + 1});
+                    visitedSize++;
+                }
+            }
+        }
+
+        return new BFSResult(farthestNode, farthestDist, visitedSize);
+    }
+
+    static class BFSResult {
+        int farthestNode, farthestDist, visitedSize;
+
+        BFSResult(int node, int dist, int size) {
+            this.farthestNode = node;
+            this.farthestDist = dist;
+            this.visitedSize = size;
+        }
+    }
+}
+
+
+or
+
+
+
+class Solution {
+    int max = 0;
+    
+    public int[] countSubgraphsForEachDiameter(int n, int[][] edges) {
+        
+        //result[] = {1-indexed ... };
+        
+        int [] result = new int[n-1];
+        //build graph
+        Map<Integer, List<Integer>> graph = new HashMap<>();
+        for(int[] e : edges ){
+            graph.computeIfAbsent(e[0], (k)->(new ArrayList<>())).add(e[1]);
+            graph.computeIfAbsent(e[1], (k)->(new ArrayList<>())).add(e[0]);
+        }
+        
+        //Get all the valid subtrees/subsets 
+        for(int i = 0; i < (1 << n); i++){
+            List<Integer> subtree = new ArrayList<>();
+            //use bitmasking to construct every single subset/subtree
+            for(int j = 0; j < n; j++){
+                if((i & (1 << j)) != 0 ) //this bit is 1, means this node is chosen 
+                    subtree.add(j + 1); //cities numbered from 1 
+            }
+            
+           
+            //now we need to evaluate if this subtree is valid
+            int edge_number = 0;
+            for(int[] e : edges ){
+                if(subtree.contains(e[0]) && subtree.contains(e[1]))
+                    edge_number ++;
+            }
+            
+            if(edge_number < 1 || subtree.size() != edge_number + 1 )
+                continue; //not valid subtree
+            
+            //till here, we have a valid subtree, and we need to use DFS to get the max diameter
+            Set<Integer> visited = new HashSet<>();
+            max = 0;
+            visited.add(subtree.get(0));
+            dfs(subtree.get(0), graph, subtree, visited); 
+            result[max - 1]++;
+        }
+        
+        return result;
+    }
+    
+    private int dfs( int current, Map<Integer, List<Integer>> graph, List<Integer> subtree, Set<Integer> visited){
+        
+        int m1 = 0;
+        int m2 = 0;
+        
+        for(int neighbor : graph.get(current)){
+            if(!visited.contains(neighbor) && subtree.contains(neighbor) ){
+                visited.add(neighbor);
+                int depth = dfs(neighbor, graph, subtree, visited);
+                if(depth > m1){
+                    m2 = m1;
+                    m1 = depth;
+                }else if(depth > m2)
+                    m2 = depth;
+            }
+               
+        }
+        
+        max = Math.max(max, m1 + m2);
+        return m1+1;
+    }
+}
