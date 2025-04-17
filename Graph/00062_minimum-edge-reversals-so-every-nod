@@ -1,0 +1,309 @@
+https://leetcode.com/problems/minimum-edge-reversals-so-every-node-is-reachable/description/
+
+
+2858. Minimum Edge Reversals So Every Node Is Reachable
+Hard
+Topics
+Companies
+Hint
+There is a simple directed graph with n nodes labeled from 0 to n - 1. The graph would form a tree if its edges were bi-directional.
+
+You are given an integer n and a 2D integer array edges, where edges[i] = [ui, vi] represents a directed edge going from node ui to node vi.
+
+An edge reversal changes the direction of an edge, i.e., a directed edge going from node ui to node vi becomes a directed edge going from node vi to node ui.
+
+For every node i in the range [0, n - 1], your task is to independently calculate the minimum number of edge reversals required so it is possible to reach any other node starting from node i through a sequence of directed edges.
+
+Return an integer array answer, where answer[i] is the minimum number of edge reversals required so it is possible to reach any other node starting from node i through a sequence of directed edges.
+
+ 
+
+Example 1:
+
+
+
+Input: n = 4, edges = [[2,0],[2,1],[1,3]]
+Output: [1,1,0,2]
+Explanation: The image above shows the graph formed by the edges.
+For node 0: after reversing the edge [2,0], it is possible to reach any other node starting from node 0.
+So, answer[0] = 1.
+For node 1: after reversing the edge [2,1], it is possible to reach any other node starting from node 1.
+So, answer[1] = 1.
+For node 2: it is already possible to reach any other node starting from node 2.
+So, answer[2] = 0.
+For node 3: after reversing the edges [1,3] and [2,1], it is possible to reach any other node starting from node 3.
+So, answer[3] = 2.
+Example 2:
+
+
+
+Input: n = 3, edges = [[1,2],[2,0]]
+Output: [2,0,1]
+Explanation: The image above shows the graph formed by the edges.
+For node 0: after reversing the edges [2,0] and [1,2], it is possible to reach any other node starting from node 0.
+So, answer[0] = 2.
+For node 1: it is already possible to reach any other node starting from node 1.
+So, answer[1] = 0.
+For node 2: after reversing the edge [1, 2], it is possible to reach any other node starting from node 2.
+So, answer[2] = 1.
+ 
+
+Constraints:
+
+2 <= n <= 105
+edges.length == n - 1
+edges[i].length == 2
+0 <= ui == edges[i][0] < n
+0 <= vi == edges[i][1] < n
+ui != vi
+The input is generated such that if the edges were bi-directional, the graph would be a tree.
+
+
+
+# java
+
+class Solution {
+  public int[] minEdgeReversals(int n, int[][] edges) {
+    int[] ans = new int[n];
+    List<Pair<Integer, Boolean>>[] graph = new List[n];
+    boolean[] seen = new boolean[n];
+
+    for (int i = 0; i < n; i++)
+      graph[i] = new ArrayList<>();
+
+    for (int[] edge : edges) {
+      final int u = edge[0];
+      final int v = edge[1];
+      graph[u].add(new Pair<>(v, /*isForward=*/true));
+      graph[v].add(new Pair<>(u, /*isForward=*/false));
+    }
+
+    Integer[] mem = new Integer[n];
+    ans[0] = minEdgeReversals(graph, 0, seen, mem);
+    seen = new boolean[n];
+    dfs(graph, 0, seen, ans);
+    return ans;
+  }
+
+  // Returns the minimum number of edge reversals so node u can reach every
+  // node in its subtree.
+  private int minEdgeReversals(List<Pair<Integer, Boolean>>[] graph, int u, boolean[] seen,
+                               Integer[] mem) {
+    if (mem[u] != null)
+      return mem[u];
+    int res = 0;
+    seen[u] = true;
+    for (Pair<Integer, Boolean> pair : graph[u]) {
+      final int v = pair.getKey();
+      final boolean isForward = pair.getValue();
+      if (seen[v])
+        continue;
+      seen[v] = true;
+      res += minEdgeReversals(graph, v, seen, mem) + (isForward ? 0 : 1);
+    }
+    return mem[u] = res;
+  }
+
+  private void dfs(List<Pair<Integer, Boolean>>[] graph, int u, boolean[] seen, int[] ans) {
+    seen[u] = true;
+    for (Pair<Integer, Boolean> pair : graph[u]) {
+      final int v = pair.getKey();
+      final boolean isForward = pair.getValue();
+      if (seen[v])
+        continue;
+      seen[v] = true;
+      ans[v] = ans[u] + (isForward ? 1 : -1);
+      dfs(graph, v, seen, ans);
+    }
+  }
+}
+
+
+or
+
+
+class Solution {
+    private List<int[]>[] g;
+    private int[] ans;
+
+    public int[] minEdgeReversals(int n, int[][] edges) {
+        ans = new int[n];
+        g = new List[n];
+        Arrays.setAll(g, i -> new ArrayList<>());
+        for (var e : edges) {
+            int x = e[0], y = e[1];
+            g[x].add(new int[] {y, 1});
+            g[y].add(new int[] {x, -1});
+        }
+        dfs(0, -1);
+        dfs2(0, -1);
+        return ans;
+    }
+
+    private void dfs(int i, int fa) {
+        for (var ne : g[i]) {
+            int j = ne[0], k = ne[1];
+            if (j != fa) {
+                ans[0] += k < 0 ? 1 : 0;
+                dfs(j, i);
+            }
+        }
+    }
+
+    private void dfs2(int i, int fa) {
+        for (var ne : g[i]) {
+            int j = ne[0], k = ne[1];
+            if (j != fa) {
+                ans[j] = ans[i] + k;
+                dfs2(j, i);
+            }
+        }
+    }
+}
+
+or
+
+
+    Map<Integer, Map<Integer, Integer>> G = new HashMap<>();
+    int[] res;
+
+    public int[] minEdgeReversals(int n, int[][] edges) {
+        G.clear();
+        for (int[] e : edges) {
+            G.computeIfAbsent(e[0], x -> new HashMap<>()).put(e[1], 0);
+            G.computeIfAbsent(e[1], x -> new HashMap<>()).put(e[0], 1);
+        }
+
+        res = new int[n];
+        Arrays.fill(res, -1);
+
+        dfs(0, dp(-1, 0));
+        return res;
+    }
+
+    private int dp(int i, int j) {
+        int sum = 0;
+        for (Integer k : G.get(j).keySet()) {
+            if (k == i) continue;
+            sum += dp(j, k) + G.get(j).get(k);
+        }
+        return sum;
+    }
+
+    private void dfs(int i, int v) {
+        res[i] = v;
+        for (Integer j : G.get(i).keySet())
+            if (res[j] < 0)
+                dfs(j, v - G.get(i).get(j) + G.get(j).get(i));
+    }
+
+
+or
+
+
+class Solution {
+
+    ArrayList<int []> []adj;
+    int []conversion;
+    int []ans;
+
+    public int[] minEdgeReversals(int n, int[][] edges) {
+
+        adj = new ArrayList[n];
+        for(int i = 0; i < n; i++){
+            adj[i] = new ArrayList<>();
+        }
+
+        for(int []ele : edges){
+            int u = ele[0];
+            int v = ele[1];
+            adj[u].add(new int[]{v, 1});
+            adj[v].add(new int[]{u, -1});
+        }
+
+        conversion = new int[n];
+        dfs(0, -1);
+
+        ans = new int[n];
+        ans[0] = conversion[0];
+        dfs2(0, -1);
+        
+        return ans;
+    }
+    public void dfs2(int node, int par){
+
+        for(int []ele : adj[node]){
+            if(ele[0] != par){
+                if(ele[1] == 1){
+                    ans[ele[0]] = 1 + ans[node];
+                }
+                else{
+                    ans[ele[0]] = -1 + ans[node];
+                }
+
+                dfs2(ele[0], node);
+            }
+        }
+
+    }
+    public int dfs(int node, int par){
+
+        int ans = 0;
+        for(int []ele : adj[node]){
+            if(ele[0] != par){
+                if(ele[1] == 1){
+                    ans += dfs(ele[0], node);
+                }
+                else{
+                    ans += 1 + dfs(ele[0], node);
+                }
+            }
+        }
+
+        conversion[node] = ans;
+        return ans;
+    }
+}
+
+
+or
+
+class Solution {
+    public int[] minEdgeReversals(int n, int[][] edges) {
+        Map<Integer, List<int[]>> graph = new HashMap<>();
+        for (int i = 0; i < n; i++) graph.put(i, new ArrayList<>());
+        for (int[] edge : edges) {
+            graph.get(edge[0]).add(new int[]{edge[1], 0}); // normal edge, weight 0
+            graph.get(edge[1]).add(new int[]{edge[0], 1}); // reverse edge, weight 1    
+        }
+        int[] dp = new int[n];
+        Arrays.fill(dp, -1);
+        dp[0] = dfs1(0, -1, graph);
+        dfs2(0, -1, graph, dp);
+        return dp;
+    }
+    
+    private int dfs1(int u, int fa, Map<Integer, List<int[]>> graph) {
+        int res = 0;
+        for (int[] next : graph.get(u)) {
+            int v = next[0], w = next[1];
+            if (v == fa) continue;
+            
+            res += dfs1(v, u, graph) + w;
+        }
+        return res;
+    }
+    
+    private void dfs2(int u, int fa, Map<Integer, List<int[]>> graph, int[] dp) {
+        for (int[] next : graph.get(u)) {
+            int v = next[0], w = next[1];
+            if (v == fa) continue;
+            dp[v] = dp[u];
+            if (w == 1) dp[v]--;
+            else dp[v]++;
+            dfs2(v, u, graph, dp);
+        }
+    }
+}
+
+
