@@ -1,0 +1,430 @@
+https://leetcode.com/problems/divide-nodes-into-the-maximum-number-of-groups/description/
+
+
+2493. Divide Nodes Into the Maximum Number of Groups
+Hard
+Topics
+Companies
+Hint
+You are given a positive integer n representing the number of nodes in an undirected graph. The nodes are labeled from 1 to n.
+
+You are also given a 2D integer array edges, where edges[i] = [ai, bi] indicates that there is a bidirectional edge between nodes ai and bi. Notice that the given graph may be disconnected.
+
+Divide the nodes of the graph into m groups (1-indexed) such that:
+
+Each node in the graph belongs to exactly one group.
+For every pair of nodes in the graph that are connected by an edge [ai, bi], if ai belongs to the group with index x, and bi belongs to the group with index y, then |y - x| = 1.
+Return the maximum number of groups (i.e., maximum m) into which you can divide the nodes. Return -1 if it is impossible to group the nodes with the given conditions.
+
+ 
+
+Example 1:
+
+
+Input: n = 6, edges = [[1,2],[1,4],[1,5],[2,6],[2,3],[4,6]]
+Output: 4
+Explanation: As shown in the image we:
+- Add node 5 to the first group.
+- Add node 1 to the second group.
+- Add nodes 2 and 4 to the third group.
+- Add nodes 3 and 6 to the fourth group.
+We can see that every edge is satisfied.
+It can be shown that that if we create a fifth group and move any node from the third or fourth group to it, at least on of the edges will not be satisfied.
+Example 2:
+
+Input: n = 3, edges = [[1,2],[2,3],[3,1]]
+Output: -1
+Explanation: If we add node 1 to the first group, node 2 to the second group, and node 3 to the third group to satisfy the first two edges, we can see that the third edge will not be satisfied.
+It can be shown that no grouping is possible.
+ 
+
+Constraints:
+
+1 <= n <= 500
+1 <= edges.length <= 104
+edges[i].length == 2
+1 <= ai, bi <= n
+ai != bi
+There is at most one edge between any pair of vertices.
+
+
+# java
+
+
+class Solution {
+    private List<Integer>[] g;
+    private List<Integer> arr = new ArrayList<>();
+    private boolean[] vis;
+    private int n;
+
+    public int magnificentSets(int n, int[][] edges) {
+        g = new List[n + 1];
+        this.n = n;
+        Arrays.setAll(g, k -> new ArrayList<>());
+        for (var e : edges) {
+            int a = e[0], b = e[1];
+            g[a].add(b);
+            g[b].add(a);
+        }
+
+        vis = new boolean[n + 1];
+        int ans = 0;
+        for (int i = 1; i <= n; ++i) {
+            if (!vis[i]) {
+                dfs(i);
+                int t = -1;
+                for (int v : arr) {
+                    t = Math.max(t, bfs(v));
+                }
+                if (t == -1) {
+                    return -1;
+                }
+                ans += t;
+                arr.clear();
+            }
+        }
+        return ans;
+    }
+
+    private int bfs(int k) {
+        int[] dist = new int[n + 1];
+        Arrays.fill(dist, 1 << 30);
+        dist[k] = 1;
+        Deque<Integer> q = new ArrayDeque<>();
+        q.offer(k);
+        int ans = 1;
+        while (!q.isEmpty()) {
+            int i = q.pollFirst();
+            for (int j : g[i]) {
+                if (dist[j] == 1 << 30) {
+                    dist[j] = dist[i] + 1;
+                    ans = dist[j];
+                    q.offer(j);
+                }
+            }
+        }
+        for (int i : arr) {
+            if (dist[i] == 1 << 30) {
+                dist[i] = ++ans;
+            }
+        }
+        for (int i : arr) {
+            for (int j : g[i]) {
+                if (Math.abs(dist[i] - dist[j]) != 1) {
+                    return -1;
+                }
+            }
+        }
+        return ans;
+    }
+
+    private void dfs(int i) {
+        arr.add(i);
+        vis[i] = true;
+        for (int j : g[i]) {
+            if (!vis[j]) {
+                dfs(j);
+            }
+        }
+    }
+}
+
+
+or
+
+
+class Solution {
+    class UnionFind {
+        int size;
+        int[] parent;
+        public UnionFind(int size) {
+            this.size = size;
+            parent = new int[size];
+            for (int i = 0; i < size; i++) {
+                parent[i] = i;
+            }
+        }
+        public int find(int x) {
+            if (x != parent[x]) {
+                parent[x] = find(parent[x]);
+            }
+            return parent[x];
+        }
+        public boolean union(int x, int y) {
+            int px = find(x);
+            int py = find(y);
+            if (px != py) {
+                parent[py] = px;
+                size--;
+                return true;
+            }
+            return false;
+        }
+    }
+    private boolean isBipartie(List<List<Integer>> graph, int node, Map<Integer, Integer> colorMap) {
+        // edge cases
+        if (colorMap.containsKey(node)) {
+            return true;
+        }
+        // normal cases
+        Queue<Integer> queue = new ArrayDeque<>();
+        queue.offer(node);
+        colorMap.put(node, 0);
+        while (!queue.isEmpty()) {
+            int curr = queue.poll();
+            int neiColor = 1 - colorMap.get(curr);
+            for (int nei : graph.get(curr)) {
+                if (!colorMap.containsKey(nei)) {
+                    colorMap.put(nei, neiColor);
+                    queue.offer(nei);
+                } else if (colorMap.get(nei) != neiColor) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+    public int magnificentSets(int n, int[][] edges) {
+        // edge cases
+        if (n == 1) {
+            return 1;
+        }
+        // normal cases
+        List<List<Integer>> graph = new ArrayList<>();
+        UnionFind uf = new UnionFind(n);
+        for (int i = 0; i < n; i++) {
+            graph.add(new ArrayList<>());
+        }
+        for (int[] edge : edges) {
+            int v = edge[0] - 1;
+            int w = edge[1] - 1;
+            graph.get(v).add(w);
+            graph.get(w).add(v);
+            uf.union(v, w);
+        }
+		// check bipartite
+        Map<Integer, Integer> colorMap = new HashMap<>();
+        for (int i = 0; i < n; i++) {
+            if (!isBipartie(graph, i, colorMap)) {
+                return -1;
+            }
+        }
+		// get non-connected individual connected components
+        Map<Integer, List<Integer>> groups = new HashMap<>();
+        for (int i = 0; i < n; i++) {
+            int parent = uf.find(i);
+            if (!groups.containsKey(parent)) {
+                groups.put(parent, new ArrayList<>());
+            }
+            groups.get(parent).add(i);
+        }
+		// calculate contribution from maximum path of non-connected individual connected components
+        int result = 0;
+        Queue<Integer> queue = new ArrayDeque<>();
+        boolean[] visited = new boolean[n];
+        for (int key : groups.keySet()) {
+            List<Integer> group = groups.get(key);
+            if (group.size() == 1) {
+                result += 1;
+                continue;
+            }
+            int maxLevel = 0;
+            for (int i : group) {
+                int level = 0;
+                queue.clear();
+                Arrays.fill(visited, false);
+                queue.offer(i);
+                visited[i] = true;
+                while (!queue.isEmpty()) {
+                    int size = queue.size();
+                    for (int j = 0; j < size; j++) {
+                        int curr = queue.poll();
+                        for (int nei : graph.get(curr)) {
+                            if (!visited[nei]) {
+                                queue.offer(nei);
+                                visited[nei] = true;
+                            }
+                        }
+                    }
+                    level++;
+                }
+                maxLevel = Math.max(maxLevel, level);
+            }
+            result += maxLevel;
+        }
+        return result;
+    }
+}
+
+
+or
+
+
+import java.util.*;
+
+class Solution {
+    private int[] color; // Tracks bipartition colors (0/1)
+    private List<List<Integer>> adj; // Adjacency list
+    private int n; // Number of nodes
+
+    // DFS to check bipartiteness and collect component nodes
+    private boolean isBipartite(int node, int c, List<Integer> component) {
+        color[node] = c;
+        component.add(node);
+        for (int nbr : adj.get(node)) {
+            if (color[nbr] == c) return false; // Odd cycle detected
+            if (color[nbr] == -1 && !isBipartite(nbr, 1 - c, component)) 
+                return false;
+        }
+        return true;
+    }
+
+    // BFS to compute max depth (groups) for a component
+    private int maxGroupsInComponent(List<Integer> component) {
+        int maxDepth = 0;
+        for (int start : component) {
+            int[] depth = new int[n];
+            Arrays.fill(depth, -1);
+            Queue<Integer> q = new LinkedList<>();
+            q.add(start);
+            depth[start] = 0;
+            while (!q.isEmpty()) {
+                int node = q.poll();
+                for (int nbr : adj.get(node)) {
+                    if (depth[nbr] == -1) {
+                        depth[nbr] = depth[node] + 1;
+                        maxDepth = Math.max(maxDepth, depth[nbr]);
+                        q.add(nbr);
+                    }
+                }
+            }
+        }
+        return maxDepth + 1; // Depth to groups conversion
+    }
+
+    public int magnificentSets(int n, int[][] edges) {
+        this.n = n;
+        color = new int[n];
+        Arrays.fill(color, -1);
+        adj = new ArrayList<>();
+        for (int i = 0; i < n; i++) {
+            adj.add(new ArrayList<>());
+        }
+
+        // Build adjacency list
+        for (int[] edge : edges) {
+            int u = edge[0] - 1, v = edge[1] - 1;
+            adj.get(u).add(v);
+            adj.get(v).add(u);
+        }
+
+        List<List<Integer>> components = new ArrayList<>();
+        for (int i = 0; i < n; i++) {
+            if (color[i] == -1) {
+                List<Integer> component = new ArrayList<>();
+                if (!isBipartite(i, 0, component)) 
+                    return -1; // Non-bipartite component
+                components.add(component);
+            }
+        }
+
+        int total = 0;
+        for (List<Integer> comp : components) {
+            total += maxGroupsInComponent(comp);
+        }
+
+        return total;
+    }
+}
+
+
+or
+
+
+ class Solution {
+    public int magnificentSets(int n, int[][] edges) {
+        // bfs -> will detect odd cycle (graph must be bipartite==not have an odd cycle)
+        // for each component take the maximum
+        // dfs -> to partition into components
+        
+        Map<Integer, List<Integer>> graph = new HashMap<>();
+        for (int node = 1; node <= n; node++) {
+            graph.put(node, new ArrayList<>());
+        }
+        
+        for (int[] edge : edges) {
+            int u = edge[0];
+            int v = edge[1];
+            graph.get(u).add(v);
+            graph.get(v).add(u);
+        }
+        
+        Map<Integer, List<Integer>> components = new HashMap<>();
+        Set<Integer> visited = new HashSet<>();
+        int component = 1;
+        for (int node = 1; node <= n; node++) {
+            if(visited.contains(node)) continue;
+            visited.add(node);
+            components.put(component, new ArrayList<>());
+            dfsComponents(component++, node, graph, components, visited);    
+        }
+        int[] componentsMaxTravel = new int[component];
+        int finalRes = 0;
+        for(int comp = 1; comp < component; comp++) {
+            for (int compNode : components.get(comp)) {
+                
+                int compRes = bfs(compNode, graph);
+                if(compRes == -1) return -1;
+                componentsMaxTravel[comp] = Math.max(componentsMaxTravel[comp], compRes);
+            }
+            finalRes += componentsMaxTravel[comp];
+        }
+
+        return finalRes;
+        
+    }
+
+    private void dfsComponents(int component, int node, Map<Integer, List<Integer>> graph, Map<Integer, List<Integer>> components, Set<Integer> visited) {
+        components.get(component).add(node);
+        for (int neighbor : graph.get(node)) {
+            // happens when there is more than one spanning tree. I.E you can arrive at a node in more than one way
+            if(visited.contains(neighbor)) continue;
+            visited.add(neighbor);
+            dfsComponents(component, neighbor, graph, components, visited);
+        }
+    }
+
+    private int bfs(int node, Map<Integer, List<Integer>> graph) {
+        int reach = 0;
+        Set<Integer> visited = new HashSet<>();
+        Queue<Integer> queue = new LinkedList<>();
+        Set<Integer> curLevel = new HashSet<>();
+        
+        queue.offer(node);
+        visited.add(node);
+        
+        while (!queue.isEmpty()) {
+            int n = queue.size();
+            Set<Integer> nextLevel = new HashSet<>();
+
+            
+            
+            for (int i = 0; i < n; i++) {
+                int curNode = queue.poll();
+
+                for(int neighbor : graph.get(curNode)) {
+                    if(curLevel.contains(neighbor)) return -1; // Colored with different color == not bipartite
+                    if(visited.contains(neighbor)) continue;
+                    nextLevel.add(neighbor);
+                    visited.add(neighbor);
+                    queue.offer(neighbor);
+                }
+            }
+
+            curLevel = nextLevel;
+            reach++;
+        }
+        
+        return reach;
+    }
+}
