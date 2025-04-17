@@ -1,0 +1,663 @@
+https://leetcode.com/problems/remove-invalid-parentheses/description/
+
+301. Remove Invalid Parentheses
+Hard
+Topics
+Companies
+Hint
+Given a string s that contains parentheses and letters, remove the minimum number of invalid parentheses to make the input string valid.
+
+Return a list of unique strings that are valid with the minimum number of removals. You may return the answer in any order.
+
+ 
+
+Example 1:
+
+Input: s = "()())()"
+Output: ["(())()","()()()"]
+Example 2:
+
+Input: s = "(a)())()"
+Output: ["(a())()","(a)()()"]
+Example 3:
+
+Input: s = ")("
+Output: [""]
+ 
+
+Constraints:
+
+1 <= s.length <= 25
+s consists of lowercase English letters and parentheses '(' and ')'.
+There will be at most 20 parentheses in s.
+
+
+# java
+
+class Solution {
+
+  private Set<String> validExpressions = new HashSet<String>();
+  private int minimumRemoved;
+
+  private void reset() {
+    this.validExpressions.clear();
+    this.minimumRemoved = Integer.MAX_VALUE;
+  }
+
+  private void recurse(
+      String s,
+      int index,
+      int leftCount,
+      int rightCount,
+      StringBuilder expression,
+      int removedCount) {
+
+    // If we have reached the end of string.
+    if (index == s.length()) {
+
+      // If the current expression is valid.
+      if (leftCount == rightCount) {
+
+        // If the current count of removed parentheses is <= the current minimum count
+        if (removedCount <= this.minimumRemoved) {
+
+          // Convert StringBuilder to a String. This is an expensive operation.
+          // So we only perform this when needed.
+          String possibleAnswer = expression.toString();
+
+          // If the current count beats the overall minimum we have till now
+          if (removedCount < this.minimumRemoved) {
+            this.validExpressions.clear();
+            this.minimumRemoved = removedCount;
+          }
+          this.validExpressions.add(possibleAnswer);
+        }
+      }
+    } else {
+
+      char currentCharacter = s.charAt(index);
+      int length = expression.length();
+
+      // If the current character is neither an opening bracket nor a closing one,
+      // simply recurse further by adding it to the expression StringBuilder
+      if (currentCharacter != '(' && currentCharacter != ')') {
+        expression.append(currentCharacter);
+        this.recurse(s, index + 1, leftCount, rightCount, expression, removedCount);
+        expression.deleteCharAt(length);
+      } else {
+
+        // Recursion where we delete the current character and move forward
+        this.recurse(s, index + 1, leftCount, rightCount, expression, removedCount + 1);
+        expression.append(currentCharacter);
+
+        // If it's an opening parenthesis, consider it and recurse
+        if (currentCharacter == '(') {
+          this.recurse(s, index + 1, leftCount + 1, rightCount, expression, removedCount);
+        } else if (rightCount < leftCount) {
+          // For a closing parenthesis, only recurse if right < left
+          this.recurse(s, index + 1, leftCount, rightCount + 1, expression, removedCount);
+        }
+
+        // Undoing the append operation for other recursions.
+        expression.deleteCharAt(length);
+      }
+    }
+  }
+
+  public List<String> removeInvalidParentheses(String s) {
+
+    this.reset();
+    this.recurse(s, 0, 0, 0, new StringBuilder(), 0);
+    return new ArrayList(this.validExpressions);
+  }
+}
+
+
+or
+
+
+class Solution {
+
+  private Set<String> validExpressions = new HashSet<String>();
+
+  private void recurse(
+      String s,
+      int index,
+      int leftCount,
+      int rightCount,
+      int leftRem,
+      int rightRem,
+      StringBuilder expression) {
+
+    // If we reached the end of the string, just check if the resulting expression is
+    // valid or not and also if we have removed the total number of left and right
+    // parentheses that we should have removed.
+    if (index == s.length()) {
+      if (leftRem == 0 && rightRem == 0) {
+        this.validExpressions.add(expression.toString());
+      }
+
+    } else {
+      char character = s.charAt(index);
+      int length = expression.length();
+
+      // The discard case. Note that here we have our pruning condition.
+      // We don't recurse if the remaining count for that parenthesis is == 0.
+      if ((character == '(' && leftRem > 0) || (character == ')' && rightRem > 0)) {
+        this.recurse(
+            s,
+            index + 1,
+            leftCount,
+            rightCount,
+            leftRem - (character == '(' ? 1 : 0),
+            rightRem - (character == ')' ? 1 : 0),
+            expression);
+      }
+
+      expression.append(character);
+
+      // Simply recurse one step further if the current character is not a parenthesis.
+      if (character != '(' && character != ')') {
+
+        this.recurse(s, index + 1, leftCount, rightCount, leftRem, rightRem, expression);
+
+      } else if (character == '(') {
+
+        // Consider an opening bracket.
+        this.recurse(s, index + 1, leftCount + 1, rightCount, leftRem, rightRem, expression);
+
+      } else if (rightCount < leftCount) {
+
+        // Consider a closing bracket.
+        this.recurse(s, index + 1, leftCount, rightCount + 1, leftRem, rightRem, expression);
+      }
+
+      // Delete for backtracking.
+      expression.deleteCharAt(length);
+    }
+  }
+
+  public List<String> removeInvalidParentheses(String s) {
+
+    int left = 0, right = 0;
+
+    // First, we find out the number of misplaced left and right parentheses.
+    for (int i = 0; i < s.length(); i++) {
+
+      // Simply record the left one.
+      if (s.charAt(i) == '(') {
+        left++;
+      } else if (s.charAt(i) == ')') {
+        // If we don't have a matching left, then this is a misplaced right, record it.
+        right = left == 0 ? right + 1 : right;
+
+        // Decrement count of left parentheses because we have found a right
+        // which CAN be a matching one for a left.
+        left = left > 0 ? left - 1 : left;
+      }
+    }
+
+    this.recurse(s, 0, 0, 0, left, right, new StringBuilder());
+    return new ArrayList<String>(this.validExpressions);
+  }
+}
+
+
+or
+
+
+class Solution {
+  public List<String> removeInvalidParentheses(String s) {
+    List<String> ans = new ArrayList<>();
+    final int[] counts = getLeftAndRightCounts(s);
+    dfs(s, 0, counts[0], counts[1], ans);
+    return ans;
+  }
+
+  // Similar to 921. Minimum Add to Make Parentheses Valid
+  // Returns how many '(' and ')' need to be deleted.
+  private int[] getLeftAndRightCounts(final String s) {
+    int l = 0;
+    int r = 0;
+
+    for (final char c : s.toCharArray())
+      if (c == '(')
+        ++l;
+      else if (c == ')') {
+        if (l == 0)
+          ++r;
+        else
+          --l;
+      }
+
+    return new int[] {l, r};
+  }
+
+  private void dfs(final String s, int start, int l, int r, List<String> ans) {
+    if (l == 0 && r == 0 && isValid(s)) {
+      ans.add(s);
+      return;
+    }
+
+    for (int i = start; i < s.length(); ++i) {
+      if (i > start && s.charAt(i) == s.charAt(i - 1))
+        continue;
+      if (l > 0 && s.charAt(i) == '(') // Delete s[i].
+        dfs(s.substring(0, i) + s.substring(i + 1), i, l - 1, r, ans);
+      else if (r > 0 && s.charAt(i) == ')') // Delete s[i].
+        dfs(s.substring(0, i) + s.substring(i + 1), i, l, r - 1, ans);
+    }
+  }
+
+  private boolean isValid(final String s) {
+    int opened = 0; // the number of '(' - # of ')'
+    for (final char c : s.toCharArray()) {
+      if (c == '(')
+        ++opened;
+      else if (c == ')')
+        --opened;
+      if (opened < 0)
+        return false;
+    }
+    return true; // opened == 0
+  }
+}
+
+
+or
+
+
+class Solution_dfs {
+
+        private Set<String> validExpressions = new HashSet<String>();
+        private int minimumRemoved;
+
+        private void reset() {
+            this.validExpressions.clear();
+            this.minimumRemoved = Integer.MAX_VALUE;
+        }
+
+        private void dfs(
+            String s,
+            int index,
+            int leftCount,
+            int rightCount,
+            StringBuilder expression,
+            int removedCount) {
+
+            // If we have reached the end of string.
+            if (index == s.length()) {
+
+                // If the current expression is valid.
+                if (leftCount == rightCount) {
+
+                    // If the current count of removed parentheses is <= the current minimum count
+                    if (removedCount <= this.minimumRemoved) {
+
+                        // Convert StringBuilder to a String. This is an expensive operation.
+                        // So we only perform this when needed.
+                        String possibleAnswer = expression.toString();
+
+                        // If the current count beats the overall minimum we have till now
+                        if (removedCount < this.minimumRemoved) {
+                            this.validExpressions.clear();
+                            this.minimumRemoved = removedCount;
+                        }
+                        this.validExpressions.add(possibleAnswer);
+                    }
+                }
+            } else {
+
+                char currentCharacter = s.charAt(index);
+                int length = expression.length();
+
+                // If the current character is neither an opening bracket nor a closing one,
+                // simply recurse further by adding it to the expression StringBuilder
+                if (currentCharacter != '(' && currentCharacter != ')') {
+                    expression.append(currentCharacter);
+                    this.dfs(s, index + 1, leftCount, rightCount, expression, removedCount);
+                    expression.deleteCharAt(length);
+                } else {
+
+                    // Recursion where we delete the current character at 'index' and move forward to 'index+1'
+                    this.dfs(s, index + 1, leftCount, rightCount, expression, removedCount + 1);
+                    expression.append(currentCharacter);
+
+                    // If it's an opening parenthesis, consider it and recurse
+                    if (currentCharacter == '(') {
+                        this.dfs(s, index + 1, leftCount + 1, rightCount, expression, removedCount);
+                    } else if (rightCount < leftCount) {
+                        // For a closing parenthesis, only recurse if right < left
+                        this.dfs(s, index + 1, leftCount, rightCount + 1, expression, removedCount);
+                    }
+
+                    // Undoing the append operation for other recursions.
+                    expression.deleteCharAt(length);
+                }
+            }
+        }
+
+        public List<String> removeInvalidParentheses(String s) {
+
+            this.reset();
+            this.dfs(s, 0, 0, 0, new StringBuilder(), 0);
+            return new ArrayList(this.validExpressions);
+        }
+    }
+
+
+or
+
+
+class Solution {
+        public List<String> removeInvalidParentheses(String s) {
+            List<String> res = new ArrayList<>();
+
+            // sanity check
+            if (s == null) return res;
+
+            Set<String> visited = new HashSet<>();
+            Queue<String> queue = new LinkedList<>();
+
+            // initialize
+            queue.add(s);
+            visited.add(s);
+
+            boolean found = false;
+
+            while (!queue.isEmpty()) {
+                s = queue.poll();
+
+                if (isValid(s)) {
+                    // found an answer, add to the result
+                    res.add(s);
+                    found = true;
+                }
+
+                if (found) continue; // continue to check all in queue, but no more new adding to queue
+
+                // generate all possible states
+                for (int i = 0; i < s.length(); i++) {
+                    // we only try to remove left or right parent
+                    if (s.charAt(i) != '(' && s.charAt(i) != ')') continue;
+
+                    String t = s.substring(0, i) + s.substring(i + 1); // skip char at index=i
+
+                    if (!visited.contains(t)) {
+                        // for each state, if it's not visited, add it to the queue
+                        queue.add(t);
+                        visited.add(t);
+                    }
+                }
+            }
+
+            return res;
+        }
+
+        // helper function checks if string s contains valid parantheses
+        boolean isValid(String s) {
+            int count = 0;
+
+            for (int i = 0; i < s.length(); i++) {
+                char c = s.charAt(i);
+                if (c == '(') count++;
+                if (c == ')') count--;
+                if (count < 0) return false;
+            }
+
+            return count == 0;
+        }
+    }
+
+
+
+or
+
+
+class Solution {
+    private String s;
+    private int n;
+    private Set<String> ans = new HashSet<>();
+
+    public List<String> removeInvalidParentheses(String s) {
+        this.s = s;
+        this.n = s.length();
+        int l = 0, r = 0;
+        for (char c : s.toCharArray()) {
+            if (c == '(') {
+                ++l;
+            } else if (c == ')') {
+                if (l > 0) {
+                    --l;
+                } else {
+                    ++r;
+                }
+            }
+        }
+        dfs(0, l, r, 0, 0, "");
+        return new ArrayList<>(ans);
+    }
+
+    private void dfs(int i, int l, int r, int lcnt, int rcnt, String t) {
+        if (i == n) {
+            if (l == 0 && r == 0) {
+                ans.add(t);
+            }
+            return;
+        }
+        if (n - i < l + r || lcnt < rcnt) {
+            return;
+        }
+        char c = s.charAt(i);
+        if (c == '(' && l > 0) {
+            dfs(i + 1, l - 1, r, lcnt, rcnt, t);
+        }
+        if (c == ')' && r > 0) {
+            dfs(i + 1, l, r - 1, lcnt, rcnt, t);
+        }
+        int x = c == '(' ? 1 : 0;
+        int y = c == ')' ? 1 : 0;
+        dfs(i + 1, l, r, lcnt + x, rcnt + y, t + c);
+    }
+}
+
+or
+
+
+class Solution {
+    public List<String> removeInvalidParentheses(String s) {
+        List<String> ans=new ArrayList<>();
+        HashSet<String> set=new HashSet<String>();
+        
+        int minBracket=removeBracket(s);
+        getAns(s, minBracket,set,ans);
+        
+        return ans;
+    }
+    
+    public void getAns(String s, int minBracket, HashSet<String> set, List<String> ans){
+        if(set.contains(s)) return;
+        
+        set.add(s);
+        
+        if(minBracket==0){
+            int remove=removeBracket(s);   
+            if(remove==0) ans.add(s);
+            return;
+        }
+        
+        for(int i=0;i<s.length();i++){
+            if(s.charAt(i)!='(' && s.charAt(i)!=')') continue;
+            String L=s.substring(0,i);
+            String R=s.substring(i+1);
+            
+            if(!set.contains(L+R)) getAns(L+R,minBracket-1,set,ans);
+        }
+    }
+    
+    public int removeBracket(String s){
+        Stack<Character> stack=new Stack<>();
+        
+        for(int i=0;i<s.length();i++){
+            char x=s.charAt(i);
+            
+            if(x=='(') stack.push(x);
+            else if(x==')'){
+                if(!stack.isEmpty() && stack.peek()=='(') stack.pop();
+                else stack.push(x);
+            } 
+        }
+        return stack.size();
+    }
+}
+
+or
+
+
+class Solution {
+    
+    public List<String> removeInvalidParentheses(String s) {
+        Set<String> set = new HashSet<>();
+        List<String> answer = new ArrayList<>();
+
+        int minRemovals = getMin(s);
+
+        validWays(s, minRemovals, set, answer);
+
+        return new ArrayList<>(answer);
+    }
+
+    private int getMin(String s) {
+        Stack<Character> stack = new Stack<>();
+        for (int i = 0; i < s.length(); i++) {
+            char ch = s.charAt(i);
+
+            if (ch == '(') {
+                stack.push(ch);
+            } else if (ch == ')') {
+                if (stack.isEmpty()) {
+                    stack.push(ch);
+                } else if (stack.peek() == ')') {
+                    stack.push(ch);
+                } else if (stack.peek() == '(') {
+                    stack.pop();
+                }
+            }
+        }
+        return stack.size();
+    }
+
+    private void validWays(String s, int k, Set<String> set, List<String> answer) {
+        
+        if(set.contains(s)){
+            return;
+        }
+        set.add(s);
+        
+        if (k == 0) {
+            int isStackEmpty = getMin(s);
+            if (isStackEmpty == 0) {
+                answer.add(s);
+            }
+            return;
+        }
+
+        for (int i = 0; i < s.length(); i++) {
+            String first = s.substring(0, i);
+            String second = s.substring(i + 1);
+
+            validWays(first + second, k - 1, set, answer);
+        }
+    }
+}
+
+
+or
+
+
+class Solution {
+    public List<String> removeInvalidParentheses(String s) {
+    if (isValid(s))
+        return Collections.singletonList(s);
+    List<String> ans = new ArrayList<>();
+    //The queue only contains invalid middle steps
+    Queue<Tuple> queue = new LinkedList<>();
+    //The 3-Tuple is (string, startIndex, lastRemovedChar)
+    queue.add(new Tuple(s, 0, ')'));
+    while (!queue.isEmpty()) {
+        Tuple x = queue.poll();
+        //Observation 2, start from last removal position
+        for (int i = x.start; i < x.string.length(); ++i) {
+            char ch = x.string.charAt(i);
+            //Not parentheses
+            if (ch != '(' && ch != ')') continue;
+            //Observation 1, do not repeatedly remove from consecutive ones
+            if (i != x.start && x.string.charAt(i - 1) == ch) continue;
+            //Observation 3, do not remove a pair of valid parentheses
+            if (x.removed == '(' && ch == ')') continue;
+            String t = x.string.substring(0, i) + x.string.substring(i + 1);
+            //Check isValid before add
+            if (isValid(t))
+                ans.add(t);
+            //Avoid adding leaf level strings
+            else if (ans.isEmpty())
+                queue.add(new Tuple(t, i, ch));
+        }
+    }
+    return ans;
+}
+
+public static boolean isValid(String s) {
+    int count = 0;
+    for (int i = 0; i < s.length(); ++i) {
+        char c = s.charAt(i);
+        if (c == '(') ++count;
+        if (c == ')' && count-- == 0) return false;
+    }
+    return count == 0;
+}
+
+private class Tuple {
+    public final String string;
+    public final int start;
+    public final char removed;
+
+    public Tuple(String string, int start, char removed) {
+        this.string = string;
+        this.start = start;
+        this.removed = removed;
+    }
+}
+}
+
+
+
+or
+
+
+
+class Solution {
+    public List<String> removeInvalidParentheses(String s) {
+    List<String> ans = new ArrayList<>();
+    remove(s, ans, 0, 0, new char[]{'(', ')'});
+    return ans;
+}
+
+public void remove(String s, List<String> ans, int last_i, int last_j,  char[] par) {
+    for (int stack = 0, i = last_i; i < s.length(); ++i) {
+        if (s.charAt(i) == par[0]) stack++;
+        if (s.charAt(i) == par[1]) stack--;
+        if (stack >= 0) continue;
+        for (int j = last_j; j <= i; ++j)
+            if (s.charAt(j) == par[1] && (j == last_j || s.charAt(j - 1) != par[1]))
+                remove(s.substring(0, j) + s.substring(j + 1, s.length()), ans, i, j, par);
+        return;
+    }
+    String reversed = new StringBuilder(s).reverse().toString();
+    if (par[0] == '(') // finished left to right
+        remove(reversed, ans, 0, 0, new char[]{')', '('});
+    else // finished right to left
+        ans.add(reversed);
+}
+}
+
