@@ -1,0 +1,451 @@
+https://leetcode.com/problems/difference-between-maximum-and-minimum-price-sum/description/
+
+
+2538. Difference Between Maximum and Minimum Price Sum
+Solved
+Hard
+Topics
+Companies
+Hint
+There exists an undirected and initially unrooted tree with n nodes indexed from 0 to n - 1. You are given the integer n and a 2D integer array edges of length n - 1, where edges[i] = [ai, bi] indicates that there is an edge between nodes ai and bi in the tree.
+
+Each node has an associated price. You are given an integer array price, where price[i] is the price of the ith node.
+
+The price sum of a given path is the sum of the prices of all nodes lying on that path.
+
+The tree can be rooted at any node root of your choice. The incurred cost after choosing root is the difference between the maximum and minimum price sum amongst all paths starting at root.
+
+Return the maximum possible cost amongst all possible root choices.
+
+ 
+
+Example 1:
+
+
+Input: n = 6, edges = [[0,1],[1,2],[1,3],[3,4],[3,5]], price = [9,8,7,6,10,5]
+Output: 24
+Explanation: The diagram above denotes the tree after rooting it at node 2. The first part (colored in red) shows the path with the maximum price sum. The second part (colored in blue) shows the path with the minimum price sum.
+- The first path contains nodes [2,1,3,4]: the prices are [7,8,6,10], and the sum of the prices is 31.
+- The second path contains the node [2] with the price [7].
+The difference between the maximum and minimum price sum is 24. It can be proved that 24 is the maximum cost.
+Example 2:
+
+
+Input: n = 3, edges = [[0,1],[1,2]], price = [1,1,1]
+Output: 2
+Explanation: The diagram above denotes the tree after rooting it at node 0. The first part (colored in red) shows the path with the maximum price sum. The second part (colored in blue) shows the path with the minimum price sum.
+- The first path contains nodes [0,1,2]: the prices are [1,1,1], and the sum of the prices is 3.
+- The second path contains node [0] with a price [1].
+The difference between the maximum and minimum price sum is 2. It can be proved that 2 is the maximum cost.
+ 
+
+Constraints:
+
+1 <= n <= 105
+edges.length == n - 1
+0 <= ai, bi <= n - 1
+edges represents a valid tree.
+price.length == n
+1 <= price[i] <= 105
+
+
+
+
+
+
+# java
+
+
+class Solution {
+  public long maxOutput(int n, int[][] edges, int[] price) {
+    List<Integer>[] tree = new List[n];
+    // maxSums[i] := the maximum the sum of path rooted at i
+    int[] maxSums = new int[n];
+
+    for (int i = 0; i < n; ++i)
+      tree[i] = new ArrayList<>();
+
+    for (int[] edge : edges) {
+      final int u = edge[0];
+      final int v = edge[1];
+      tree[u].add(v);
+      tree[v].add(u);
+    }
+
+    // Precalculate `maxSums`.
+    maxSum(tree, 0, /*prev=*/-1, maxSums, price);
+    reroot(tree, 0, /*prev=*/-1, /*parentSum=*/0, maxSums, price);
+    return (long) ans;
+  }
+
+  private int ans = 0;
+
+  private int maxSum(List<Integer>[] tree, int u, int prev, int[] maxSums, int[] price) {
+    int maxChildSum = 0;
+    for (final int v : tree[u])
+      if (v != prev)
+        maxChildSum = Math.max(maxChildSum, maxSum(tree, v, u, maxSums, price));
+    return maxSums[u] = price[u] + maxChildSum;
+  }
+
+  private void reroot(List<Integer>[] tree, int u, int prev, int parentSum, int[] maxSums,
+                      int[] price) {
+    // Get top two sums and top one node index.
+    int maxSubtreeSum1 = 0;
+    int maxSubtreeSum2 = 0;
+    int maxNode = -1;
+    for (final int v : tree[u]) {
+      if (v == prev)
+        continue;
+      if (maxSums[v] > maxSubtreeSum1) {
+        maxSubtreeSum2 = maxSubtreeSum1;
+        maxSubtreeSum1 = maxSums[v];
+        maxNode = v;
+      } else if (maxSums[v] > maxSubtreeSum2) {
+        maxSubtreeSum2 = maxSums[v];
+      }
+    }
+
+    if (tree[u].size() == 1)
+      ans = Math.max(ans, Math.max(parentSum, maxSubtreeSum1));
+
+    for (final int v : tree[u]) {
+      if (v == prev)
+        continue;
+      final int nextParentSum = (v == maxNode ? price[u] + Math.max(parentSum, maxSubtreeSum2)
+                                              : price[u] + Math.max(parentSum, maxSubtreeSum1));
+      reroot(tree, v, u, nextParentSum, maxSums, price);
+    }
+  }
+}
+
+
+or
+
+
+class Solution {
+    private List<Integer>[] g;
+    private long ans;
+    private int[] price;
+
+    public long maxOutput(int n, int[][] edges, int[] price) {
+        g = new List[n];
+        Arrays.setAll(g, k -> new ArrayList<>());
+        for (var e : edges) {
+            int a = e[0], b = e[1];
+            g[a].add(b);
+            g[b].add(a);
+        }
+        this.price = price;
+        dfs(0, -1);
+        return ans;
+    }
+
+    private long[] dfs(int i, int fa) {
+        long a = price[i], b = 0;
+        for (int j : g[i]) {
+            if (j != fa) {
+                var e = dfs(j, i);
+                long c = e[0], d = e[1];
+                ans = Math.max(ans, Math.max(a + d, b + c));
+                a = Math.max(a, price[i] + c);
+                b = Math.max(b, price[i] + d);
+            }
+        }
+        return new long[] {a, b};
+    }
+}
+
+
+
+or
+
+
+class Solution {
+    private long[] subtree_sum; //Stores -> If the tree was rooted at node 0 what is the maximum sum we can get from subtree of i
+    private long max_dif = 0L;
+    public long maxOutput(int n, int[][] edges, int[] price) {
+        List<List<Integer>> tree = new ArrayList<>();
+        for(int i=0;i<n;i++) tree.add(new ArrayList<>());
+        for(int[] e: edges){
+            tree.get(e[0]).add(e[1]);
+            tree.get(e[1]).add(e[0]);
+        }
+        subtree_sum = new long[n];
+        dfs(0,-1,tree,price);  //Fills the subtree_sum array
+        dfs2(0,-1,tree,price,0);
+        return max_dif;
+    }
+    private long dfs(int node, int parent, List<List<Integer>> tree, int[] price){
+        long m = 0L; //We need the maximum contribution of children. 
+        for(int child: tree.get(node)){
+            if(child == parent) continue;
+            m  = Math.max(m, dfs(child,node,tree,price));
+        }
+        return subtree_sum[node] = price[node] + m;
+    }
+    private void dfs2(int node, int parent,List<List<Integer>> tree, int[] price, long parent_contribution){
+        int c1=-1;
+        long mc1=0,mc2=0;  //2 maximum contribution of children
+        for(int child: tree.get(node)){
+            if(child == parent) continue;
+            if(subtree_sum[child]>mc1){
+                mc2 = mc1;
+                c1 = child;
+                mc1 = subtree_sum[child];
+            }
+            else if(subtree_sum[child]>mc2){
+                mc2 = subtree_sum[child];
+            }
+        }
+        long path1 = mc1;
+        long path2 = parent_contribution;
+        max_dif = Math.max(max_dif,Math.max(path1,path2));
+        for(int child: tree.get(node)){
+            if(child == parent) continue;
+/*
+How can a parent add a path to child?
+1. Take a path from a siblling of child     (we want the maximum siblling)
+2. Take a path from its parent
+
+Thus the contribution of current node to its child c is maximum(maximum siblling ,node's parent_contribution)
+*/
+            if(c1 == child) dfs2(child,node,tree,price,price[node]+Math.max(mc2,parent_contribution)); 
+            else dfs2(child,node,tree,price,price[node]+Math.max(mc1,parent_contribution));
+        }
+    }
+}
+
+
+or
+
+
+class Solution {
+    private List<Integer>[] graph;
+    private long ans = 0;
+
+    public long maxOutput(int n, int[][] edges, int[] price) {
+        graph = new ArrayList[n];
+        for (int i = 0; i < n; i++) graph[i] = new ArrayList<>();
+        for (int[] edge : edges) {
+            graph[edge[0]].add(edge[1]);
+            graph[edge[1]].add(edge[0]);
+        }
+
+        dfs(0, -1, price);
+        return ans;
+    }
+
+    // Returns [max_with_leaf, max_without_leaf]
+    private long[] dfs(int cur, int parent, int[] price) {
+        long maxWithLeaf = price[cur];
+        long maxWithoutLeaf = 0;
+
+        for (int neighbor : graph[cur]) {
+            if (neighbor == parent) continue;
+            long[] res = dfs(neighbor, cur, price);
+            long withLeaf = res[0];
+            long withoutLeaf = res[1];
+
+            ans = Math.max(ans, Math.max(maxWithLeaf + withoutLeaf, maxWithoutLeaf + withLeaf));
+            maxWithLeaf = Math.max(maxWithLeaf, withLeaf + price[cur]);
+            maxWithoutLeaf = Math.max(maxWithoutLeaf, withoutLeaf + price[cur]);
+        }
+
+        return new long[]{maxWithLeaf, maxWithoutLeaf};
+    }
+}
+
+
+
+or
+
+
+class Solution {
+    long res = 0;
+    List<Integer>[] g;
+    int[] price;
+
+    record returnType(int withLeaf, int withoutLeaf) {}
+    public long maxOutput(int n, int[][] edges, int[] price) {
+        this.price = price;
+        
+        // create adjacency list graph(tree)
+        g = new List[n];
+        for (int i = 0; i < n; i++) g[i] = new ArrayList<>();
+        for (var e : edges) {
+            g[e[0]].add(e[1]);
+            g[e[1]].add(e[0]);
+        }
+
+        dfs(0, -1); // you can start from any root doesn't matter, as long as it exists
+        return res;
+    }
+
+    private returnType dfs(int cur, int pre) {
+        int withLeaf = price[cur], withoutLeaf = 0;
+        for (int child : g[cur]) if (child != pre) {
+            var childMax = dfs(child, cur);
+            res = Math.max(res, withLeaf + childMax.withoutLeaf);
+            res = Math.max(res, withoutLeaf + childMax.withLeaf);
+            withLeaf = Math.max(withLeaf, childMax.withLeaf + price[cur]);
+            withoutLeaf = Math.max(withoutLeaf, childMax.withoutLeaf + price[cur]);
+        }
+
+        return new returnType(withLeaf, withoutLeaf); // single leg
+    }
+}
+
+
+or
+
+
+// re rooting
+
+class Solution {
+    Set<Integer>[] graph;
+    long[][] dp;   
+    int[] price;
+    long max = 0;
+    public long maxOutput(int n, int[][] edges, int[] price) {
+        this.price = price;
+        graph = new HashSet[n];
+        for (int i = 0; i < n; i++) {
+            graph[i] = new HashSet<>();
+        }
+        for (int[] e : edges) {
+            graph[e[0]].add(e[1]);
+            graph[e[1]].add(e[0]);
+        }
+        dp = new long[n][2];           
+        dfs(0, -1);
+        for (int i = 0; i < n; i++) {
+            max = Math.max(max, dp[i][0] - price[i]);
+        }
+        dfs1(0, -1);        
+        return max;
+    }
+
+    private void dfs(int cur, int pre) {
+        dp[cur][0] = price[cur];
+        for (int child : graph[cur]) {
+            if (child == pre) {
+                continue;
+            }
+            dfs(child, cur);
+            long max = dp[child][0] + price[cur];
+            if (max > dp[cur][0]) {
+                dp[cur][1] = dp[cur][0];
+                dp[cur][0] = max;
+            } else if (max > dp[cur][1]) {
+                dp[cur][1] = max;
+            }            
+        }
+    }
+
+    private void dfs1(int cur, int pre) {
+        for (int child : graph[cur]) {           
+            if (child == pre) {
+                continue;
+            }
+            if (dp[cur][0] == dp[child][0] + price[cur]) {
+                if (dp[child][0] > dp[cur][1] + price[child]) {
+                    dp[child][0] = dp[child][0];
+                    dp[child][1] = Math.max(dp[child][1], dp[cur][1] + price[child]);
+                } else {
+                    dp[child][0] = dp[cur][1] + price[child];
+                    dp[child][1] = Math.min(dp[child][0], dp[cur][1] + price[child]);
+                }
+            } else {
+                if (dp[child][0] > dp[cur][0] + price[child]) {
+                    dp[child][0] = dp[child][0];
+                    dp[child][1] = Math.max(dp[child][1], dp[cur][0] + price[child]);
+                } else {
+                    dp[child][0] = dp[cur][0] + price[child];
+                    dp[child][1] = Math.min(dp[child][0], dp[cur][1] + price[child]);
+                }
+            }
+            max = Math.max(max, dp[child][0] - price[child]);
+            dfs1(child, cur);
+        }       
+    }
+}
+
+
+or
+
+
+class Solution {
+	private long max;
+	private ArrayList<Integer>[] tree;
+	private int[] price;
+	private long res;
+	private boolean[] visited;
+
+
+	public long maxOutput(int n, int[][] edges, int[] price) {
+		if (n == 1) return 0;
+
+		this.price = price;
+		tree = new ArrayList[n];
+		for (int i = 0; i < n; i++) {
+			tree[i] = new ArrayList<>();
+		}
+		for (int[] e : edges) {
+			tree[e[0]].add(e[1]);
+			tree[e[1]].add(e[0]);
+		}
+
+		visited = new boolean[n];
+		visited[0] = true;
+		dfs(0);
+
+		return res;
+	}
+
+	private long[] dfs(int node) {
+		if (tree[node].size() == 1 && node != 0) {
+			return new long[]{price[node], 0};
+		}
+		long temp = res;
+		int i0 = -1, i1 = -1;   
+		long l0 = 0, l1 = 0;    
+		long s0 = 0, s1 = 0;    
+
+		for (int child : tree[node]) {
+			if (visited[child]) continue;
+			visited[child] = true;
+			long[] sub = dfs(child);
+
+			if (sub[0] >= l0) {
+				s0 = l0;
+				l0 = sub[0];
+				i0 = child;
+			} else if (sub[0] > s0) {
+				s0 = sub[0];
+			}
+
+			if (sub[1] >= l1) {
+				s1 = l1;
+				l1 = sub[1];
+				i1 = child;
+			} else if (sub[1] > s1) {
+				s1 = sub[1];
+			}
+		}
+
+		if (s0 == 0) {
+			res = Math.max(res, Math.max(l0, l1 + price[node]));
+		} else {
+			long path = i0 != i1 ? price[node] + l0 + l1 
+				: price[node] + Math.max(l0 + s1, s0 + l1);
+			res = Math.max(res, path);
+		}
+
+		return new long[]{l0 + price[node], l1 + price[node]};
+	}
+}
+
+
+or
+
