@@ -1,0 +1,296 @@
+https://leetcode.com/problems/longest-increasing-path-in-a-matrix/
+
+329. Longest Increasing Path in a Matrix
+Hard
+Topics
+Companies
+Given an m x n integers matrix, return the length of the longest increasing path in matrix.
+
+From each cell, you can either move in four directions: left, right, up, or down. You may not move diagonally or move outside the boundary (i.e., wrap-around is not allowed).
+
+ 
+
+Example 1:
+
+
+Input: matrix = [[9,9,4],[6,6,8],[2,1,1]]
+Output: 4
+Explanation: The longest increasing path is [1, 2, 6, 9].
+Example 2:
+
+
+Input: matrix = [[3,4,5],[3,2,6],[2,2,1]]
+Output: 4
+Explanation: The longest increasing path is [3, 4, 5, 6]. Moving diagonally is not allowed.
+Example 3:
+
+Input: matrix = [[1]]
+Output: 1
+ 
+
+Constraints:
+
+m == matrix.length
+n == matrix[i].length
+1 <= m, n <= 200
+0 <= matrix[i][j] <= 231 - 1
+
+
+# java
+
+
+class Solution {
+  public int longestIncreasingPath(int[][] matrix) {
+    final int m = matrix.length;
+    final int n = matrix[0].length;
+    int ans = 0;
+    // mem[i][j] := the LIP starting from matrix[i][j]
+    int[][] mem = new int[m][n];
+
+    for (int i = 0; i < m; ++i)
+      for (int j = 0; j < n; ++j)
+        ans = Math.max(ans, dfs(matrix, i, j, Integer.MIN_VALUE, mem));
+
+    return ans;
+  }
+
+  private int dfs(int[][] matrix, int i, int j, int prev, int[][] mem) {
+    if (i < 0 || i == matrix.length || j < 0 || j == matrix[0].length)
+      return 0;
+    if (matrix[i][j] <= prev)
+      return 0;
+    if (mem[i][j] > 0)
+      return mem[i][j];
+
+    final int curr = matrix[i][j];
+    final int a = dfs(matrix, i + 1, j, curr, mem);
+    final int b = dfs(matrix, i - 1, j, curr, mem);
+    final int c = dfs(matrix, i, j + 1, curr, mem);
+    final int d = dfs(matrix, i, j - 1, curr, mem);
+    return mem[i][j] = 1 + Math.max(Math.max(a, b), Math.max(c, d));
+  }
+}
+
+
+or
+
+
+class Solution {
+    private int m;
+    private int n;
+    private int[][] matrix;
+    private int[][] f;
+
+    public int longestIncreasingPath(int[][] matrix) {
+        m = matrix.length;
+        n = matrix[0].length;
+        f = new int[m][n];
+        this.matrix = matrix;
+        int ans = 0;
+        for (int i = 0; i < m; ++i) {
+            for (int j = 0; j < n; ++j) {
+                ans = Math.max(ans, dfs(i, j));
+            }
+        }
+        return ans;
+    }
+
+    private int dfs(int i, int j) {
+        if (f[i][j] != 0) {
+            return f[i][j];
+        }
+        int[] dirs = {-1, 0, 1, 0, -1};
+        for (int k = 0; k < 4; ++k) {
+            int x = i + dirs[k];
+            int y = j + dirs[k + 1];
+            if (x >= 0 && x < m && y >= 0 && y < n && matrix[x][y] > matrix[i][j]) {
+                f[i][j] = Math.max(f[i][j], dfs(x, y));
+            }
+        }
+        return ++f[i][j];
+    }
+}
+
+
+
+or
+
+
+
+class Solution {
+    public int longestIncreasingPath(int[][] matrix) {
+        int row = matrix.length;
+        int col = matrix[0].length;
+        if (row == 1 && col == 1) {
+            return 1;
+        }
+
+        int max = 0;
+        int[][] memo = new int[row][col];
+
+        for (int i = 0; i < row; i++) {
+            for (int j = 0; j < col; j++) {
+                if (memo[i][j] == 0) {
+                    max = Math.max(max, dfs(matrix, memo, i, j));
+                }
+            }
+        }
+
+        return max;
+    }
+
+    public int dfs(int[][] matrix, int[][] memo, int x, int y) {
+        if (memo[x][y] > 0) {
+            return memo[x][y];
+        }
+
+        int[][] dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+
+        int ans = 1;
+
+        int row = matrix.length;
+        int col = matrix[0].length;
+
+        for (int[] dir : dirs) {
+            int nextX = x + dir[0];
+            int nextY = y + dir[1];
+
+            if (nextX < 0 || nextX >= row || nextY < 0 || nextY >= col) {
+                continue;
+            }
+
+            if (matrix[nextX][nextY] <= matrix[x][y]) {
+                continue;
+            }
+
+            ans = Math.max(ans, dfs(matrix, memo, nextX, nextY) + 1);
+        }
+
+        memo[x][y] = ans;
+        return ans;
+    }
+}
+
+
+
+or
+
+
+class Solution {
+    public int longestIncreasingPath(int[][] matrix) {
+        int row = matrix.length;
+        int col = matrix[0].length;
+        if (row == 1 && col == 1) {
+            return 1;
+        }
+
+        int max = 1;
+
+        List<int[]> numList = new ArrayList<>();
+        for (int i = 0; i < row; i++) {
+            for (int j = 0; j < col; j++) {
+                numList.add(new int[]{matrix[i][j], i, j});
+            }
+        }
+
+        Collections.sort(numList, (o1, o2) -> o2[0] - o1[0]);
+
+        int[][] dp = new int[row][col];
+        for (int i = 0; i < row; i++) {
+            Arrays.fill(dp[i], 1);
+        }
+
+        int[][] dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+
+        for (int[] item : numList) {
+            int x = item[1];
+            int y = item[2];
+
+            for (int[] dir : dirs) {
+                int nextX = x + dir[0];
+                int nextY = y + dir[1];
+
+                if (nextX < 0 || nextX >= row || nextY < 0 || nextY >= col || matrix[nextX][nextY] <= matrix[x][y]) {
+                    continue;
+                }
+
+                dp[x][y] = Math.max(dp[x][y], dp[nextX][nextY] + 1);
+            }
+
+            max = Math.max(max, dp[x][y]);
+        }
+
+        return max;
+    }
+}
+
+
+or
+
+
+class Solution {
+    public int longestIncreasingPath(int[][] matrix) {
+        int row = matrix.length;
+        int col = matrix[0].length;
+        if (row == 1 && col == 1) {
+            return 1;
+        }
+
+        int[][] dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+
+        int[][] outDegrees = new int[row][col];
+
+        for (int i = 0; i < row; i++) {
+            for (int j = 0; j < col; j++) {
+                for (int[] dir : dirs) {
+                    int nextX = i + dir[0];
+                    int nextY = j + dir[1];
+
+                    if (nextX < 0 || nextX >= row || nextY < 0 || nextY >= col || matrix[nextX][nextY] <= matrix[i][j]) {
+                        continue;
+                    }
+
+                    outDegrees[i][j]++;
+                }
+            }
+        }
+
+        Queue<int[]> queue = new LinkedList<>();
+        for (int i = 0; i < row; i++) {
+            for (int j = 0; j < col; j++) {
+                if (outDegrees[i][j] == 0) {
+                    queue.offer(new int[]{i, j});
+                }
+            }
+        }
+
+        int max = 0;
+        while (!queue.isEmpty()) {
+            max++;
+            int size = queue.size();
+            for (int i = 0; i < size; i++) {
+                int[] curPos = queue.poll();
+                int x = curPos[0];
+                int y = curPos[1];
+                for (int[] dir : dirs) {
+                    int prevX = x + dir[0];
+                    int prevY = y + dir[1];
+
+                    if (prevX < 0 || prevX >= row || prevY < 0 || prevY >= col) {
+                        continue;
+                    }
+
+                    if (matrix[prevX][prevY] >= matrix[x][y]) {
+                        continue;
+                    }
+
+                    if (--outDegrees[prevX][prevY] == 0) {
+                        queue.offer(new int[]{prevX, prevY});
+                    }
+                }
+            }
+        }
+
+        return max;
+    }
+}
