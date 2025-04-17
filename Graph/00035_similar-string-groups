@@ -1,0 +1,200 @@
+https://leetcode.com/problems/similar-string-groups/description/
+
+
+839. Similar String Groups
+Hard
+Topics
+Companies
+Two strings, X and Y, are considered similar if either they are identical or we can make them equivalent by swapping at most two letters (in distinct positions) within the string X.
+
+For example, "tars" and "rats" are similar (swapping at positions 0 and 2), and "rats" and "arts" are similar, but "star" is not similar to "tars", "rats", or "arts".
+
+Together, these form two connected groups by similarity: {"tars", "rats", "arts"} and {"star"}.  Notice that "tars" and "arts" are in the same group even though they are not similar.  Formally, each group is such that a word is in the group if and only if it is similar to at least one other word in the group.
+
+We are given a list strs of strings where every string in strs is an anagram of every other string in strs. How many groups are there?
+
+ 
+
+Example 1:
+
+Input: strs = ["tars","rats","arts","star"]
+Output: 2
+Example 2:
+
+Input: strs = ["omv","ovm"]
+Output: 1
+ 
+
+Constraints:
+
+1 <= strs.length <= 300
+1 <= strs[i].length <= 300
+strs[i] consists of lowercase letters only.
+All words in strs have the same length and are anagrams of each other.
+
+
+
+# java
+
+class Solution {
+  public int numSimilarGroups(String[] strs) {
+    int ans = 0;
+    boolean[] seen = new boolean[strs.length];
+
+    for (int i = 0; i < strs.length; ++i)
+      if (!seen[i]) {
+        dfs(strs, i, seen);
+        ++ans;
+      }
+
+    return ans;
+  }
+
+  private void dfs(final String[] strs, int i, boolean[] seen) {
+    seen[i] = true;
+    for (int j = 0; j < strs.length; ++j)
+      if (!seen[j] && isSimilar(strs[i], strs[j]))
+        dfs(strs, j, seen);
+  }
+
+  private boolean isSimilar(final String X, final String Y) {
+    int diff = 0;
+    for (int i = 0; i < X.length(); ++i)
+      if (X.charAt(i) != Y.charAt(i) && ++diff > 2)
+        return false;
+    return true;
+  }
+}
+
+
+or
+
+
+class Solution {
+    private int[] p;
+
+    public int numSimilarGroups(String[] strs) {
+        int n = strs.length;
+        p = new int[n];
+        for (int i = 0; i < n; ++i) {
+            p[i] = i;
+        }
+        for (int i = 0; i < n; ++i) {
+            for (int j = i + 1; j < n; ++j) {
+                if (check(strs[i], strs[j])) {
+                    p[find(i)] = find(j);
+                }
+            }
+        }
+        int ans = 0;
+        for (int i = 0; i < n; ++i) {
+            if (i == find(i)) {
+                ++ans;
+            }
+        }
+        return ans;
+    }
+
+    private int find(int x) {
+        if (p[x] != x) {
+            p[x] = find(p[x]);
+        }
+        return p[x];
+    }
+
+    private boolean check(String a, String b) {
+        int cnt = 0;
+        for (int i = 0; i < a.length(); ++i) {
+            if (a.charAt(i) != b.charAt(i)) {
+                ++cnt;
+            }
+        }
+        return cnt <= 2;
+    }
+}
+
+
+or
+
+
+class Solution {
+    public int numSimilarGroups(String[] strs) {
+        int groups = 0, n = strs.length;
+        boolean[] vis = new boolean[n];
+        for(int i = 0; i < strs.length; i++){
+            if(vis[i]) continue;
+            groups++;
+            dfs(i, strs, vis);
+        }
+        return groups;
+    }
+
+    void dfs(int i, String[] strs, boolean[] vis){
+        vis[i] = true;
+        for(int j = 0; j < strs.length; j++){
+            if(vis[j]) continue;
+            if(isSimilar(strs[i], strs[j])){
+                dfs(j, strs, vis);
+            }
+        }
+    }
+
+    boolean isSimilar(String a, String b){
+        int count = 0;
+        for(int i = 0; i < a.length(); i++){
+            if(a.charAt(i) != b.charAt(i)) count++;
+        }
+        return (count == 2 || count == 0);
+    }
+}
+
+
+or
+
+
+class Solution {
+    
+    public static int Find_par(int u, int[] par){
+        if(par[u] == u){
+            return u;
+        } 
+        
+        return par[u] = Find_par(par[u], par);
+    }
+    
+    public static boolean isSimilar(String s1, String s2){
+        int count = 0;
+        for(int i = 0; i < s1.length(); i++){
+            if(s1.charAt(i) != s2.charAt(i) && ++count > 2){
+                return false;
+            }
+        }
+        
+        return true;
+    }
+    
+    public int numSimilarGroups(String[] strs) {
+        int n = strs.length;
+        int group = n;
+        int[] par = new int[n];
+        for(int i = 0; i < n; i++){
+            par[i] = i;
+        }
+        
+        for(int i = 0; i < n; i++){
+            for(int j = i + 1; j < n; j++){
+                if(isSimilar(strs[i], strs[j])){
+                    int p1 = Find_par(i, par);
+                    int p2 = Find_par(j, par);
+                
+                    if(p1 != p2){
+                        par[p2] = p1;
+                        group -= 1;    
+                    }
+                }    
+            }
+        }
+        
+        return group;
+    }
+}
