@@ -1,0 +1,292 @@
+https://leetcode.com/problems/count-connected-components-in-lcm-graph/description/
+
+
+3378. Count Connected Components in LCM Graph
+Hard
+Topics
+Companies
+Hint
+You are given an array of integers nums of size n and a positive integer threshold.
+
+There is a graph consisting of n nodes with the ith node having a value of nums[i]. Two nodes i and j in the graph are connected via an undirected edge if lcm(nums[i], nums[j]) <= threshold.
+
+Return the number of connected components in this graph.
+
+A connected component is a subgraph of a graph in which there exists a path between any two vertices, and no vertex of the subgraph shares an edge with a vertex outside of the subgraph.
+
+The term lcm(a, b) denotes the least common multiple of a and b.
+
+ 
+
+Example 1:
+
+Input: nums = [2,4,8,3,9], threshold = 5
+
+Output: 4
+
+Explanation: 
+
+
+
+ 
+
+The four connected components are (2, 4), (3), (8), (9).
+
+Example 2:
+
+Input: nums = [2,4,8,3,9,12], threshold = 10
+
+Output: 2
+
+Explanation: 
+
+
+
+The two connected components are (2, 3, 4, 8, 9), and (12).
+
+ 
+
+Constraints:
+
+1 <= nums.length <= 105
+1 <= nums[i] <= 109
+All elements of nums are unique.
+1 <= threshold <= 2 * 105
+
+
+# java
+
+
+class DSU {
+    private Map<Integer, Integer> parent;
+    private Map<Integer, Integer> rank;
+
+    public DSU(int n) {
+        parent = new HashMap<>();
+        rank = new HashMap<>();
+        for (int i = 0; i <= n; i++) {
+            parent.put(i, i);
+            rank.put(i, 0);
+        }
+    }
+
+    public void makeSet(int v) {
+        parent.put(v, v);
+        rank.put(v, 1);
+    }
+
+    public int find(int x) {
+        if (parent.get(x) != x) {
+            parent.put(x, find(parent.get(x)));
+        }
+        return parent.get(x);
+    }
+
+    public void unionSet(int u, int v) {
+        u = find(u);
+        v = find(v);
+        if (u != v) {
+            if (rank.get(u) < rank.get(v)) {
+                int temp = u;
+                u = v;
+                v = temp;
+            }
+            parent.put(v, u);
+            if (rank.get(u).equals(rank.get(v))) {
+                rank.put(u, rank.get(u) + 1);
+            }
+        }
+    }
+}
+
+class Solution {
+    public int countComponents(int[] nums, int threshold) {
+        DSU dsu = new DSU(threshold);
+
+        for (int num : nums) {
+            for (int j = num; j <= threshold; j += num) {
+                dsu.unionSet(num, j);
+            }
+        }
+
+        Set<Integer> uniqueParents = new HashSet<>();
+        for (int num : nums) {
+            if (num > threshold) {
+                uniqueParents.add(num);
+            } else {
+                uniqueParents.add(dsu.find(num));
+            }
+        }
+
+        return uniqueParents.size();
+    }
+}
+
+
+
+or
+
+
+
+class Solution {
+
+    // DFS helper function
+    public void dfs(int node, boolean[] vis, ArrayList<ArrayList<Integer>> al) {
+        vis[node] = true;
+        for (int neighbor : al.get(node)) {
+            if (!vis[neighbor]) {
+                dfs(neighbor, vis, al);
+            }
+        }
+    }
+
+    public int countComponents(int[] nums, int threshold) {
+        int n = nums.length;
+
+        // Sort the numbers in increasing order
+        Arrays.sort(nums);
+
+        // HashSet to store all numbers <= threshold
+        HashSet<Integer> hs = new HashSet<>();
+
+        // Adjust the length n to reflect how many numbers are <= threshold
+        int adjustedLength = n;
+        for (int i = 0; i < nums.length; i++) {
+            if (nums[i] > threshold) {
+                adjustedLength = i;
+                break;
+            }
+        }
+
+        // Fill the set with numbers <= threshold
+        for (int i = 0; i < adjustedLength; i++) {
+            hs.add(nums[i]);
+        }
+
+        // Create an adjacency list for the numbers <= threshold
+        ArrayList<ArrayList<Integer>> al = new ArrayList<>();
+        for (int i = 0; i <= threshold; i++) {
+            al.add(new ArrayList<>());
+        }
+
+        // Count the numbers greater than threshold initially
+        int res = nums.length - adjustedLength;
+
+        // Build the adjacency list based on LCM
+        for (int i = 0; i < adjustedLength; i++) {
+            int curr = nums[i];
+            int x = 2;
+            while ((long) x * curr <= threshold) {
+                // Add an undirected edge between curr and x * curr
+                al.get(curr).add(x * curr);
+                al.get(x * curr).add(curr);
+                x++;
+            }
+        }
+
+        // Visited array to keep track of visited numbers
+        boolean[] vis = new boolean[threshold + 1];
+
+        // Traverse the graph and count components using DFS
+        for (int i = 1; i <= threshold; i++) {
+            if (!hs.contains(i)) {
+                continue;
+            }
+            if (!vis[i]) {
+                // Perform DFS from the current unvisited node
+                dfs(i, vis, al);
+                res++; // Increment the component count
+            }
+
+        }
+        return res;
+    }
+}
+
+
+or
+
+
+
+class DSU{
+    private int n;
+    private int[] rank, parent;
+    private List<Integer> vertices;
+
+    public DSU(int n, List<Integer> v){
+        this.n = n;
+        this.rank = new int[n];
+        this.parent = new int[n];
+
+        for(int i = 0; i < this.n; i++){
+            this.parent[i] = i;
+            this.rank[i] = 1;
+        }
+
+        this.vertices = new ArrayList<Integer>(v);
+    }
+
+    public int getComponents(){
+        for(int i = 0; i < this.n; i++){
+            getParent(i);
+        }
+
+        HashSet<Integer> set = new HashSet<Integer>();
+        for(int v : vertices){
+            set.add(getParent(v));
+        }  
+
+        return set.size();      
+    }
+
+    public void union(int u, int v){
+        if(u != v){
+            int p = getParent(u);
+            int q = getParent(v);
+
+            if(p != q){
+                if(this.rank[p] > this.rank[q]){
+                    this.parent[q] = p;
+                    this.rank[p] += this.rank[q];
+                }else{
+                    this.parent[p] = q;
+                    this.rank[q] += this.rank[p];
+                }
+            }
+        }
+    }
+
+    private int getParent(int u){
+        int x = u;
+        while(x != this.parent[x]){
+            x = this.parent[x];
+        }
+
+        this.parent[u] = x;
+        return x;
+    }
+}
+
+class Solution {
+    public int countComponents(int[] nums, int threshold) {
+        int max = threshold;
+        List<Integer> list = new ArrayList<Integer>();
+        int count = 0;
+        for(int x : nums){
+            if(x > threshold){ // vertices > threshold are standalone components !!
+                ++count;
+            }else{
+                list.add(x);
+            }
+        }
+
+        DSU dsu = new DSU(threshold + 1, list);
+        for(int x : nums){
+            for(int i = 2; i*x <= threshold; i++){
+                dsu.union(x, i*x);
+            }
+        }
+
+        return count + dsu.getComponents();
+    }
+}
