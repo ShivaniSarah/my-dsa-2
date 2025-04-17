@@ -1,0 +1,346 @@
+https://leetcode.com/problems/maximum-segment-sum-after-removals/description/
+
+2382. Maximum Segment Sum After Removals
+Hard
+Topics
+Companies
+Hint
+You are given two 0-indexed integer arrays nums and removeQueries, both of length n. For the ith query, the element in nums at the index removeQueries[i] is removed, splitting nums into different segments.
+
+A segment is a contiguous sequence of positive integers in nums. A segment sum is the sum of every element in a segment.
+
+Return an integer array answer, of length n, where answer[i] is the maximum segment sum after applying the ith removal.
+
+Note: The same index will not be removed more than once.
+
+ 
+
+Example 1:
+
+Input: nums = [1,2,5,6,1], removeQueries = [0,3,2,4,1]
+Output: [14,7,2,2,0]
+Explanation: Using 0 to indicate a removed element, the answer is as follows:
+Query 1: Remove the 0th element, nums becomes [0,2,5,6,1] and the maximum segment sum is 14 for segment [2,5,6,1].
+Query 2: Remove the 3rd element, nums becomes [0,2,5,0,1] and the maximum segment sum is 7 for segment [2,5].
+Query 3: Remove the 2nd element, nums becomes [0,2,0,0,1] and the maximum segment sum is 2 for segment [2]. 
+Query 4: Remove the 4th element, nums becomes [0,2,0,0,0] and the maximum segment sum is 2 for segment [2]. 
+Query 5: Remove the 1st element, nums becomes [0,0,0,0,0] and the maximum segment sum is 0, since there are no segments.
+Finally, we return [14,7,2,2,0].
+Example 2:
+
+Input: nums = [3,2,11,1], removeQueries = [3,2,1,0]
+Output: [16,5,3,0]
+Explanation: Using 0 to indicate a removed element, the answer is as follows:
+Query 1: Remove the 3rd element, nums becomes [3,2,11,0] and the maximum segment sum is 16 for segment [3,2,11].
+Query 2: Remove the 2nd element, nums becomes [3,2,0,0] and the maximum segment sum is 5 for segment [3,2].
+Query 3: Remove the 1st element, nums becomes [3,0,0,0] and the maximum segment sum is 3 for segment [3].
+Query 4: Remove the 0th element, nums becomes [0,0,0,0] and the maximum segment sum is 0, since there are no segments.
+Finally, we return [16,5,3,0].
+ 
+
+Constraints:
+
+n == nums.length == removeQueries.length
+1 <= n <= 105
+1 <= nums[i] <= 109
+0 <= removeQueries[i] < n
+All the values of removeQueries are unique.
+
+
+
+# java
+
+
+class Solution {
+    private int[] p;
+    private long[] s;
+
+    public long[] maximumSegmentSum(int[] nums, int[] removeQueries) {
+        int n = nums.length;
+        p = new int[n];
+        s = new long[n];
+        for (int i = 0; i < n; ++i) {
+            p[i] = i;
+        }
+        long[] ans = new long[n];
+        long mx = 0;
+        for (int j = n - 1; j > 0; --j) {
+            int i = removeQueries[j];
+            s[i] = nums[i];
+            if (i > 0 && s[find(i - 1)] > 0) {
+                merge(i, i - 1);
+            }
+            if (i < n - 1 && s[find(i + 1)] > 0) {
+                merge(i, i + 1);
+            }
+            mx = Math.max(mx, s[find(i)]);
+            ans[j - 1] = mx;
+        }
+        return ans;
+    }
+
+    private int find(int x) {
+        if (p[x] != x) {
+            p[x] = find(p[x]);
+        }
+        return p[x];
+    }
+
+    private void merge(int a, int b) {
+        int pa = find(a), pb = find(b);
+        p[pa] = pb;
+        s[pb] += s[pa];
+    }
+}
+
+
+
+or
+
+
+
+class Solution {
+  public long[] maximumSegmentSum(int[] nums, int[] removeQueries) {
+    final int n = nums.length;
+    long maxSum = 0;
+    long[] ans = new long[n];
+    // For the segment [l, r], record its sum in sum[l] and sum[r]
+    long[] sum = new long[n];
+    // For the segment [l, r], record its count in count[l] and count[r]
+    int[] count = new int[n];
+
+    for (int i = n - 1; i >= 0; --i) {
+      ans[i] = maxSum;
+      final int j = removeQueries[i];
+
+      // Calculate `segmentSum`.
+      final long leftSum = j > 0 ? sum[j - 1] : 0;
+      final long rightSum = j + 1 < n ? sum[j + 1] : 0;
+      final long segmentSum = nums[j] + leftSum + rightSum;
+
+      // Calculate `segmentCount`.
+      final int leftCount = j > 0 ? count[j - 1] : 0;
+      final int rightCount = j + 1 < n ? count[j + 1] : 0;
+      final int segmentCount = 1 + leftCount + rightCount;
+
+      // Update the sum and count of the segment [l, r].
+      final int l = j - leftCount;
+      final int r = j + rightCount;
+      sum[l] = segmentSum;
+      sum[r] = segmentSum;
+      count[l] = segmentCount;
+      count[r] = segmentCount;
+      maxSum = Math.max(maxSum, segmentSum);
+    }
+
+    return ans;
+  }
+}
+
+
+or
+
+
+
+
+class Solution {
+    class Node {
+        Node root;
+        long total;
+
+        Node(long val) {
+            total = val;
+        }
+
+        Node GetRoot() {
+            if (root == null)
+                return this;
+            return root.GetRoot();
+        }
+    }
+
+    public long[] maximumSegmentSum(int[] nums, int[] removeQueries) {
+        long[] result = new long[nums.length];
+        Node[] map = new Node[nums.length];
+        long max = 0;
+
+        for (int i = removeQueries.length - 1; i >= 1; i--) {
+            int current = removeQueries[i];
+            map[current] = new Node(nums[current]);
+
+            if (current > 0 && map[current - 1] != null) { // connect left
+                Node root = map[current].GetRoot();
+                Node newRoot = map[current - 1].GetRoot();
+                root.total += newRoot.total;
+                newRoot.root = root;
+            }
+
+            if (current < nums.length - 1 && map[current + 1] != null) { // connect right
+                Node root = map[current].GetRoot();
+                Node newRoot = map[current + 1].GetRoot();
+                root.total += newRoot.total;
+                newRoot.root = root;
+            }
+
+            max = Math.max(max, map[current].total);
+            result[i - 1] = max;
+        }
+
+        return result;
+    }
+}
+
+
+
+or
+
+
+// segment tree
+
+class Solution {
+    public long[] maximumSegmentSum(int[] nums, int[] removeQueries) {
+        int n = nums.length;
+        long[] ans = new long[n];
+        SegmentTreeNode st = new SegmentTreeNode(0, n-1);
+        
+        for (int i=0; i<n; i++) {
+            st.update(i, nums[i]);
+        }
+
+        for (int i=0; i<n-1; i++) {
+            ans[i] = st.update(removeQueries[i], -nums[removeQueries[i]]);
+        }
+        
+        return ans;
+    }
+}
+
+class SegmentTreeNode {
+    SegmentTreeNode left, right;
+    long max, leftSum, rightSum;
+    int lo, hi;
+    boolean isDivided;
+    
+    public SegmentTreeNode(int lo, int hi) {
+        this.lo = lo;
+        this.hi = hi;
+    }
+    
+    public int getMid() {
+        return lo + (hi - lo)/2;
+    }
+    
+    public SegmentTreeNode getLeft() {
+        if (left == null)
+            left = new SegmentTreeNode(lo, getMid());
+        return left;
+    }
+    
+    public SegmentTreeNode getRight() {
+        if (right == null)
+            right = new SegmentTreeNode(getMid()+1, hi);
+        return right;
+    }
+    
+    public long update(int pos, int val) {
+        if (lo > pos || hi < pos)
+            return 0;
+        
+        if (pos == lo && pos == hi) {
+            leftSum += val;
+            rightSum += val;
+            max += val;
+            if (max == 0)
+                isDivided = true;
+            return max;
+        }
+        
+        getLeft().update(pos, val);
+        getRight().update(pos, val);
+        
+        leftSum = left.isDivided ? left.leftSum : left.leftSum + right.leftSum;
+        rightSum = right.isDivided ? right.rightSum : right.rightSum + left.rightSum;
+        max = Math.max(Math.max(left.max, right.max), left.rightSum + right.leftSum);
+        isDivided = left.isDivided || right.isDivided;
+        
+        return max;
+    }
+}
+
+
+or
+
+
+
+class Solution {
+        public long[] maximumSegmentSum(int[] nums, int[] removeQueries) {
+        int n=nums.length;
+        PriorityQueue<pair> pq=new PriorityQueue<>();
+        TreeSet<Integer> ts=new TreeSet<>();
+        long presum[]=new long[n+1];
+       
+        ts.add(-1);ts.add(n);
+        
+        
+        for(int i=1;i<=n;i++)
+        {
+            presum[i]=nums[i-1]+presum[i-1];
+        }
+        
+        long ans[]=new long[n];
+        
+        for(int j=0;j<n;j++)
+        {
+            int val=removeQueries[j];
+            
+            ts.add(val);
+            
+            int l=ts.lower(val);
+            int r=ts.higher(val);
+            
+            if(l+1<val)
+                pq.add(new pair(l+1,val-1,presum[val]-presum[l+1]));
+            if(val<r-1)
+                pq.add(new pair(val+1,r-1,presum[r]-presum[val+1]));
+            
+            while(!pq.isEmpty())
+            {
+                pair p=pq.peek();
+                
+                if(ts.higher(p.a-1)>p.b)
+                {
+                    ans[j]=p.s;
+                    break;
+                }
+                else
+                    pq.poll();
+                
+            }
+            
+            
+            
+        }
+        
+        return ans;
+        
+    }
+}
+
+class pair implements Comparable<pair>{
+    
+    int a;int b;long s;
+    public pair(int a,int b,long s)
+    {
+        this.a=a;
+        this.b=b;
+        this.s=s;
+    }
+    
+    public int compareTo(pair p)
+    {
+        if(p.s-this.s>=0)
+            return 1;
+        return -1;
+    }
+    
+}
