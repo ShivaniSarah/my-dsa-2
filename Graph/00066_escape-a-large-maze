@@ -1,0 +1,357 @@
+https://leetcode.com/problems/escape-a-large-maze/description/
+
+
+1036. Escape a Large Maze
+Hard
+Topics
+Companies
+Hint
+There is a 1 million by 1 million grid on an XY-plane, and the coordinates of each grid square are (x, y).
+
+We start at the source = [sx, sy] square and want to reach the target = [tx, ty] square. There is also an array of blocked squares, where each blocked[i] = [xi, yi] represents a blocked square with coordinates (xi, yi).
+
+Each move, we can walk one square north, east, south, or west if the square is not in the array of blocked squares. We are also not allowed to walk outside of the grid.
+
+Return true if and only if it is possible to reach the target square from the source square through a sequence of valid moves.
+
+ 
+
+Example 1:
+
+Input: blocked = [[0,1],[1,0]], source = [0,0], target = [0,2]
+Output: false
+Explanation: The target square is inaccessible starting from the source square because we cannot move.
+We cannot move north or east because those squares are blocked.
+We cannot move south or west because we cannot go outside of the grid.
+Example 2:
+
+Input: blocked = [], source = [0,0], target = [999999,999999]
+Output: true
+Explanation: Because there are no blocked cells, it is possible to reach the target square.
+ 
+
+Constraints:
+
+0 <= blocked.length <= 200
+blocked[i].length == 2
+0 <= xi, yi < 106
+source.length == target.length == 2
+0 <= sx, sy, tx, ty < 106
+source != target
+It is guaranteed that source and target are not blocked.
+
+
+# java
+
+
+class Solution {
+  public boolean isEscapePossible(int[][] blocked, int[] source, int[] target) {
+    Set<Long> blockedSet = new HashSet<>();
+    for (int[] b : blocked)
+      blockedSet.add(hash(b[0], b[1]));
+
+    return dfs(blockedSet, source[0], source[1], hash(target[0], target[1]), new HashSet<>()) &&
+        dfs(blockedSet, target[0], target[1], hash(source[0], source[1]), new HashSet<>());
+  }
+
+  private boolean dfs(Set<Long> blockedSet, int i, int j, long target, Set<Long> seen) {
+    if (i < 0 || i >= 1e6 || j < 0 || j >= 1e6 || blockedSet.contains(hash(i, j)) ||
+        seen.contains(hash(i, j)))
+      return false;
+
+    seen.add(hash(i, j));
+    if (seen.size() > (1 + 199) * 199 / 2 || hash(i, j) == target)
+      return true;
+
+    return                                         //
+        dfs(blockedSet, i + 1, j, target, seen) || //
+        dfs(blockedSet, i - 1, j, target, seen) || //
+        dfs(blockedSet, i, j + 1, target, seen) || //
+        dfs(blockedSet, i, j - 1, target, seen);
+  }
+
+  private long hash(int i, int j) {
+    return ((long) i << 16) + j;
+  }
+}
+
+
+or
+
+
+class Solution {
+    private int[][] dirs = new int[][] { {1, 0}, {-1, 0}, {0, 1}, {0, -1} };
+    private static final int N = (int) 1e6;
+    private Set<Integer> blocked;
+
+    public boolean isEscapePossible(int[][] blocked, int[] source, int[] target) {
+        this.blocked = new HashSet<>();
+        for (int[] b : blocked) {
+            this.blocked.add(b[0] * N + b[1]);
+        }
+        return dfs(source, target, new HashSet<>()) && dfs(target, source, new HashSet<>());
+    }
+
+    private boolean dfs(int[] source, int[] target, Set<Integer> seen) {
+        int sx = source[0], sy = source[1];
+        int tx = target[0], ty = target[1];
+        if (sx < 0 || sx >= N || sy < 0 || sy >= N || tx < 0 || tx >= N || ty < 0 || ty >= N
+            || blocked.contains(sx * N + sy) || seen.contains(sx * N + sy)) {
+            return false;
+        }
+        seen.add(sx * N + sy);
+        if (seen.size() > 20000 || (sx == target[0] && sy == target[1])) {
+            return true;
+        }
+        for (int[] dir : dirs) {
+            if (dfs(new int[] {sx + dir[0], sy + dir[1]}, target, seen)) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+
+
+or
+
+
+class Solution 
+{
+    static final int limit= 1000000;//boundary check 
+  
+    public boolean isEscapePossible(int[][] blocked, int[] source, int[] target) 
+    {
+        Set<String> blocks= new HashSet<>();//HashSet to reduce the access time from O(N)-> O(1)
+      
+        for(int block[] : blocked)
+            blocks.add(block[0]+ "-"+ block[1]);//putting the blocked node into the HashSet to access it at O(1)
+      
+        return bfsRange(source, target, blocks) && bfsRange(target, source, blocks);//sector division 
+      
+      /*checking for both the case that the source is blocked or the target is blocked 
+       *if one of them is blocked we return false
+       *since it is not practical to traverse each node, it will provide us with TLE
+      */  
+    }
+  
+    /* Formula :: 
+     * shortest arc(displacement) of 1/4 sector of circel is a* 2^1/2
+     * Area of the triangular sector is 1/2 * ( r{base} * r{height} )
+     * Number of minimum shell to cover to move ahed of sector or boundary if possible = 0 + 1 + 2 + 3 + ... + 199 = 19900 (A.P)
+     */
+  
+    public boolean bfsRange(int[] source, int[] target, Set<String> blocks)
+    {//we simply do bsf to check the circular quadrant 1/4th boundary of the sector 
+      
+        Set<String> visited= new HashSet<>();//visited hash set is so that we dont visit the visited cell again and the access time is O(1)
+        Queue<int[]> q= new LinkedList<>();//as we use in  BT  
+      
+        q.offer(source);//adding the starting BFS node to the Queue
+      
+        visited.add(source[0] + "-" + source[1]);//marking it as visited so  that we dont traverse it again 
+        
+        int count= 0;//number of node traverse total outside + inside 
+        while(!q.isEmpty())
+        {//r m* w a*
+            int temp[]= q.poll();//poling the node 
+            count+= 1;//counting the number of node traverse
+          
+            int trav[][]= {{-1, 0}, {0, 1}, {0, -1}, {1, 0}};//Traversing in 4-Direction 
+          
+            for(int direction[] : trav)
+            {
+                int i= temp[0] + direction[0];
+                int j= temp[1] + direction[1];
+              
+                String key= (i+ "-"+ j);
+              
+                if(i < 0 || j < 0 || i >= limit || j >= limit || visited.contains(key) || blocks.contains(key)) 
+                    continue;//base case 1)checking the index 2)We dont visit the blocked node 3) we dont visit the visited node 
+              
+                if(i == target[0] && j == target[1]) //when we find the target within the boundary(same sector or the quadrand) we just return true //best case saves a lot of time 
+                   return true;
+              
+                visited.add(key);//marking the node as visited and adding it to the Queue
+              
+                q.offer(new int[]{i, j});//Expaning the search for path and adding the node 
+              
+                if(count > 19900) //number of cell, crossing the boundary limit
+                   return true;//path exists from this node 
+            }
+        }
+        return false;//no path, to reach the node//boundary blocked us 
+    }
+}//Please do Upvote, it helps a lot
+
+or
+
+// beat
+
+
+class Solution {
+    
+    int[]source;
+    int[]target;
+    int xmin;
+    int xmax;
+    int ymin;
+    int ymax;
+    HashSet<Node>blocks;
+    HashSet<Node>been;
+    LinkedList<Integer>vertical;
+    LinkedList<Integer>horizontal;
+    int[][]neigh={{-1,-1},{-1,0},{-1,1},{0,-1},{0,1},{1,-1},{1,0},{1,1}};
+    int[][]ds={{-1,0},{1,0},{0,-1},{0,1}};
+    int[][]want;
+    
+    public boolean isEscapePossible(int[][] blocked, int[] source, int[] target) {
+        this.source=target;
+        this.target=target;
+        blocks=new HashSet();
+        been=new HashSet();
+        vertical=new LinkedList();
+        horizontal=new LinkedList();
+        
+        int xmirror=source[0]<=target[0]?1:-1;
+        int ymirror=source[1]<=target[1]?1:-1;
+        
+        source[0]*=xmirror;
+        source[1]*=ymirror;
+        target[0]*=xmirror;
+        target[1]*=ymirror;
+        
+        xmin=xmirror==1?0:(-1000000+1);
+        xmax=xmirror==1?(1000000-1):0;
+        ymin=ymirror==1?0:(-1000000+1);
+        ymax=ymirror==1?(1000000-1):0;
+        
+        for(int[]b:blocked){
+            int x=(b[0]*=xmirror),y=(b[1]*=ymirror);
+            blocks.add(new Node(x,y));
+            if(y==source[1])horizontal.offer(x);
+            if(x==target[0])vertical.offer(y);
+        }
+        Collections.sort(horizontal);
+        Collections.sort(vertical);
+        
+        want=new int[][]{{source[0]+1,target[0]-1,source[1],source[1]},{target[0],target[0],source[1],target[1]}};
+        
+        return dfs(source[0],source[1],true);   
+    }
+    private boolean dfs(int x,int y,boolean jump){
+        if(x==target[0]&&y==target[1])return true;
+        if(jump){
+            if(x!=target[0]){
+                ceil(horizontal,x);
+                if(horizontal.isEmpty()||horizontal.peek()>target[0]){
+                    want[0][0]=want[0][1]+1;//means disabled
+                    want[1][2]=y+1;
+                    return dfs(target[0],y,true);
+                }
+                else{
+                    int nx=horizontal.peek()-1;
+                    been.add(new Node(nx,y));
+                    want[0][0]=nx+1;
+                    return dfs(nx,y,false);
+                }
+            }
+            else{
+                ceil(vertical,y);
+                if(vertical.isEmpty()||vertical.peek()>target[1])
+                    return true;
+                else{
+                    int ny=vertical.peek()-1;
+                    been.add(new Node(x,ny));
+                    want[1][2]=ny+1;
+                    return dfs(x,ny,false);
+                }
+            }
+        }
+        for(int[]d:ds){
+            int nx=x+d[0], ny=y+d[1];
+            Node node=new Node(nx,ny);
+            if(nx>=xmin&&nx<=xmax&&ny>=ymin&&ny<=ymax
+               &&!blocks.contains(node)&&!been.contains(node)
+               &&hasBlockedNeighbor(nx,ny)){
+                been.add(node);
+                if(readyToJump(nx,ny)&&dfs(nx,ny,true))return true;
+                if(dfs(nx,ny,false))return true;
+            }
+        }
+        return false;
+    }
+    private void ceil(LinkedList<Integer>list,int n){
+        while(!list.isEmpty()&&list.peek()<n)list.poll();
+    }
+    private boolean hasBlockedNeighbor(int x,int y){
+        for(int[]ngh:neigh){
+            if(blocks.contains(new Node(x+ngh[0],y+ngh[1])))
+                return true;
+        }
+        return false;
+    }
+    private boolean readyToJump(int x,int y){
+        if(x>=want[0][0]&&x<=want[0][1]&&y>=want[0][2]&&y<=want[0][3]){
+            want[0][0]=x+1;
+            return true;
+        }
+        if(x>=want[1][0]&&x<=want[1][1]&&y>=want[1][2]&&y<=want[1][3]){
+            want[1][2]=y+1;
+            return true;
+        }
+        return false;
+    }   
+}
+class Node {
+    int x;
+    int y;
+    public Node(int xx,int yy){
+        x=xx;
+        y=yy;
+    }
+    
+    public int hashCode(){
+        return x+20773*y;
+    }
+    public boolean equals(Object obj){
+        if(obj instanceof Node){
+            Node n=(Node)obj;
+            return x==n.x&&y==n.y;
+        }
+        return false;
+    }
+}
+
+
+or
+
+class Solution {
+    final int MAX_VISIT = 20000;
+	
+    public boolean isEscapePossible(int[][] blocked, int[] source, int[] target) {
+        Set<String> blockedSet = new HashSet<>();
+        for (int[] ij : blocked) {
+            String key = ij[0] + "," + ij[1];
+            blockedSet.add(key);
+        }
+        return canVisit(blockedSet, source, target) && canVisit(blockedSet, target, source);
+    }
+    
+    boolean canVisit(Set<String> blocked, int[] start, int[] end) {
+        Set<String> visited = new HashSet<>();
+        return dfs(blocked, start[0], start[1], end[0], end[1], visited);
+    }
+    
+    boolean dfs(Set<String> blocked, int i, int j, int m, int n, Set<String> visited) {
+        visited.add(i + "," + j);
+        if (i == m && j == n || visited.size() >= MAX_VISIT) { return true; }
+        for (int[] next : new int[][] {{i-1 ,j}, {i+1, j}, {i, j-1}, {i, j+1}}) {
+            String nextKey = next[0] + "," + next[1];
+            if (next[0] >= 0 && next[1] >= 0 && next[0] < 1e6 && next[1] < 1e6 && !blocked.contains(nextKey) && !visited.contains(nextKey)) {
+                if (dfs(blocked, next[0], next[1], m, n, visited)) { return true; }
+            }
+        }
+        return false;
+    }
+}
