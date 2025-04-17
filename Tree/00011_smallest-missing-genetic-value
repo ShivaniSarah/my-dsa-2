@@ -1,0 +1,475 @@
+https://leetcode.com/problems/smallest-missing-genetic-value-in-each-subtree/description/
+
+
+2003. Smallest Missing Genetic Value in Each Subtree
+Hard
+Topics
+Companies
+Hint
+There is a family tree rooted at 0 consisting of n nodes numbered 0 to n - 1. You are given a 0-indexed integer array parents, where parents[i] is the parent for node i. Since node 0 is the root, parents[0] == -1.
+
+There are 105 genetic values, each represented by an integer in the inclusive range [1, 105]. You are given a 0-indexed integer array nums, where nums[i] is a distinct genetic value for node i.
+
+Return an array ans of length n where ans[i] is the smallest genetic value that is missing from the subtree rooted at node i.
+
+The subtree rooted at a node x contains node x and all of its descendant nodes.
+
+ 
+
+Example 1:
+
+
+Input: parents = [-1,0,0,2], nums = [1,2,3,4]
+Output: [5,1,1,1]
+Explanation: The answer for each subtree is calculated as follows:
+- 0: The subtree contains nodes [0,1,2,3] with values [1,2,3,4]. 5 is the smallest missing value.
+- 1: The subtree contains only node 1 with value 2. 1 is the smallest missing value.
+- 2: The subtree contains nodes [2,3] with values [3,4]. 1 is the smallest missing value.
+- 3: The subtree contains only node 3 with value 4. 1 is the smallest missing value.
+Example 2:
+
+
+Input: parents = [-1,0,1,0,3,3], nums = [5,4,6,2,1,3]
+Output: [7,1,1,4,2,1]
+Explanation: The answer for each subtree is calculated as follows:
+- 0: The subtree contains nodes [0,1,2,3,4,5] with values [5,4,6,2,1,3]. 7 is the smallest missing value.
+- 1: The subtree contains nodes [1,2] with values [4,6]. 1 is the smallest missing value.
+- 2: The subtree contains only node 2 with value 6. 1 is the smallest missing value.
+- 3: The subtree contains nodes [3,4,5] with values [2,1,3]. 4 is the smallest missing value.
+- 4: The subtree contains only node 4 with value 1. 2 is the smallest missing value.
+- 5: The subtree contains only node 5 with value 3. 1 is the smallest missing value.
+Example 3:
+
+Input: parents = [-1,2,3,0,2,4,1], nums = [2,3,4,5,6,7,8]
+Output: [1,1,1,1,1,1,1]
+Explanation: The value 1 is missing from all the subtrees.
+ 
+
+Constraints:
+
+n == parents.length == nums.length
+2 <= n <= 105
+0 <= parents[i] <= n - 1 for i != 0
+parents[0] == -1
+parents represents a valid tree.
+1 <= nums[i] <= 105
+Each nums[i] is distinct.
+
+
+
+# java
+
+
+class Solution {
+    private List<Integer>[] g;
+    private boolean[] vis;
+    private boolean[] has;
+    private int[] nums;
+
+    public int[] smallestMissingValueSubtree(int[] parents, int[] nums) {
+        int n = nums.length;
+        this.nums = nums;
+        g = new List[n];
+        vis = new boolean[n];
+        has = new boolean[n + 2];
+        Arrays.setAll(g, i -> new ArrayList<>());
+        int idx = -1;
+        for (int i = 0; i < n; ++i) {
+            if (i > 0) {
+                g[parents[i]].add(i);
+            }
+            if (nums[i] == 1) {
+                idx = i;
+            }
+        }
+        int[] ans = new int[n];
+        Arrays.fill(ans, 1);
+        if (idx == -1) {
+            return ans;
+        }
+        for (int i = 2; idx != -1; idx = parents[idx]) {
+            dfs(idx);
+            while (has[i]) {
+                ++i;
+            }
+            ans[idx] = i;
+        }
+        return ans;
+    }
+
+    private void dfs(int i) {
+        if (vis[i]) {
+            return;
+        }
+        vis[i] = true;
+        if (nums[i] < has.length) {
+            has[nums[i]] = true;
+        }
+        for (int j : g[i]) {
+            dfs(j);
+        }
+    }
+}
+
+
+or
+
+
+class Solution {
+  public int[] smallestMissingValueSubtree(int[] parents, int[] nums) {
+    final int n = parents.length;
+    int[] ans = new int[n];
+    Arrays.fill(ans, 1);
+    List<Integer>[] tree = new List[n];
+    Set<Integer> seen = new HashSet<>();
+    int minMiss = 1;
+
+    for (int i = 0; i < n; ++i)
+      tree[i] = new ArrayList<>();
+
+    for (int i = 1; i < n; ++i)
+      tree[parents[i]].add(i);
+
+    final int nodeThatsOne = getNode(nums);
+    if (nodeThatsOne == -1)
+      return ans;
+
+    int u = nodeThatsOne;
+    int prev = -1; // the u that just handled
+
+    // Upward from `nodeThatsOne` to the root `u`.
+    while (u != -1) {
+      for (final int v : tree[u])
+        if (v != prev)
+          dfs(v, tree, seen, nums);
+      seen.add(nums[u]);
+      while (seen.contains(minMiss))
+        ++minMiss;
+      ans[u] = minMiss;
+      prev = u;
+      u = parents[u];
+    }
+
+    return ans;
+  }
+
+  private void dfs(int u, List<Integer>[] tree, Set<Integer> seen, int[] nums) {
+    seen.add(nums[u]);
+    for (final int v : tree[u])
+      dfs(v, tree, seen, nums);
+  }
+
+  private int getNode(int[] nums) {
+    for (int i = 0; i < nums.length; ++i)
+      if (nums[i] == 1)
+        return i;
+    return -1;
+  }
+}
+
+
+or
+
+
+class Solution {
+    public int[] smallestMissingValueSubtree(int[] parents, int[] nums) {
+        int n = parents.length;
+        int[] res = new int[n];
+        for (int i = 0; i < n; i++) {
+            res[i] = 1;
+        }
+        
+        int oneIndex = -1;
+        for (int i = 0; i < n; i++) {
+            if (nums[i] == 1) {
+                oneIndex = i;
+                break;
+            }
+        }
+        
+        // 1 not found
+        if (oneIndex == -1) {
+            return res;
+        }
+        
+        Map<Integer, Set<Integer>> graph = new HashMap<>();
+        for (int i = 1; i < n; i++) {
+            Set<Integer> children = graph.getOrDefault(parents[i], new HashSet<Integer>());
+            children.add(i);
+            graph.put(parents[i], children);
+        }
+        
+        Set<Integer> visited = new HashSet<Integer>();
+        
+        int parentIter = oneIndex;
+        int miss = 1;
+        while (parentIter >= 0) {
+            dfs(parentIter, graph, visited, nums);
+            while (visited.contains(miss)) {
+                miss++;
+            }
+            res[parentIter] = miss;
+            parentIter = parents[parentIter];
+        }
+        return res;
+    }
+    
+    public void dfs(int ind, Map<Integer, Set<Integer>> graph, Set<Integer> visited, int []nums) {
+        if (!visited.contains(nums[ind])) {
+            Set <Integer> children = graph.getOrDefault(ind, new HashSet<Integer>());
+        
+            for (int p : children) {
+                dfs(p, graph, visited, nums);
+            }
+            visited.add(nums[ind]);
+        }
+    }
+}
+
+
+or
+
+class Solution {
+    public int[] smallestMissingValueSubtree(int[] parents, int[] nums) {
+        int[] ans = new int[parents.length];
+        Node[] all = new Node[parents.length];
+        int max = 0;
+        for (int i = 0 ; i < nums.length; i++){
+            all[i] = new Node(i, nums[i]);
+            max = Math.max(max, nums[i]);
+        }
+        for (int i = 1; i < parents.length; i++){
+            all[parents[i]].nodes.add(all[i]);
+        }
+        solve(all[0], ans, new UF(++max, nums));
+        return ans;
+    }
+
+    private void solve(Node root, int[] ans, UF uf){
+        int max = 1;
+        for (Node child : root.nodes){
+            solve(child, ans, uf); // post-order traversal.
+            uf.union(root.val, child.val); // then we union cur node with its subtree
+            max = Math.max(ans[child.idx], max); // find the max
+        }
+        while(max <= ans.length && uf.isConnected(max, root.val)){
+            ++max;
+        }
+        ans[root.idx] = max;
+    }
+
+    private class Node { // TreeNode
+        int idx;
+        int val;
+        List<Node> nodes;
+        Node (int idx, int val){
+            this.idx = idx;
+            this.val = val;
+            nodes = new ArrayList<>();
+        }
+    }
+
+    private class UF { // normal union find template.
+        int[] rank;
+        int[] parent;
+        UF (int n, int[] nums){
+            rank = new int[n];
+            parent = new int[n];
+            for (int m : nums){
+                parent[m] = m;
+            }
+        }
+
+        private int find(int x){
+            return x == parent[x]? x : (parent[x] = find(parent[x]));
+        }
+
+        private void union(int x, int y){
+            x = find(x); y = find(y);
+            if (rank[x] > rank[y]){
+                parent[y] = x;
+            }else{
+                parent[x] = y;
+                if (rank[x] == rank[y]){
+                    rank[y]++;
+                }
+            }
+        }
+
+        private boolean isConnected(int x, int y){
+            return find(x) == find(y);
+        }
+    }
+}
+
+// TLE
+// class Solution {
+//     public int[] smallestMissingValueSubtree(int[] parents, int[] nums) {
+//         int[] ans = new int[parents.length];
+//         Map<Integer, Node> map = new HashMap<>();
+//         for (int i = 0 ; i < nums.length; i++){
+//             map.put(i, new Node(i, nums[i]));
+//         }
+//         for (int i = 1; i < parents.length; i++){
+//             map.get(parents[i]).nodes.add(map.get(i));
+//         }
+//         solve(map.get(0), ans);
+//         return ans;
+//     }
+
+//     private BitSet solve(Node root, int[] ans){
+//         BitSet bit = new BitSet();
+//         if (root == null)
+//             return bit;
+//         int max = 1;
+//         for (Node child : root.nodes){
+//             bit.or(solve(child, ans));
+//             max = Math.max(ans[child.idx], max);
+//         }
+//         bit.set(root.val);
+//         ans[root.idx] = bit.nextClearBit(max);
+//         return bit;
+//     }
+
+//     private class Node {
+//         int idx;
+//         int val;
+//         List<Node> nodes;
+//         Node (int idx, int val){
+//             this.idx = idx;
+//             this.val = val;
+//             nodes = new ArrayList<>();
+//         }
+//     }
+// }
+
+
+or
+
+
+class Solution {
+    
+    // "The idea is to find out the node whose genetic value is 1 and traverse up.
+    // All the rest of the subtrees have one missing."
+	// quote from https://leetcode.com/problems/smallest-missing-genetic-value-in-each-subtree/discuss/1641677/Java-Solution
+    // For those subtrees containing 1, we'll maintain a sorted set of missing values, 
+    // and reply with the smallest one
+    public int[] smallestMissingValueSubtree(int[] parents, int[] nums) {
+        int[] ans = new int[parents.length];
+        Arrays.fill(ans, 1); // respond with 1 for subtrees not containing 1
+        // create a map parent-->children
+        Map<Integer,List<Integer>> sonsMap = new HashMap<>();
+        for (int i=1; i<parents.length; i++) {
+            addSon(sonsMap, parents[i], i);
+        }
+        // find the node with value 1
+        int ind = -1;
+        for (int i=0; i<nums.length; i++) {
+            if (nums[i] == 1) {
+                ind = i;
+                break;
+            }
+        }
+        if (ind == -1) {
+            // no node with value 1 = it is the smallest missing from all subtrees
+            return ans;
+        }
+        // maintain a sorted set of all missing values from the subtree
+        SortedSet<Integer> missingValues = new TreeSet<>();
+        // init with missingValues [1 ... n+1]
+        // since we have n nodes, at least one of these values will be missing (we don't
+        // care about the actual values in nums, which might be out of this range)
+        for (int i=1; i<=nums.length+1; i++) {
+            missingValues.add(i);
+        }
+        // remove all values of descendents of node ind
+        removeDescendents(missingValues, sonsMap, nums, ind);
+        ans[ind] = missingValues.first();
+        // go up the tree, and calculate the smallest missing for subtrees containing ind
+        int parent = parents[ind];
+        while (parent != -1) {
+            missingValues.remove(nums[parent]);
+            // remove the other values in subtree rooted by parent
+            for (int son : sonsMap.get(parent)) {
+                if (son == ind) {
+                    continue; // we already removed thes subtree in previous steps
+                }
+                removeDescendents(missingValues, sonsMap, nums, son);
+            }
+            ans[parent] = missingValues.first();
+            ind = parent;
+            parent = parents[parent];
+        }
+        return ans;
+    }
+    
+    private static void removeDescendents(
+        SortedSet<Integer> missingValues, Map<Integer,List<Integer>> sonsMap,
+        int[] nums, int node) {
+        
+        missingValues.remove(nums[node]);
+        if (sonsMap.containsKey(node)) {
+            for (int son : sonsMap.get(node)) {
+                removeDescendents(missingValues, sonsMap, nums, son);
+            }
+        }
+    }
+    
+    private static void addSon(Map<Integer,List<Integer>> sonsMap, int parent, int son) {
+        List<Integer> sons = sonsMap.get(parent);
+        if (sons == null) {
+            sons = new ArrayList<>();
+            sonsMap.put(parent, sons);
+        }
+        sons.add(son);
+    }
+           
+}
+
+or
+
+
+class Solution {
+    public int[] smallestMissingValueSubtree(int[] parents, int[] nums) {
+        int n = parents.length;
+        List<List<Integer>> tree = new ArrayList<>();
+        for (int i = 0; i < n; i++) {
+            tree.add(new ArrayList<>());
+        }
+        for (int i = 1; i < n; i++) {
+            tree.get(parents[i]).add(i); // build the tree
+        }
+
+        int[] ans = new int[n];
+        Arrays.fill(ans, 1);
+        int k = -1;
+        for (int i = 0; i < n; i++) {
+            if (nums[i] == 1) {
+                k = i;
+                break;
+            }
+        }
+        if (k == -1) return ans; // check whether 1 exists in nums
+
+        boolean[] visitedGeneSet = new boolean[100002]; // used to find current minimum unvisited gene
+        int doNotVisit = -1; // index we no longer need to visit because it has been visited in the previous while loop
+        int curMin = 1;
+
+        while (k != -1) { // while there is still a node unvisited in path (gene:1 -> root)
+            Queue<Integer> queue = new LinkedList<>();
+            queue.add(k); // start BFS from that node
+            while (!queue.isEmpty()) {
+                int front = queue.poll();
+                visitedGeneSet[nums[front]] = true;
+                for (int child : tree.get(front)) {
+                    if (child != doNotVisit) queue.add(child); // ignore previous node upon which we have used BFS
+                }
+            }
+            while (visitedGeneSet[curMin]) curMin++; // search current minimum, at most O(n)
+            ans[k] = curMin;
+            doNotVisit = k;
+            k = parents[k]; // visit next node in path (gene:1 -> root)
+        }
+        return ans;
+    }
+}
