@@ -1,0 +1,174 @@
+https://leetcode.com/problems/shortest-cycle-in-a-graph/description/
+
+2608. Shortest Cycle in a Graph
+Hard
+Topics
+Companies
+Hint
+There is a bi-directional graph with n vertices, where each vertex is labeled from 0 to n - 1. The edges in the graph are represented by a given 2D integer array edges, where edges[i] = [ui, vi] denotes an edge between vertex ui and vertex vi. Every vertex pair is connected by at most one edge, and no vertex has an edge to itself.
+
+Return the length of the shortest cycle in the graph. If no cycle exists, return -1.
+
+A cycle is a path that starts and ends at the same node, and each edge in the path is used only once.
+
+ 
+
+Example 1:
+
+
+Input: n = 7, edges = [[0,1],[1,2],[2,0],[3,4],[4,5],[5,6],[6,3]]
+Output: 3
+Explanation: The cycle with the smallest length is : 0 -> 1 -> 2 -> 0 
+Example 2:
+
+
+Input: n = 4, edges = [[0,1],[0,2]]
+Output: -1
+Explanation: There are no cycles in this graph.
+ 
+
+Constraints:
+
+2 <= n <= 1000
+1 <= edges.length <= 1000
+edges[i].length == 2
+0 <= ui, vi < n
+ui != vi
+There are no repeated edges.
+
+
+# java
+
+class Solution {
+      private static final int MX = Integer.MAX_VALUE; 
+    public int findShortestCycle(int n, int[][] edges) {
+        Map<Integer, Set<Integer>> g = new HashMap<>();
+        for (int[] e : edges) {
+            g.computeIfAbsent(e[0], s -> new HashSet<>()).add(e[1]);
+            g.computeIfAbsent(e[1], s -> new HashSet<>()).add(e[0]);
+        }
+        int shortest = MX;
+        for (int i = 0; i < n; ++i) {
+            int[] dist = new int[n], parent = new int[n];
+            Arrays.fill(dist, MX);
+            Arrays.fill(parent, -1);
+            Queue<Integer> q = new LinkedList<>();
+            q.offer(i);
+            dist[i] = 0;
+            while (!q.isEmpty()) {
+                int node = q.poll();
+                for (int kid : g.getOrDefault(node, Collections.emptySet())) {
+                    if (dist[kid] == MX) {
+                        dist[kid] = dist[node] + 1;
+                        parent[kid] = node;
+                        q.offer(kid);
+                    }else if (parent[kid] != node && parent[node] != kid) {
+                        shortest = Math.min(shortest, dist[kid] + dist[node] + 1);
+                    }
+                }
+            }
+        }
+        return shortest == MX ? -1 : shortest;
+    }
+}
+
+
+or
+
+class Solution {
+    int max = Integer.MAX_VALUE; 
+    
+    class Pair {
+        int node, parent;
+        Pair(int node, int parent) {
+            this.node = node;
+            this.parent = parent;
+        }
+    };
+
+    public int findShortestCycle(int n, int[][] edges) {
+        List<List<Integer>> graph = new ArrayList<>();
+        for (int i = 0; i < n; i++) graph.add(new ArrayList<>());
+        
+        for (int[] edge : edges) {
+            graph.get(edge[0]).add(edge[1]);
+            graph.get(edge[1]).add(edge[0]);
+        }
+
+        for (int i = 0; i < n; i++) {
+            BFS(graph, i, n);
+        }
+
+        return max == Integer.MAX_VALUE ? -1 : max;
+    }
+
+    public void BFS(List<List<Integer>> graph, int start, int n) {
+        int[] dist = new int[n];
+        Arrays.fill(dist, -1);
+
+        Queue<Pair> q = new LinkedList<>();
+        q.add(new Pair(start, -1));
+        dist[start] = 0;
+
+        while (!q.isEmpty()) {
+            Pair p = q.poll();
+            int node = p.node, parent = p.parent;
+
+            for (int nbr : graph.get(node)) {
+                if (nbr == parent) continue;
+
+                if (dist[nbr] == -1) { 
+                    dist[nbr] = dist[node] + 1;
+                    q.add(new Pair(nbr, node));
+                } else { 
+                    max = Math.min(max, dist[node] + dist[nbr] + 1);
+                }
+            }
+        }
+    }
+}
+
+
+
+or
+
+
+class Solution {
+    private List<Integer>[] g;
+    private final int inf = 1 << 30;
+
+    public int findShortestCycle(int n, int[][] edges) {
+        g = new List[n];
+        Arrays.setAll(g, k -> new ArrayList<>());
+        for (var e : edges) {
+            int u = e[0], v = e[1];
+            g[u].add(v);
+            g[v].add(u);
+        }
+        int ans = inf;
+        for (var e : edges) {
+            int u = e[0], v = e[1];
+            ans = Math.min(ans, bfs(u, v));
+        }
+        return ans < inf ? ans : -1;
+    }
+
+    private int bfs(int u, int v) {
+        int[] dist = new int[g.length];
+        Arrays.fill(dist, inf);
+        dist[u] = 0;
+        Deque<Integer> q = new ArrayDeque<>();
+        q.offer(u);
+        while (!q.isEmpty()) {
+            int i = q.poll();
+            for (int j : g[i]) {
+                if ((i == u && j == v) || (i == v && j == u) || dist[j] != inf) {
+                    continue;
+                }
+                dist[j] = dist[i] + 1;
+                q.offer(j);
+            }
+        }
+        return dist[v] + 1;
+    }
+}
