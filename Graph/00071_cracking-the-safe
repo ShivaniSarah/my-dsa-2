@@ -1,0 +1,188 @@
+https://leetcode.com/problems/cracking-the-safe/description/
+
+753. Cracking the Safe
+Hard
+Topics
+Companies
+Hint
+There is a safe protected by a password. The password is a sequence of n digits where each digit can be in the range [0, k - 1].
+
+The safe has a peculiar way of checking the password. When you enter in a sequence, it checks the most recent n digits that were entered each time you type a digit.
+
+For example, the correct password is "345" and you enter in "012345":
+After typing 0, the most recent 3 digits is "0", which is incorrect.
+After typing 1, the most recent 3 digits is "01", which is incorrect.
+After typing 2, the most recent 3 digits is "012", which is incorrect.
+After typing 3, the most recent 3 digits is "123", which is incorrect.
+After typing 4, the most recent 3 digits is "234", which is incorrect.
+After typing 5, the most recent 3 digits is "345", which is correct and the safe unlocks.
+Return any string of minimum length that will unlock the safe at some point of entering it.
+
+ 
+
+Example 1:
+
+Input: n = 1, k = 2
+Output: "10"
+Explanation: The password is a single digit, so enter each digit. "01" would also unlock the safe.
+Example 2:
+
+Input: n = 2, k = 2
+Output: "01100"
+Explanation: For each possible password:
+- "00" is typed in starting from the 4th digit.
+- "01" is typed in starting from the 1st digit.
+- "10" is typed in starting from the 3rd digit.
+- "11" is typed in starting from the 2nd digit.
+Thus "01100" will unlock the safe. "10011", and "11001" would also unlock the safe.
+ 
+
+Constraints:
+
+1 <= n <= 4
+1 <= k <= 10
+1 <= kn <= 4096
+
+
+# java
+
+class Solution {
+    private Set<Integer> vis = new HashSet<>();
+    private StringBuilder ans = new StringBuilder();
+    private int mod;
+
+    public String crackSafe(int n, int k) {
+        mod = (int) Math.pow(10, n - 1);
+        dfs(0, k);
+        ans.append("0".repeat(n - 1));
+        return ans.toString();
+    }
+
+    private void dfs(int u, int k) {
+        for (int x = 0; x < k; ++x) {
+            int e = u * 10 + x;
+            if (vis.add(e)) {
+                int v = e % mod;
+                dfs(v, k);
+                ans.append(x);
+            }
+        }
+    }
+}
+
+
+or
+
+
+class Solution {
+  public String crackSafe(int n, int k) {
+    final String allZeros = "0".repeat(n);
+    StringBuilder sb = new StringBuilder(allZeros);
+    dfs((int) Math.pow(k, n), n, k, new HashSet<>(Arrays.asList(allZeros)), sb);
+    return sb.toString();
+  }
+
+  private boolean dfs(int passwordSize, int n, int k, Set<String> seen, StringBuilder path) {
+    if (seen.size() == passwordSize)
+      return true;
+
+    StringBuilder prefix = new StringBuilder(path.substring(path.length() - n + 1));
+
+    for (char c = '0'; c < '0' + k; ++c) {
+      prefix.append(c);
+      final String prefixStr = prefix.toString();
+      if (!seen.contains(prefixStr)) {
+        seen.add(prefixStr);
+        path.append(c);
+        if (dfs(passwordSize, n, k, seen, path))
+          return true;
+        path.deleteCharAt(path.length() - 1);
+        seen.remove(prefixStr);
+      }
+      prefix.deleteCharAt(prefix.length() - 1);
+    }
+
+    return false;
+  }
+}
+
+
+or
+
+
+class Solution {
+    public String crackSafe(int n, int k) {
+        Set<String> visited = new HashSet<String>();
+        //*start from string "00.."
+        String res = "";
+        for(int j = 0; j < n; j++){
+            res+=0;
+        }
+        //*calculate target length, which is k^n+n-1
+        int total = 1;
+        for(int i = 0; i < n; i++){
+            total *= k;
+        }
+        total += n-1;
+        //*run DFS
+        res=DFS(res, n, k, visited, total);
+        return res;
+    }
+    private String DFS(String res, int n, int k, Set<String> visited, int total){
+        int len = res.length();
+        visited.add(res.substring(len-n, len));
+        for(int i = 0; i < k; i++){
+            if(!visited.contains(res.substring(len-n+1, len)+i)){
+                String tmp = DFS(res+i, n, k, visited, total);
+                //*if length of result is less than total length, remove substring from visited and continue loop, else we are done! break the loop!
+                if(tmp.length() == total){
+                    res = tmp;
+                    break;
+                }
+                visited.remove(res.substring(len-n+1, len)+i);
+            }
+        }     
+        return res;
+    }
+}
+
+or
+
+
+class Solution {
+    public String crackSafe(int n, int k) {
+        int targetCnt = (int)Math.pow(k,n);
+        boolean[] visited = new boolean[(int)Math.pow(10,n)];
+        visited[0] = true;
+        int visitedCnt = 1;
+        StringBuilder crackStr = new StringBuilder();
+        for(int i=0;i<n;i++){
+            crackStr.append('0');
+        }
+        dfsAddPwd(n,k,crackStr,0,visited, visitedCnt,targetCnt);        
+        return foundStr;
+    }
+    
+    String foundStr;
+    
+    private void dfsAddPwd(int n, int k, StringBuilder crackStr,int prev, boolean[] visited,int visitedCnt, int targetCnt){
+        if(foundStr!=null ) return;
+        if(visitedCnt == targetCnt){
+            foundStr = crackStr.toString();
+            //System.out.println(foundStr);
+            return;
+        }
+        
+        int root = 10*prev % ((int)Math.pow(10,n));
+        for(int i=0;i<k;i++){
+            int current = root +i;
+            if(!visited[current]){                
+                crackStr.append(i);
+                visited[current] = true;
+                dfsAddPwd(n,k,crackStr,current,visited,visitedCnt+1,targetCnt);
+                crackStr.setLength(crackStr.length()-1);
+                visited[current] = false;
+            }
+        }
+    }
+}
