@@ -1,0 +1,649 @@
+https://leetcode.com/problems/collect-coins-in-a-tree/description/
+
+2603. Collect Coins in a Tree
+Hard
+Topics
+Companies
+Hint
+There exists an undirected and unrooted tree with n nodes indexed from 0 to n - 1. You are given an integer n and a 2D integer array edges of length n - 1, where edges[i] = [ai, bi] indicates that there is an edge between nodes ai and bi in the tree. You are also given an array coins of size n where coins[i] can be either 0 or 1, where 1 indicates the presence of a coin in the vertex i.
+
+Initially, you choose to start at any vertex in the tree. Then, you can perform the following operations any number of times: 
+
+Collect all the coins that are at a distance of at most 2 from the current vertex, or
+Move to any adjacent vertex in the tree.
+Find the minimum number of edges you need to go through to collect all the coins and go back to the initial vertex.
+
+Note that if you pass an edge several times, you need to count it into the answer several times.
+
+ 
+
+Example 1:
+
+
+Input: coins = [1,0,0,0,0,1], edges = [[0,1],[1,2],[2,3],[3,4],[4,5]]
+Output: 2
+Explanation: Start at vertex 2, collect the coin at vertex 0, move to vertex 3, collect the coin at vertex 5 then move back to vertex 2.
+Example 2:
+
+
+Input: coins = [0,0,0,1,1,0,0,1], edges = [[0,1],[0,2],[1,3],[1,4],[2,5],[5,6],[5,7]]
+Output: 2
+Explanation: Start at vertex 0, collect the coins at vertices 4 and 3, move to vertex 2,  collect the coin at vertex 7, then move back to vertex 0.
+ 
+
+Constraints:
+
+n == coins.length
+1 <= n <= 3 * 104
+0 <= coins[i] <= 1
+edges.length == n - 1
+edges[i].length == 2
+0 <= ai, bi < n
+ai != bi
+edges represents a valid tree.
+
+
+
+# java
+
+class Solution {
+    public int collectTheCoins(int[] coins, int[][] edges) {
+        int n = coins.length;
+        Set<Integer>[] g = new Set[n];
+        Arrays.setAll(g, k -> new HashSet<>());
+        for (var e : edges) {
+            int a = e[0], b = e[1];
+            g[a].add(b);
+            g[b].add(a);
+        }
+        Deque<Integer> q = new ArrayDeque<>();
+        for (int i = 0; i < n; ++i) {
+            if (coins[i] == 0 && g[i].size() == 1) {
+                q.offer(i);
+            }
+        }
+        while (!q.isEmpty()) {
+            int i = q.poll();
+            for (int j : g[i]) {
+                g[j].remove(i);
+                if (coins[j] == 0 && g[j].size() == 1) {
+                    q.offer(j);
+                }
+            }
+            g[i].clear();
+        }
+        q.clear();
+        for (int k = 0; k < 2; ++k) {
+            for (int i = 0; i < n; ++i) {
+                if (g[i].size() == 1) {
+                    q.offer(i);
+                }
+            }
+            for (int i : q) {
+                for (int j : g[i]) {
+                    g[j].remove(i);
+                }
+                g[i].clear();
+            }
+        }
+        int ans = 0;
+        for (var e : edges) {
+            int a = e[0], b = e[1];
+            if (g[a].size() > 0 && g[b].size() > 0) {
+                ans += 2;
+            }
+        }
+        return ans;
+    }
+}
+
+
+or
+
+
+class Solution {
+  public int collectTheCoins(int[] coins, int[][] edges) {
+    final int n = coins.length;
+    Set<Integer>[] tree = new Set[n];
+    Deque<Integer> leavesToBeRemoved = new ArrayDeque<>();
+
+    for (int i = 0; i < n; ++i)
+      tree[i] = new HashSet<>();
+
+    for (int[] edge : edges) {
+      final int u = edge[0];
+      final int v = edge[1];
+      tree[u].add(v);
+      tree[v].add(u);
+    }
+
+    for (int i = 0; i < n; ++i) {
+      int u = i;
+      // Remove the leaves that don't have coins.
+      while (tree[u].size() == 1 && coins[u] == 0) {
+        final int v = tree[u].iterator().next();
+        tree[u].clear();
+        tree[v].remove(u);
+        u = v; // Walk up to its parent.
+      }
+      // After trimming leaves without coins, leaves with coins may satisfy
+      // `leavesToBeRemoved`.
+      if (tree[u].size() == 1)
+        leavesToBeRemoved.offer(u);
+    }
+
+    // Remove each remaining leaf node and its parent. The remaining nodes are
+    // the ones that must be visited.
+    for (int i = 0; i < 2; ++i)
+      for (int sz = leavesToBeRemoved.size(); sz > 0; --sz) {
+        final int u = leavesToBeRemoved.poll();
+        if (!tree[u].isEmpty()) {
+          final int v = tree[u].iterator().next();
+          tree[u].clear();
+          tree[v].remove(u);
+          if (tree[v].size() == 1)
+            leavesToBeRemoved.offer(v);
+        }
+      }
+
+    return Arrays.stream(tree).mapToInt(children -> children.size()).sum();
+  }
+}
+
+
+or
+
+
+class Solution {
+    public int collectTheCoins(int[] coins, int[][] edges) {
+
+        int n = coins.length;
+
+        List<List<Integer>> graph = new ArrayList<List<Integer>>();
+        for (int i = 0; i < n; i++)
+            graph.add(new ArrayList<Integer>());
+
+        int degree[] = new int[n];
+
+        for (int i = 0; i < edges.length; i++) {
+            int a = edges[i][0];
+            int b = edges[i][1];
+
+            graph.get(a).add(b);
+            graph.get(b).add(a);
+            degree[a]++;
+            degree[b]++;
+        }
+
+        Queue<Integer> q = new LinkedList<Integer>();
+        for (int i = 0; i < degree.length; i++) {
+            if (degree[i] == 1 && coins[i] == 0) {
+                q.add(i);
+            }
+        }
+
+        Set<Integer> deleteNode = new HashSet<Integer>();
+
+        int current;
+        while (!q.isEmpty()) {
+            current = q.poll();
+            deleteNode.add(current);
+
+            int childNode;
+            for (int i = 0; i < graph.get(current).size(); i++) {
+                childNode = graph.get(current).get(i);
+                degree[childNode]--;
+                if (degree[childNode] == 1 && coins[childNode] == 0) {
+                    q.add(childNode);
+                }
+            }
+        }
+
+        // System.out.println(deleteNode);
+        // System.out.println(graph);
+
+        for (int i = 0; i < n; i++)
+            graph.get(i).clear();
+        ;
+        Arrays.fill(degree, 0);
+        for (int i = 0; i < edges.length; i++) {
+            int a = edges[i][0];
+            int b = edges[i][1];
+
+            if (deleteNode.contains(a) || deleteNode.contains(b))
+                continue;
+            graph.get(a).add(b);
+            graph.get(b).add(a);
+            degree[a]++;
+            degree[b]++;
+        }
+
+        // System.out.println(graph);
+
+        boolean visit[] = new boolean[n];
+        for (int i = 0; i < degree.length; i++) {
+            if (degree[i] == 1) {
+                deleteNode.add(i);
+                int parentNode;
+                for (int j = 0; j < graph.get(i).size(); j++) {
+                    parentNode = graph.get(i).get(j);
+                    if (visit[parentNode])
+                        continue;
+                    visit[parentNode] = true;
+                    int childNode;
+                    boolean isDelete = true;
+                    int count = 0;
+                    for (int a = 0; a < graph.get(parentNode).size(); a++) {
+                        childNode = graph.get(parentNode).get(a);
+                        if (degree[childNode] != 1) {
+                            count++;
+                            if (count > 1) {
+                                isDelete = false;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (isDelete)
+                        deleteNode.add(parentNode);
+
+                }
+            }
+        }
+
+        // System.out.println(deleteNode);
+
+        return Math.max(0, (n - deleteNode.size() - 1) * 2);
+    }
+
+}
+
+
+or
+
+
+class Solution {
+
+    // will store the degrees of a node in the graph
+    private int[] degrees;
+
+    private int nodesNeeded;
+
+    // function to construct the graph
+    private List<Integer>[] constructGraph(int[][] edges, int n) {
+        List<Integer>[] g = new ArrayList[n];
+        degrees = new int[n];
+
+        for (int i = 0; i < n; i++) {
+            g[i] = new ArrayList<>();
+        }
+
+        for (int[] edge : edges) {
+            int u = edge[0];
+            int v = edge[1];
+
+            // we populate the degrees here
+            degrees[u]++;
+            degrees[v]++;
+
+            g[u].add(v);
+            g[v].add(u);
+        }
+
+        return g;
+    }
+
+    // next we need to remove the nodes that have zero coins
+    private boolean[] removeNodesWithNoCoins(List<Integer>[] graph, int[] coins, int n) {
+        // now let us get our candidate nodes
+        // candidate nodes are leaf nodes with 0 coins
+        // leaf nodes have degree as 1
+
+        Queue<int[]> q = new LinkedList<>();
+
+        for (int i = 0; i < n; i++) {
+            if (degrees[i] == 1 && coins[i] == 0) {
+                // this is the candidate node
+                q.offer(new int[] {i, -1});
+            }
+        }
+
+        boolean[] nodesToBeRemoved = new boolean[n];
+
+        while (!q.isEmpty()) {
+            int size = q.size();
+            for (int i = 0; i < size; i++) {
+                nodesNeeded--;      // this node is discarded from the graph, so we update the variable
+                int[] currentPair = q.poll();
+                int currentNode = currentPair[0];
+                int parent = currentPair[1];
+
+                nodesToBeRemoved[currentNode] = true;
+
+                for (int neighbour : graph[currentNode]) {
+                    if (neighbour != parent) {
+                        // we decrease the indegree of the neighbour node
+                        // since we are removing the current node nonetheless
+                        // so the degree will be reduced
+                        degrees[neighbour]--;
+
+                        // now if degree is 1 then this is a parent node
+                        // so we check if this node doesn't contain a coin
+                        // so we include this node as the ones to be removed
+                        if (coins[neighbour] == 0 && degrees[neighbour] == 1) {
+                            q.offer(new int[] {neighbour, currentNode});
+                        }
+                    }
+                }
+            }
+        }
+
+        // finally we return the array
+        return nodesToBeRemoved;
+    }
+
+    public int collectTheCoins(int[] coins, int[][] edges) {
+        // we are concerned with collecting the coins
+        // so we need to know how far along the tree, we need to go so that
+        // we can collect the coins.
+
+        // now the farthest nodes are the ones which are leaf nodes
+        // so we keep on removing the leaf nodes until either there 
+        // are no more nodes, or each of the leaf nodes have some coins present.
+
+        // so let us do this operation first
+        int n = coins.length;           // this is the number of nodes in the graph
+
+        nodesNeeded = n;                 // this variable keeps track of the total nodes I am having right now. I will need this in the future to calculate the remaining nodes I have and based on that
+        // only I will get the hops I need to collect all the coins.
+
+        // constructing the graph
+        List<Integer>[] graph = constructGraph(edges, n);
+
+        // we also need to have an array storing the degrees coming out from a node
+
+        // now we need to remove the leaf nodes that have no coins among them
+        boolean[] canBeIgnored = removeNodesWithNoCoins(graph, coins, n);
+
+        // once we have removed the unwanted nodes, next thing we need to find
+        // is the nodes we need to absolutely go so that we can cover all the remaining nodes
+        // in the tree and collect the coins
+
+        // as said, we can collect coins at a distance of at most 2, which means that
+        // n1 -> n2 -> n3
+        // this means that node n1 can have access till n3 without moving.
+        // Now if we start propagating from the leaf nodes, we will keep on propagating till
+        // we reach the level 2, and then all the remaining nodes that we have, we would have to
+        // travel them one by one.
+
+        // we can simply find these nodes using standard topo sort using kahn' algorithm.
+
+        Queue<int[]> q = new LinkedList<>();
+        for (int i = 0; i < n; i++) {
+            // we start from the leaf nodes and move our way up the ladder
+            // but we can't just consider all the leaf nodes. Remember that
+            // we have removed some of the leaf nodes as well having no coins
+            // as well. That information we can get from canBeIgnored array
+            if (degrees[i] == 1 && !canBeIgnored[i]) {
+                // this is a valid node from where I can start topo sort
+                q.offer(new int[] {i, -1});     // we are inserting [cur, parent] to avoid recomputations
+            }
+        }
+
+        // we will keep doing bfs till the current level is less than 2.
+
+        int currentLevel = 0;
+
+        while (currentLevel < 2 && !q.isEmpty()) {
+            int currentNodes = q.size();
+
+            for (int idx = 0; idx < currentNodes; idx++) {
+                // I will get the neighbours of the current node
+                int[] currentPair = q.poll();
+                int currentNode = currentPair[0];
+                int parent = currentPair[1];
+
+                nodesNeeded--;       // we have visited this node
+                                    // this means this node is no longer needed
+
+                for (int neighbour : graph[currentNode]) {
+                    // we ignore the parent node since we are coming from this node only
+                    // also we ignore the neighbour which are part of already deleted nodes
+                    // this info as told before can be found from the canBeIgnored array
+                    if (neighbour != parent && !canBeIgnored[neighbour]) {
+                        degrees[neighbour]--;
+                        if (degrees[neighbour] == 1) {
+                            // we add this node to my queue, since it is for the next level
+                            q.offer(new int[] {neighbour, currentNode});
+                        }
+                    }
+                }
+            }
+
+            // finally we increase the level
+            currentLevel++;
+        }
+
+        // finally we have the number of nodes we need to traversed
+        // this info is stored in nodesNeeded variable.
+
+        return nodesNeeded == 0 ? 0 : (nodesNeeded - 1) * 2;
+    }
+}
+
+or
+
+
+class Solution {
+public int collectTheCoins(int[] coins, int[][] edges) {
+
+    int n = edges.length;
+    ArrayList<HashSet<Integer>> list = new ArrayList<>();
+    Queue<Integer> q = new LinkedList<>();
+    int totalEdges = 2*n;
+    int deletedEdges = 0;
+
+    for(int i=0;i<=n;i++){
+        list.add(new HashSet<Integer>());
+    }
+
+    for(int i=0;i<n;i++){
+        int a = edges[i][0];
+        int b = edges[i][1];
+        list.get(a).add(b);
+        list.get(b).add(a);
+    }
+
+    for(int i=0;i<=n;i++){
+        if(list.get(i).size()==1 && coins[i]==0){
+            q.add(i);
+        }
+    }
+    while(!q.isEmpty()){
+        int cur = q.remove();
+        if(list.get(cur).size()==0) continue;
+        int p = list.get(cur).iterator().next();
+        list.get(cur).remove(p);
+        list.get(p).remove(cur);
+        if(list.get(p).size()==1 && coins[p]==0){
+            q.add(p);
+        }
+        deletedEdges += 2;
+    }
+
+    for(int i=0;i<=n;i++){
+        if(list.get(i).size()==1){
+            q.add(i);
+        }
+    }
+
+    int size=2;
+    while(size>0){
+        size--;
+        int qsize = q.size();
+        while(qsize>0){
+            qsize--;
+            int cur = q.remove();
+            if(list.get(cur).size()==0) continue;
+            int p = list.get(cur).iterator().next();
+            list.get(cur).remove(p);
+            list.get(p).remove(cur);
+            if(list.get(p).size()==1){
+                q.add(p);
+            }
+            deletedEdges += 2;
+        }
+    }
+
+    return totalEdges - deletedEdges;
+}
+}
+
+or
+
+
+
+public int collectTheCoins(int[] coins, int[][] edges) {
+    int n = coins.length; 
+    Set<Integer>[] tree = new HashSet[n]; 
+    for (int i = 0; i < n; ++i) {
+        tree[i] = new HashSet(); 
+    }
+    
+    // Build the tree from the edges
+    for (int[] e : edges) {
+        tree[e[0]].add(e[1]); 
+        tree[e[1]].add(e[0]); 
+    }
+    
+    // Find the leaves with zero coins
+    List<Integer> leaf = new ArrayList(); 
+    for (int i = 0; i < n; ++i) {
+        int u = i; 
+        while (tree[u].size() == 1 && coins[u] == 0) {
+            int v = tree[u].iterator().next(); 
+            tree[u].remove(v); 
+            tree[v].remove(u); 
+            u = v; 
+        }
+        if (tree[u].size() == 1) {
+            leaf.add(u); 
+        }
+    }
+    
+    // Remove the leaves one by one
+    for (int sz = 2; sz > 0; --sz) {
+        List<Integer> temp = new ArrayList(); 
+        for (int u : leaf) {
+            if (tree[u].size() == 1) {
+                int v = tree[u].iterator().next(); 
+                tree[u].remove(v); 
+                tree[v].remove(u); 
+                if (tree[v].size() == 1) {
+                    temp.add(v); 
+                }
+            }
+        }
+        leaf = temp; 
+    }
+    
+    // Count the remaining edges in the tree
+    int ans = 0; 
+    for (int i = 0; i < n; ++i) {
+        ans += tree[i].size(); 
+    }
+    
+    return ans; 
+}
+
+
+or
+
+
+
+class Solution {
+
+    public int collectTheCoins(int[] coins, int[][] edges) {
+        final int n = coins.length;
+        final IntSet[] graph = IntSet.arrayOfSize(n);
+        for (int[] edge : edges) {
+            graph[edge[0]].add(edge[1]);
+            graph[edge[1]].add(edge[0]);
+        }
+        final boolean[] removed = new boolean[n];
+        trimTreeOfFruitlessLeaves(graph, coins, removed);
+        trimTreeOfLeavesAndParents(graph, removed);
+        int count = 0;
+        for (int i = 0; i < n; ++i) {
+            if (!removed[i]) {
+                count++;
+            }
+        }
+        return Math.max(0, (count - 1) << 1); // (count - 1) * 2, because each edge twice (in, out)
+    }
+
+    private void trimTreeOfFruitlessLeaves(IntSet[] graph, int[] coins, boolean[] removed) {
+        final int n = coins.length;
+        Set<Integer> removedLast = new LinkedHashSet<>();
+        Set<Integer> parents = new LinkedHashSet<>();
+        for (int i = 0; i < n; ++i) {
+            if (!removed[i]) {
+                parents.add(i);
+            }
+        }
+        while (!parents.isEmpty()) {
+            Set<Integer> removedNext = new LinkedHashSet<>();
+            Set<Integer> nextParents = new LinkedHashSet<>();
+            for (int p : parents) {
+                if (!removed[p]) {
+                    graph[p].removeAll(removedLast);
+                    if (graph[p].size() == 1 && coins[p] == 0) {
+                        removed[p] = true;
+                        removedNext.add(p);
+                        nextParents.addAll(graph[p]);
+                    }
+                }
+            }
+            removedLast = removedNext;
+            parents = nextParents;
+        }
+    }
+
+    private void trimTreeOfLeavesAndParents(IntSet[] graph, boolean[] removed) {
+        final int n = graph.length;
+        Set<Integer> toRemove = new LinkedHashSet<>();
+        Set<Integer> parents = new LinkedHashSet<>();
+        for (int i = 0; i < n; ++i) {
+            if (!removed[i] && graph[i].size() == 1) {
+                toRemove.add(i);
+                parents.addAll(graph[i]);
+            }
+        }
+        for (int i : toRemove) {
+            removed[i] = true;
+        }
+        for (int i = 0; i < n; ++i) {
+            if (!removed[i]) {
+                graph[i].removeAll(toRemove);
+            }
+        }
+        for (int p : parents) {
+            if (!removed[p] && graph[p].size() == 1) {
+                removed[p] = true;
+            }
+        }
+    }
+
+    static class IntSet extends LinkedHashSet<Integer> {
+
+        static IntSet[] arrayOfSize(int n) {
+            final IntSet[] out = new IntSet[n];
+            for (int i = 0; i < n; ++i) {
+                out[i] = new IntSet();
+            }
+            return out;
+        }
+
+    }
+
+}
