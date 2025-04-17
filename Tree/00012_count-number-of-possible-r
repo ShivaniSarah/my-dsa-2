@@ -1,0 +1,689 @@
+https://leetcode.com/problems/count-number-of-possible-root-nodes/description/
+
+2581. Count Number of Possible Root Nodes
+Hard
+Topics
+Companies
+Hint
+Alice has an undirected tree with n nodes labeled from 0 to n - 1. The tree is represented as a 2D integer array edges of length n - 1 where edges[i] = [ai, bi] indicates that there is an edge between nodes ai and bi in the tree.
+
+Alice wants Bob to find the root of the tree. She allows Bob to make several guesses about her tree. In one guess, he does the following:
+
+Chooses two distinct integers u and v such that there exists an edge [u, v] in the tree.
+He tells Alice that u is the parent of v in the tree.
+Bob's guesses are represented by a 2D integer array guesses where guesses[j] = [uj, vj] indicates Bob guessed uj to be the parent of vj.
+
+Alice being lazy, does not reply to each of Bob's guesses, but just says that at least k of his guesses are true.
+
+Given the 2D integer arrays edges, guesses and the integer k, return the number of possible nodes that can be the root of Alice's tree. If there is no such tree, return 0.
+
+ 
+
+Example 1:
+
+
+
+Input: edges = [[0,1],[1,2],[1,3],[4,2]], guesses = [[1,3],[0,1],[1,0],[2,4]], k = 3
+Output: 3
+Explanation: 
+Root = 0, correct guesses = [1,3], [0,1], [2,4]
+Root = 1, correct guesses = [1,3], [1,0], [2,4]
+Root = 2, correct guesses = [1,3], [1,0], [2,4]
+Root = 3, correct guesses = [1,0], [2,4]
+Root = 4, correct guesses = [1,3], [1,0]
+Considering 0, 1, or 2 as root node leads to 3 correct guesses.
+
+Example 2:
+
+
+
+Input: edges = [[0,1],[1,2],[2,3],[3,4]], guesses = [[1,0],[3,4],[2,1],[3,2]], k = 1
+Output: 5
+Explanation: 
+Root = 0, correct guesses = [3,4]
+Root = 1, correct guesses = [1,0], [3,4]
+Root = 2, correct guesses = [1,0], [2,1], [3,4]
+Root = 3, correct guesses = [1,0], [2,1], [3,2], [3,4]
+Root = 4, correct guesses = [1,0], [2,1], [3,2]
+Considering any node as root will give at least 1 correct guess. 
+
+ 
+
+Constraints:
+
+edges.length == n - 1
+2 <= n <= 105
+1 <= guesses.length <= 105
+0 <= ai, bi, uj, vj <= n - 1
+ai != bi
+uj != vj
+edges represents a valid tree.
+guesses[j] is an edge of the tree.
+guesses is unique.
+0 <= k <= guesses.length
+
+
+# java
+
+class Solution {
+    private List<Integer>[] g;
+    private Map<Long, Integer> gs = new HashMap<>();
+    private int ans;
+    private int k;
+    private int cnt;
+    private int n;
+
+    public int rootCount(int[][] edges, int[][] guesses, int k) {
+        this.k = k;
+        n = edges.length + 1;
+        g = new List[n];
+        Arrays.setAll(g, e -> new ArrayList<>());
+        for (var e : edges) {
+            int a = e[0], b = e[1];
+            g[a].add(b);
+            g[b].add(a);
+        }
+        for (var e : guesses) {
+            int a = e[0], b = e[1];
+            gs.merge(f(a, b), 1, Integer::sum);
+        }
+        dfs1(0, -1);
+        dfs2(0, -1);
+        return ans;
+    }
+
+    private void dfs1(int i, int fa) {
+        for (int j : g[i]) {
+            if (j != fa) {
+                cnt += gs.getOrDefault(f(i, j), 0);
+                dfs1(j, i);
+            }
+        }
+    }
+
+    private void dfs2(int i, int fa) {
+        ans += cnt >= k ? 1 : 0;
+        for (int j : g[i]) {
+            if (j != fa) {
+                int a = gs.getOrDefault(f(i, j), 0);
+                int b = gs.getOrDefault(f(j, i), 0);
+                cnt -= a;
+                cnt += b;
+                dfs2(j, i);
+                cnt -= b;
+                cnt += a;
+            }
+        }
+    }
+
+    private long f(int i, int j) {
+        return 1L * i * n + j;
+    }
+}
+
+
+
+or
+
+
+
+class Solution {
+  public int rootCount(int[][] edges, int[][] guesses, int k) {
+    final int n = edges.length + 1;
+    List<Integer>[] graph = new List[n];
+    Set<Integer>[] guessGraph = new Set[n];
+    int[] parent = new int[n];
+
+    for (int i = 0; i < n; ++i) {
+      graph[i] = new ArrayList<>();
+      guessGraph[i] = new HashSet<>();
+    }
+
+    for (int[] edge : edges) {
+      final int u = edge[0];
+      final int v = edge[1];
+      graph[u].add(v);
+      graph[v].add(u);
+    }
+
+    for (int[] guess : guesses) {
+      final int u = guess[0];
+      final int v = guess[1];
+      guessGraph[u].add(v);
+    }
+
+    // Precalculate `parent`.
+    dfs(graph, 0, /*prev=*/-1, parent);
+
+    // Calculate `correctGuess` for tree rooted at 0.
+    int correctGuess = 0;
+    for (int i = 1; i < n; ++i)
+      if (guessGraph[parent[i]].contains(i))
+        ++correctGuess;
+
+    reroot(graph, 0, /*prev=*/-1, correctGuess, guessGraph, k);
+    return ans;
+  }
+
+  private int ans = 0;
+
+  private void dfs(List<Integer>[] graph, int u, int prev, int[] parent) {
+    parent[u] = prev;
+    for (final int v : graph[u])
+      if (v != prev)
+        dfs(graph, v, u, parent);
+  }
+
+  private void reroot(List<Integer>[] graph, int u, int prev, int correctGuess,
+                      Set<Integer>[] guessGraph, int k) {
+    if (u != 0) {
+      // The tree is rooted at u, so a guess edge (u, prev) will match the new
+      // `parent` relationship.
+      if (guessGraph[u].contains(prev))
+        ++correctGuess;
+      // A guess edge (prev, u) matching the old `parent` relationship will no
+      // longer be true.
+      if (guessGraph[prev].contains(u))
+        --correctGuess;
+    }
+    if (correctGuess >= k)
+      ++ans;
+    for (final int v : graph[u])
+      if (v != prev)
+        reroot(graph, v, u, correctGuess, guessGraph, k);
+  }
+}
+
+
+or
+
+
+import java.util.*;
+class Solution{
+    HashSet<String> ans=new HashSet<>();
+
+    public  void DFS(ArrayList<Integer>[]arr,HashSet<String> h)
+    {
+        boolean []bool=new boolean[arr.length+1];
+
+        for(int i=1;i<arr.length;i++)
+        {
+            if(bool[i])
+                continue;
+            {
+                // dfs.add(i);
+
+                DFS(arr,bool,i,h);
+            }
+
+
+        }
+
+    }
+    public  void DFS(ArrayList<Integer> []arr,boolean []vst,int i,HashSet<String> h) {
+        if (vst[i]) {
+
+            return;
+        }
+        vst[i] = true;
+        // cc++;;
+        ArrayList<Integer> anss = arr[i];
+        if (anss != null) {
+            for (Integer an : anss) {
+                {
+                    if (vst[an]) {
+
+                        continue;
+                    }
+                    // dfs.add(an);
+                    String s = "";
+                    s += i + "#" + an;
+
+                    if (h.contains(s))
+                        ans.add(s);
+                    DFS(arr, vst, an, h);
+                }
+            }
+        }
+    }
+
+
+
+
+    public int rootCount(int[][] edges, int[][] gs, int k) {
+        if(k==0)
+        {
+            return edges.length+1;
+        }
+        int m=edges.length;
+        int n=m+1;
+        int [][]gp=new int[m][2];
+        ans=new HashSet<>();
+//        for(int i=0;i<=n;i++)ans[i]=new HashSet<>();
+
+        ArrayList<Integer>[]arr=new ArrayList[n+1];
+        for(int i=0;i<m;i++)
+        {
+            gp[i][0]= edges[i][0]+1;
+            gp[i][1]= edges[i][1]+1;
+        }
+
+
+        for(int i=0;i<m;i++)
+        {
+
+            ArrayList<Integer> ans=new ArrayList<>();
+            if(arr[gp[i][0]]!=null)
+            {
+                ans=arr[gp[i][0]];
+
+            }
+            ans.add(gp[i][1]);
+            arr[gp[i][0]]=ans;
+            ArrayList<Integer> bns=new ArrayList<>();
+            if(arr[gp[i][1]]!=null)
+            {
+                bns=arr[gp[i][1]];
+
+            }
+            bns.add(gp[i][0]);
+            arr[gp[i][1]]=bns;
+
+
+        }
+        HashSet<String> h=new HashSet<>();
+        for (int[] g : gs) {
+            String a = "" + (g[0] + 1) + "#" + (g[1] + 1);
+            h.add(a);
+
+        }
+        // System.out.println(h+"----");
+
+        DFS(arr,h);
+        return BFS(arr,h,k,n);
+        // for(int i=1;i<ans.length;i++)
+        //             System.out.println(ans[i]);
+
+
+
+
+    }
+
+
+
+
+    public  int  BFS(ArrayList<Integer>[]arr,HashSet<String> h,int k,int n)
+    {
+        Queue<Integer> q=new LinkedList<>();
+
+        boolean []vst=new boolean[arr.length];
+        int sizer[]=new int[arr.length];
+        sizer[1]=ans.size();
+
+        q.offer(1);
+
+        while(!q.isEmpty())
+        {
+            int x=q.poll();
+            if(!vst[x]) {
+                // bfs.add(x);
+                vst[x]=true;
+                ArrayList<Integer> anss=arr[x];
+
+                for (Integer an : anss) {
+                    if(!vst[an])
+                    {
+//                        ans[an]=new HashSet<>(ans[x]);
+                        sizer[an]=sizer[x];
+                        String torem="",toadd="";
+                        torem+=x+"#"+an;
+
+
+                        if(h.contains(torem))
+                            sizer[an]--;
+                        toadd+=an+"#"+x;
+
+                        if(h.contains(toadd))
+                            sizer[an]++;
+                        // System.out.println(torem+"---"+toadd);
+
+                        q.offer(an);
+                    }
+                }
+            }
+
+
+
+        }
+        int ak=0;
+        for(int i=1;i<arr.length;i++)
+        {
+            if(sizer[i]>=k)
+                ak++;
+        }
+        return ak;
+
+
+
+    }
+}
+
+or
+
+
+
+class Solution {
+    public int rootCount(int[][] eg, int[][] gu, int k) {
+        // number of nodes
+        int n = eg.length+1;
+        // graph
+        List<Integer>[] g = new List[n];
+        for(int i = 0; i<n; i++) g[i] = new LinkedList<>();
+        for(int[] a: eg){
+            g[a[0]].add(a[1]);
+            g[a[1]].add(a[0]);
+        }
+        // counter for outside the subtree
+        int all = 0;
+        // counter for inside the subtree and parent list
+        int[] add = new int[n], par = new int[n];
+        // calculate parents
+        dfs1(g, 0, -1, par);
+        for(int[] a: gu) if(par[a[1]] == a[0]){
+            // add one to outside the subtree
+            all++;
+            add[a[1]]--;
+        }else // add one to inside the subtree
+        add[a[0]]++;
+        // calculate total sums
+        dfs2(g, 0, -1, add);
+        int ans = 0;
+        for(int i: add) if(i+all >= k) ans++;
+        return ans;
+    }
+    private void dfs1(List<Integer>[] g, int s, int p, int[] par){
+        par[s] = p;
+        for(int i: g[s]) if(i != p) dfs1(g, i, s, par);
+    }
+    private void dfs2(List<Integer>[] g, int s, int p, int[] add){
+        for(int i: g[s]) if(i != p){
+            // sum of everything above it, to calculate total sums
+            add[i]+=add[s];
+            dfs2(g, i, s, add);
+        }
+    }
+}
+
+
+or
+
+
+class Solution {
+
+    public int rootCount(int[][] edges, int[][] guesses, int k) {
+        int n = edges.length + 1;
+        
+        List<Integer>[] graph = new ArrayList[n];
+        Set<Integer>[] guessesGraph = new HashSet[n];
+        for (int i = 0; i < n; i++) {
+            graph[i] = new ArrayList<>();
+            guessesGraph[i] = new HashSet<>();
+        }
+        for (int[] edge : edges) {
+            graph[edge[0]].add(edge[1]);
+            graph[edge[1]].add(edge[0]);
+        }
+        for (int[] guess : guesses) {
+            guessesGraph[guess[0]].add(guess[1]);
+        }
+
+        int res = 0;
+        Map<Long, Integer> memo = new HashMap<>();
+        for (int i = 0; i<n; i++) {
+            if (dfs(graph, guessesGraph, memo, i, -1) >= k) {
+                res++;
+            }
+        }
+        return res;
+    }
+    
+    
+    int dfs(List<Integer>[] graph, Set<Integer>[] guessesGraph, Map<Long, Integer> memo, int current, int prev) {
+        long key = (long)current * 1000000 + prev;
+        if (memo.containsKey(key)) return memo.get(key);
+        int count = prev != -1 && guessesGraph[prev].contains(current) ? 1 : 0;
+        for (int next : graph[current]) {
+            if (next != prev) {
+                count += dfs(graph, guessesGraph, memo, next, current);
+            }
+        }
+        memo.put(key, count);
+        return count;
+    }
+    
+}
+
+
+or
+
+class Solution {
+    Map<Integer, Set<Integer>> G;
+    Set<Integer>[] paths;
+    Set<Integer> visited;
+    int[][] guesses;
+    int res = 0;
+    int k;
+    Set<Integer> guessSet = new HashSet<>();
+    Set<Integer> validSet = new HashSet<>();
+    public int rootCount(int[][] edges, int[][] guesses, int k) {
+        int n = edges.length;
+        this.k = k;
+        paths = new HashSet[n + 1];
+        this.guesses = guesses;
+        for(int i = 0; i <= n; ++i)
+            paths[i] = new HashSet<>();
+        G = new HashMap<>();        
+        build(edges);
+        for(int[]g: guesses){
+            guessSet.add(hash(g[0], g[1]));
+        }
+        dfs(0, -1);
+        count();
+        count(0, -1);
+        return this.res;
+        //0 as root.
+    }
+
+    void build(int[][] e){
+        for(int[] ee: e){
+            G.putIfAbsent(ee[0], new HashSet<>());
+            G.putIfAbsent(ee[1], new HashSet<>());
+            G.get(ee[0]).add(ee[1]);
+            G.get(ee[1]).add(ee[0]);
+        }
+    }
+    void count(){
+        if(validSet.size() >= k)
+            this.res = this.res + 1;
+    }
+
+    void reverse(int i, int j){
+        int remove = hash(i, j);
+        int added = hash(j, i);
+        validSet.remove(remove);
+        if(guessSet.contains(added)){
+            validSet.add(added);
+        }
+    }
+
+    void count(int c, int p){
+        if(p != -1){
+            reverse(p, c);
+            count();
+        }
+        for(int n: G.getOrDefault(c, new HashSet<>())){
+            if(n == p) continue;
+            count(n, c);
+        }
+        if(p != -1)
+            reverse(c, p);
+    }
+    
+    void dfs(int c, int p){
+        if(p != -1){
+            int h = hash(p, c);
+            if(guessSet.contains(h))
+                validSet.add(h);
+        }    
+        for(int n: G.getOrDefault(c, new HashSet<>())){
+            if(n == p) continue;
+            dfs(n, c);
+        }
+    }
+    int hash(int i, int j){
+        return i * 10001 + j;
+    }
+
+
+
+//[0,1] [1,2] [1,3] [2,4]
+
+//[1,0] [1,2] [1,3] 
+
+}
+
+or
+
+
+class Solution {
+    Set<Double> guess;
+    List<Integer>[] edgeArr;
+    int[] visited;
+    Set<Double> guessedSet;
+    int ans;
+    public int rootCount(int[][] edges, int[][] guesses, int k) {
+        int n = edges.length + 1;
+        edgeArr = new List[n];
+        visited = new int[n];
+        guessedSet = new HashSet<>();
+        ans = 0;
+        for(int i =0; i<n; i++) {
+            edgeArr[i] = new ArrayList<>();
+        }
+        for(int i=0; i<guesses.length; i++) {
+            guessedSet.add(getGuessVal(guesses[i][0], guesses[i][1]));
+        }
+        // for(Double aa : guessedSet) {
+        //     System.out.println(aa);
+        // }
+        for(int[] edge : edges) {
+            edgeArr[edge[0]].add(edge[1]);
+            edgeArr[edge[1]].add(edge[0]);
+        }
+        int correctGuesses = countGuesses(0);
+        //System.out.println(correctGuesses);
+        visited = new int[n];
+        checkGuesses(0, correctGuesses, k);
+        return ans;
+
+    }
+
+    private void checkGuesses(int node, int correctGuessesCount, int k) {
+        visited[node] = 1;
+        if(correctGuessesCount >=k) {
+            ans++;
+        }
+        int change = 0;
+        for(Integer edge : edgeArr[node]) {
+            change = 0;
+            if(visited[edge] == 0) {
+                //System.out.println(node + " " + edge + "  " + getGuessVal(node, edge) + getGuessVal(node, edge));
+                if(guessedSet.contains(getGuessVal(node, edge))) {
+                    change -= 1;
+                }
+                //System.out.println(edge + " " + node + "  " + getGuessVal( edge, node) + getGuessVal(edge, node));
+                if(guessedSet.contains(getGuessVal(edge, node))) {
+                    change += 1;
+                }
+                checkGuesses(edge, correctGuessesCount+ change, k);
+            }
+        }
+        //System.out.println(node + " " + )
+    }
+
+    private int countGuesses(int node) {
+        visited[node] = 1;
+        int correctGuess = 0;
+        for(Integer edge : edgeArr[node]) {
+            if(visited[edge] == 0) {
+                if(guessedSet.contains(getGuessVal(node, edge))) {
+                    correctGuess++;
+                }
+                correctGuess += countGuesses(edge);
+            }
+        }
+        return correctGuess;
+    }
+
+    Double getGuessVal(int e1, int e2) {
+        Double val = e1 + (double)(e2 / 100000.0);
+        return val;
+    }
+
+}
+
+or
+
+
+class Solution {
+    int res = 0;
+    public int rootCount(int[][] edges, int[][] guesses, int k) {
+        List<Integer>[] graph = makeGraph(edges);
+        Set<String> allGuess = new HashSet<>();
+        Set<String> ansGuess = new HashSet<>();
+        for(int[] guess : guesses){
+            allGuess.add(guess[0]+"-"+guess[1]);
+        }
+        int total = DFS1(0, -1, allGuess, ansGuess, graph);   // Result for node 0.
+        DFS2(0, -1, total, k, ansGuess, allGuess, graph);    // Finding result of all other node from result of node zero.
+        return total >= k ? res + 1 : res;             // This condition is for starting node (node 0).
+    }
+    private void DFS2(int node, int parent, int total, int k, Set<String> ansGuess, Set<String> allGuess, List<Integer>[] graph){
+        int curr = total;
+        for(int child : graph[node]){
+            if(child == parent) continue;
+            if(ansGuess.contains(node+"-"+child)){
+                curr -= 1;
+            }
+            if(allGuess.contains(child+"-"+node)){
+                curr += 1;
+            }
+            if(curr >= k) res += 1;
+            DFS2(child, node, curr, k, ansGuess, allGuess, graph);
+            curr = total;
+        }
+    }
+    private int DFS1(int node, int parent, Set<String> allGuess, Set<String> ansGuess, List<Integer>[] graph){
+        int count = 0;
+        for(int child : graph[node]){
+            if(child == parent) continue;
+            count += DFS1(child, node, allGuess, ansGuess, graph);
+        }
+        if(allGuess.contains(parent+"-"+node)){
+            ansGuess.add(parent+"-"+node);
+            count += 1;
+        }
+        return count;
+    }
+    private List<Integer>[] makeGraph(int[][] edges){
+        List<Integer>[] graph = new ArrayList[edges.length + 1];
+        for(int i=0 ; i<=edges.length ; ++i){
+            graph[i] = new ArrayList<>();
+        }
+        for(int[] edge : edges){
+            graph[edge[0]].add(edge[1]);
+            graph[edge[1]].add(edge[0]);
+        }
+        return graph;
+    }
+}
