@@ -1,0 +1,225 @@
+https://leetcode.com/problems/check-if-dfs-strings-are-palindromes/description/
+
+
+3327. Check if DFS Strings Are Palindromes
+Hard
+Topics
+Companies
+Hint
+You are given a tree rooted at node 0, consisting of n nodes numbered from 0 to n - 1. The tree is represented by an array parent of size n, where parent[i] is the parent of node i. Since node 0 is the root, parent[0] == -1.
+
+You are also given a string s of length n, where s[i] is the character assigned to node i.
+
+Consider an empty string dfsStr, and define a recursive function dfs(int x) that takes a node x as a parameter and performs the following steps in order:
+
+Iterate over each child y of x in increasing order of their numbers, and call dfs(y).
+Add the character s[x] to the end of the string dfsStr.
+Note that dfsStr is shared across all recursive calls of dfs.
+
+You need to find a boolean array answer of size n, where for each index i from 0 to n - 1, you do the following:
+
+Empty the string dfsStr and call dfs(i).
+If the resulting string dfsStr is a palindrome, then set answer[i] to true. Otherwise, set answer[i] to false.
+Return the array answer.
+
+ 
+
+Example 1:
+
+
+Input: parent = [-1,0,0,1,1,2], s = "aababa"
+
+Output: [true,true,false,true,true,true]
+
+Explanation:
+
+Calling dfs(0) results in the string dfsStr = "abaaba", which is a palindrome.
+Calling dfs(1) results in the string dfsStr = "aba", which is a palindrome.
+Calling dfs(2) results in the string dfsStr = "ab", which is not a palindrome.
+Calling dfs(3) results in the string dfsStr = "a", which is a palindrome.
+Calling dfs(4) results in the string dfsStr = "b", which is a palindrome.
+Calling dfs(5) results in the string dfsStr = "a", which is a palindrome.
+Example 2:
+
+
+Input: parent = [-1,0,0,0,0], s = "aabcb"
+
+Output: [true,true,true,true,true]
+
+Explanation:
+
+Every call on dfs(x) results in a palindrome string.
+
+ 
+
+Constraints:
+
+n == parent.length == s.length
+1 <= n <= 105
+0 <= parent[i] <= n - 1 for all i >= 1.
+parent[0] == -1
+parent represents a valid tree.
+s consists only of lowercase English letters.
+
+
+
+# java
+
+
+class Hashing {
+    private final long[] p;
+    private final long[] h;
+    private final long mod;
+
+    public Hashing(String word, long base, int mod) {
+        int n = word.length();
+        p = new long[n + 1];
+        h = new long[n + 1];
+        p[0] = 1;
+        this.mod = mod;
+        for (int i = 1; i <= n; i++) {
+            p[i] = p[i - 1] * base % mod;
+            h[i] = (h[i - 1] * base + word.charAt(i - 1)) % mod;
+        }
+    }
+
+    public long query(int l, int r) {
+        return (h[r] - h[l - 1] * p[r - l + 1] % mod + mod) % mod;
+    }
+}
+
+class Solution {
+    private char[] s;
+    private int[][] pos;
+    private List<Integer>[] g;
+    private StringBuilder dfsStr = new StringBuilder();
+
+    public boolean[] findAnswer(int[] parent, String s) {
+        this.s = s.toCharArray();
+        int n = s.length();
+        g = new List[n];
+        pos = new int[n][0];
+        Arrays.setAll(g, k -> new ArrayList<>());
+        for (int i = 1; i < n; ++i) {
+            g[parent[i]].add(i);
+        }
+        dfs(0);
+        final int base = 13331;
+        final int mod = 998244353;
+        Hashing h1 = new Hashing(dfsStr.toString(), base, mod);
+        Hashing h2 = new Hashing(new StringBuilder(dfsStr).reverse().toString(), base, mod);
+        boolean[] ans = new boolean[n];
+        for (int i = 0; i < n; ++i) {
+            int l = pos[i][0], r = pos[i][1];
+            int k = r - l + 1;
+            long v1 = h1.query(l, l + k / 2 - 1);
+            long v2 = h2.query(n + 1 - r, n + 1 - r + k / 2 - 1);
+            ans[i] = v1 == v2;
+        }
+        return ans;
+    }
+
+    private void dfs(int i) {
+        int l = dfsStr.length() + 1;
+        for (int j : g[i]) {
+            dfs(j);
+        }
+        dfsStr.append(s[i]);
+        int r = dfsStr.length();
+        pos[i] = new int[] {l, r};
+    }
+}
+
+
+or
+
+
+class Solution {
+    private final int PRIME = 31;
+    private final int MOD = 1_000_000_007;
+    private static int[] powers = new int[100_000 + 1];
+    
+    private int[][] children;
+    private int[] len;
+    private int[] hash;
+    private int[] revHash;
+    private byte[] str;
+
+    public boolean[] findAnswer(int[] parent, String s) {
+        // Only build the powers table once, for first 
+        // test case of a Submit or Run.
+        if (powers[0] == 0) {
+            powers[0] = 1;
+            for (int i = 1; i < powers.length; i++)
+                powers[i] = (int)(((long)powers[i - 1] * PRIME) % MOD);
+        }
+
+        // Initialize some class variables.
+        final int n = parent.length;
+        children = new int[n][];
+        len = new int[n];
+        hash = new int[n];
+        revHash = new int[n];
+        str = s.getBytes();
+        
+        // Create child links for each node.
+        // Count children for each node.
+        final int[] childCount = new int[n];
+        for (int i = 1; i < n; i++)     
+            childCount[parent[i]]++;
+        // Allocate array for children for each node.
+        for (int i = 0; i < n; i++) {   
+            children[i] = new int[childCount[i]];
+            childCount[i] = 0;
+        }
+        // Fill-in children links for each node.
+        for (int i = 1; i < n; i++)     
+            children[parent[i]][childCount[parent[i]]++] = i;
+        
+        // Do depth first search to build tree info.  For each node, 
+        // the result is "true" if forward and reverse hash are the 
+        // same, and "false" if forward and reverse hashes are 
+        // different.
+        dfs(0);
+        boolean[] result = new boolean[n];
+        for (int i = n - 1; i >= 0; i--)
+            if (hash[i] == revHash[i])
+                result[i] = true;
+        return result;
+    }
+        
+    
+    private void dfs(int node) {
+        int curLen = 0;
+        int curHash = 0;
+        int[] curChildren = children[node];
+        
+        // Calculate hash in forward direction of children.  
+        // Recurse to fill-in child info.
+        for (int child : curChildren) {
+            dfs(child);
+            curHash = (int)(((long)curHash * powers[len[child]] + 
+                            hash[child]) % MOD);
+            curLen += len[child];
+        }
+        // Include currrent node's character at end of "string" 
+        // after children "strings".  The strings are not actually 
+        // built.  Only the hash, reverse hash, and length of the 
+        // theoretical string are actually built.
+        hash[node] = (int)(((long)curHash * PRIME + str[node]) % MOD);   
+        len[node] = ++curLen;
+        
+        // Calculate hash in reverse direction of children.
+        // Count node's char first in reverse direction.
+        curHash = str[node];        
+        for (int i = curChildren.length - 1; i >= 0; i--) {
+            int child = curChildren[i];
+            curHash = (int)(((long)curHash * powers[len[child]] + 
+                            revHash[child]) % MOD);
+        }
+        revHash[node] = curHash;
+        return;
+    }
+}
+
+
