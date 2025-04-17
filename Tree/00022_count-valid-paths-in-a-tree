@@ -1,0 +1,361 @@
+https://leetcode.com/problems/count-valid-paths-in-a-tree/description/
+
+2867. Count Valid Paths in a Tree
+Hard
+Topics
+Companies
+Hint
+There is an undirected tree with n nodes labeled from 1 to n. You are given the integer n and a 2D integer array edges of length n - 1, where edges[i] = [ui, vi] indicates that there is an edge between nodes ui and vi in the tree.
+
+Return the number of valid paths in the tree.
+
+A path (a, b) is valid if there exists exactly one prime number among the node labels in the path from a to b.
+
+Note that:
+
+The path (a, b) is a sequence of distinct nodes starting with node a and ending with node b such that every two adjacent nodes in the sequence share an edge in the tree.
+Path (a, b) and path (b, a) are considered the same and counted only once.
+ 
+
+Example 1:
+
+
+Input: n = 5, edges = [[1,2],[1,3],[2,4],[2,5]]
+Output: 4
+Explanation: The pairs with exactly one prime number on the path between them are: 
+- (1, 2) since the path from 1 to 2 contains prime number 2. 
+- (1, 3) since the path from 1 to 3 contains prime number 3.
+- (1, 4) since the path from 1 to 4 contains prime number 2.
+- (2, 4) since the path from 2 to 4 contains prime number 2.
+It can be shown that there are only 4 valid paths.
+Example 2:
+
+
+Input: n = 6, edges = [[1,2],[1,3],[2,4],[3,5],[3,6]]
+Output: 6
+Explanation: The pairs with exactly one prime number on the path between them are: 
+- (1, 2) since the path from 1 to 2 contains prime number 2.
+- (1, 3) since the path from 1 to 3 contains prime number 3.
+- (1, 4) since the path from 1 to 4 contains prime number 2.
+- (1, 6) since the path from 1 to 6 contains prime number 3.
+- (2, 4) since the path from 2 to 4 contains prime number 2.
+- (3, 6) since the path from 3 to 6 contains prime number 3.
+It can be shown that there are only 6 valid paths.
+ 
+
+Constraints:
+
+1 <= n <= 105
+edges.length == n - 1
+edges[i].length == 2
+1 <= ui, vi <= n
+The input is generated such that edges represent a valid tree.
+
+
+
+# java
+
+
+class Solution {
+  public long countPaths(int n, int[][] edges) {
+    final boolean[] isPrime = sieveEratosthenes(n + 1);
+    List<Integer>[] graph = new List[n + 1];
+
+    for (int i = 1; i <= n; ++i)
+      graph[i] = new ArrayList<>();
+
+    for (int[] edge : edges) {
+      final int u = edge[0];
+      final int v = edge[1];
+      graph[u].add(v);
+      graph[v].add(u);
+    }
+
+    dfs(graph, 1, /*prev=*/-1, isPrime);
+    return ans;
+  }
+
+  private long ans = 0;
+
+  private Pair<Long, Long> dfs(List<Integer>[] graph, int u, int prev, boolean[] isPrime) {
+    long countZeroPrimePath = isPrime[u] ? 0 : 1;
+    long countOnePrimePath = isPrime[u] ? 1 : 0;
+
+    for (final int v : graph[u]) {
+      if (v == prev)
+        continue;
+      Pair<Long, Long> pair = dfs(graph, v, u, isPrime);
+      final long countZeroPrimeChildPath = pair.getKey();
+      final long countOnePrimeChildPath = pair.getValue();
+      ans +=
+          countZeroPrimePath * countOnePrimeChildPath + countOnePrimePath * countZeroPrimeChildPath;
+      if (isPrime[u]) {
+        countOnePrimePath += countZeroPrimeChildPath;
+      } else {
+        countZeroPrimePath += countZeroPrimeChildPath;
+        countOnePrimePath += countOnePrimeChildPath;
+      }
+    }
+
+    return new Pair<>(countZeroPrimePath, countOnePrimePath);
+  }
+
+  private boolean[] sieveEratosthenes(int n) {
+    boolean[] isPrime = new boolean[n];
+    Arrays.fill(isPrime, true);
+    isPrime[0] = false;
+    isPrime[1] = false;
+    for (int i = 2; i * i < n; ++i)
+      if (isPrime[i])
+        for (int j = i * i; j < n; j += i)
+          isPrime[j] = false;
+    return isPrime;
+  }
+}
+
+
+or
+
+
+class PrimeTable {
+    private final boolean[] prime;
+
+    public PrimeTable(int n) {
+        prime = new boolean[n + 1];
+        Arrays.fill(prime, true);
+        prime[0] = false;
+        prime[1] = false;
+        for (int i = 2; i <= n; ++i) {
+            if (prime[i]) {
+                for (int j = i + i; j <= n; j += i) {
+                    prime[j] = false;
+                }
+            }
+        }
+    }
+
+    public boolean isPrime(int x) {
+        return prime[x];
+    }
+}
+
+class UnionFind {
+    private final int[] p;
+    private final int[] size;
+
+    public UnionFind(int n) {
+        p = new int[n];
+        size = new int[n];
+        for (int i = 0; i < n; ++i) {
+            p[i] = i;
+            size[i] = 1;
+        }
+    }
+
+    public int find(int x) {
+        if (p[x] != x) {
+            p[x] = find(p[x]);
+        }
+        return p[x];
+    }
+
+    public boolean union(int a, int b) {
+        int pa = find(a), pb = find(b);
+        if (pa == pb) {
+            return false;
+        }
+        if (size[pa] > size[pb]) {
+            p[pb] = pa;
+            size[pa] += size[pb];
+        } else {
+            p[pa] = pb;
+            size[pb] += size[pa];
+        }
+        return true;
+    }
+
+    public int size(int x) {
+        return size[find(x)];
+    }
+}
+
+class Solution {
+    private static final PrimeTable PT = new PrimeTable(100010);
+
+    public long countPaths(int n, int[][] edges) {
+        List<Integer>[] g = new List[n + 1];
+        Arrays.setAll(g, i -> new ArrayList<>());
+        UnionFind uf = new UnionFind(n + 1);
+        for (int[] e : edges) {
+            int u = e[0], v = e[1];
+            g[u].add(v);
+            g[v].add(u);
+            if (!PT.isPrime(u) && !PT.isPrime(v)) {
+                uf.union(u, v);
+            }
+        }
+        long ans = 0;
+        for (int i = 1; i <= n; ++i) {
+            if (PT.isPrime(i)) {
+                long t = 0;
+                for (int j : g[i]) {
+                    if (!PT.isPrime(j)) {
+                        long cnt = uf.size(j);
+                        ans += cnt;
+                        ans += cnt * t;
+                        t += cnt;
+                    }
+                }
+            }
+        }
+        return ans;
+    }
+}
+
+
+
+or
+
+
+class Solution {
+    public long countPaths(int n, int[][] edges) {
+        List<Boolean> prime = new ArrayList<>(n + 1);
+        for (int i = 0; i <= n; ++i) {
+            prime.add(true);
+        }
+        prime.set(1, false);
+        
+        List<Integer> all = new ArrayList<>();
+        for (int i = 2; i <= n; ++i) {
+            if (prime.get(i)) {
+                all.add(i);
+            }
+            for (int x : all) {
+                int temp = i * x;
+                if (temp > n) {
+                    break;
+                }
+                prime.set(temp, false);
+                if (i % x == 0) {
+                    break;
+                }
+            }
+        }
+        
+        List<List<Integer>> con = new ArrayList<>(n + 1);
+        for (int i = 0; i <= n; ++i) {
+            con.add(new ArrayList<>());
+        }
+        for (int[] e : edges) {
+            con.get(e[0]).add(e[1]);
+            con.get(e[1]).add(e[0]);
+        }
+        
+        long[] r = {0};
+        dfs(1, 0, con, prime, r);
+        return r[0];
+    }
+    
+    private long mul(long x, long y) {
+        return x * y;
+    }
+    
+    private class Pair {
+        int first;
+        int second;
+        
+        Pair(int first, int second) {
+            this.first = first;
+            this.second = second;
+        }
+    }
+    
+    private Pair dfs(int x, int f, List<List<Integer>> con, List<Boolean> prime, long[] r) {
+        Pair v = new Pair(!prime.get(x) ? 1 : 0, prime.get(x) ? 1 : 0);
+        for (int y : con.get(x)) {
+            if (y == f) continue;
+            Pair p = dfs(y, x, con, prime, r);
+            r[0] += mul(p.first, v.second) + mul(p.second, v.first);
+            if (prime.get(x)) {
+                v.second += p.first;
+            } else {
+                v.first += p.first;
+                v.second += p.second;
+            }
+        }
+        return v;
+    }
+}
+
+
+or
+
+
+class Solution {
+    public long countPaths(int n, int[][] edges) {
+        long dp[][]=new long[n+1][3];
+        ArrayList<ArrayList<Integer>> child=new ArrayList<>();
+        
+         for(int i=0;i<=n;i++){
+            child.add(new ArrayList<>());
+        }
+        
+        for(int i=0;i<n-1;i++){
+            int par=edges[i][0];
+            int c=edges[i][1];
+            child.get(par).add(c);
+            child.get(c).add(par);
+        }
+        
+        HashSet<Integer> set=new HashSet<>();
+        sieveOfEratosthenes(set);
+        
+        solve(1,0,child,dp,set);
+        
+        return dp[1][2]; 
+    }
+    
+    public void sieveOfEratosthenes(HashSet<Integer> set) {
+            boolean[] flag = new boolean[100000];
+			for (int i = 2; i < flag.length; i++) {
+				if (!flag[i]) {
+					set.add(i);
+					for (int j = i; j < flag.length; j += i) {
+						flag[j] = true;
+					}
+				}
+			}
+   }
+ 
+    
+    public void solve(int src,int par,ArrayList<ArrayList<Integer>> child,long dp[][],HashSet<Integer> set){  
+        if(set.contains(src)){
+            dp[src][1]=1;
+            dp[src][0]=0;
+        }
+        else{
+            dp[src][0]=1;
+            dp[src][1]=0;
+        }
+        
+        for(int next:child.get(src)){
+            if(next==par)
+                continue;
+            
+            solve(next,src,child,dp,set);
+          
+            //this prime
+            dp[src][2]=dp[src][2]+dp[next][2]+dp[src][0]*dp[next][1]+dp[src][1]*dp[next][0];
+            
+            if(set.contains(src)){
+                dp[src][1]+=dp[next][0];
+            }
+            else{
+                dp[src][0]+=dp[next][0];
+                dp[src][1]+=dp[next][1];
+            } 
+        }
+        
+    }
+    
+}
