@@ -1,0 +1,782 @@
+https://leetcode.com/problems/maximize-the-number-of-target-nodes-after-connecting-trees-ii/description/
+
+3373. Maximize the Number of Target Nodes After Connecting Trees II
+Hard
+Topics
+Companies
+Hint
+There exist two undirected trees with n and m nodes, labeled from [0, n - 1] and [0, m - 1], respectively.
+
+You are given two 2D integer arrays edges1 and edges2 of lengths n - 1 and m - 1, respectively, where edges1[i] = [ai, bi] indicates that there is an edge between nodes ai and bi in the first tree and edges2[i] = [ui, vi] indicates that there is an edge between nodes ui and vi in the second tree.
+
+Node u is target to node v if the number of edges on the path from u to v is even. Note that a node is always target to itself.
+
+Return an array of n integers answer, where answer[i] is the maximum possible number of nodes that are target to node i of the first tree if you had to connect one node from the first tree to another node in the second tree.
+
+Note that queries are independent from each other. That is, for every query you will remove the added edge before proceeding to the next query.
+
+ 
+
+Example 1:
+
+Input: edges1 = [[0,1],[0,2],[2,3],[2,4]], edges2 = [[0,1],[0,2],[0,3],[2,7],[1,4],[4,5],[4,6]]
+
+Output: [8,7,7,8,8]
+
+Explanation:
+
+For i = 0, connect node 0 from the first tree to node 0 from the second tree.
+For i = 1, connect node 1 from the first tree to node 4 from the second tree.
+For i = 2, connect node 2 from the first tree to node 7 from the second tree.
+For i = 3, connect node 3 from the first tree to node 0 from the second tree.
+For i = 4, connect node 4 from the first tree to node 4 from the second tree.
+
+Example 2:
+
+Input: edges1 = [[0,1],[0,2],[0,3],[0,4]], edges2 = [[0,1],[1,2],[2,3]]
+
+Output: [3,6,6,6,6]
+
+Explanation:
+
+For every i, connect node i of the first tree with any node of the second tree.
+
+
+ 
+
+Constraints:
+
+2 <= n, m <= 105
+edges1.length == n - 1
+edges2.length == m - 1
+edges1[i].length == edges2[i].length == 2
+edges1[i] = [ai, bi]
+0 <= ai, bi < n
+edges2[i] = [ui, vi]
+0 <= ui, vi < m
+The input is generated such that edges1 and edges2 represent valid trees.
+
+
+# java
+
+class Solution {
+    public int[] maxTargetNodes(int[][] edges1, int[][] edges2) {
+        var g1 = build(edges1);
+        var g2 = build(edges2);
+        int n = g1.length, m = g2.length;
+        int[] c1 = new int[n];
+        int[] c2 = new int[m];
+        int[] cnt1 = new int[2];
+        int[] cnt2 = new int[2];
+        dfs(g2, 0, -1, c2, 0, cnt2);
+        dfs(g1, 0, -1, c1, 0, cnt1);
+        int t = Math.max(cnt2[0], cnt2[1]);
+        int[] ans = new int[n];
+        for (int i = 0; i < n; ++i) {
+            ans[i] = t + cnt1[c1[i]];
+        }
+        return ans;
+    }
+
+    private List<Integer>[] build(int[][] edges) {
+        int n = edges.length + 1;
+        List<Integer>[] g = new List[n];
+        Arrays.setAll(g, i -> new ArrayList<>());
+        for (var e : edges) {
+            int a = e[0], b = e[1];
+            g[a].add(b);
+            g[b].add(a);
+        }
+        return g;
+    }
+
+    private void dfs(List<Integer>[] g, int a, int fa, int[] c, int d, int[] cnt) {
+        c[a] = d;
+        cnt[d]++;
+        for (int b : g[a]) {
+            if (b != fa) {
+                dfs(g, b, a, c, d ^ 1, cnt);
+            }
+        }
+    }
+}
+
+
+or
+
+
+class Solution {
+    Map<Integer, List<Integer>> tree1, tree2;
+    int[] color1, color2;
+    int[] nodeColor1, nodeColor2;
+    void build(int[][] edges, Map<Integer, List<Integer>> map) {
+        int n = edges.length + 1;
+        for(int i = 0; i < n; i++) map.put(i, new LinkedList<>());
+        for(int[] e : edges) {
+            map.get(e[0]).add(e[1]);
+            map.get(e[1]).add(e[0]);
+        }
+    }
+    void bfs(Map<Integer, List<Integer>> map, int[] color, int[] col) {
+        int n = map.size();
+        Queue<int[]> q = new LinkedList<>();
+        boolean[] vis = new boolean[n];
+        q.add(new int[]{0, 0});
+        while(!q.isEmpty()) {
+            int[] top = q.poll();
+            vis[top[0]] = true;
+            col[top[0]] = top[1];
+            color[top[1]]++;
+            for(int adj : map.get(top[0])) if(!vis[adj]) {
+                // (top[1] + 1) % 2 to ensure [0, 1] coloring.
+                q.add(new int[]{adj, (top[1] + 1) % 2});
+            }
+        }
+    }
+    public int[] maxTargetNodes(int[][] edges1, int[][] edges2) {
+        int n = edges1.length + 1, m = edges2.length + 1;
+        tree1 = new HashMap<>(); tree2 = new HashMap<>(); 
+        color1 = new int[2]; color2 = new int[2];
+        nodeColor1 = new int[n]; nodeColor2 = new int[m];
+        // build the trees
+        build(edges1, tree1); 
+        build(edges2, tree2);
+        // use bfs to color trees.
+        bfs(tree1, color1, nodeColor1);
+        bfs(tree2, color2, nodeColor2);
+        int[] arr = new int[n]; 
+        int max = Math.max(color2[0], color2[1]);
+        for(int i = 0; i < n; i++) {
+            arr[i] = color1[nodeColor1[i]] + max;
+        }
+        return arr;
+    }
+}
+
+
+or
+
+
+
+class Solution {
+    public int[] maxTargetNodes(int[][] edges1, int[][] edges2) {
+        
+        HashMap<Integer, Set<Integer>> graph1 = buildGraph(edges1);
+        HashMap<Integer, Set<Integer>> graph2 = buildGraph(edges2);
+
+        int n = graph1.size();
+        int m = graph2.size();
+
+        int[] nodeColor1 = new int[n];
+        
+        int[] color1 = new int[2];
+        dfs(graph1, color1, 0, -1, 0, nodeColor1);
+
+        int[] nodeColor2 = new int[m];
+
+        int[] color2 = new int[2];
+        dfs(graph2, color2, 0, -1, 0, nodeColor2);
+
+        int[] ans = new int[n];
+
+        for(int i=0;i<n;i++) {
+            if(nodeColor1[i] == 0) {
+                ans[i] = Math.max(color1[0] + color2[1] , color1[0] + color2[0]);
+            } else {
+                ans[i] = Math.max(color1[1] + color2[1] , color1[1] + color2[0] );
+            }
+        }
+
+        return ans;
+        
+    }
+
+
+    private void dfs(HashMap<Integer, Set<Integer>> graph, int[] color, int u, int p, int lastColor, int[] nodeColor) {
+        nodeColor[u] = lastColor;
+        color[lastColor]++;
+        for(int v: graph.get(u)) {
+            if(v==p) continue;
+            dfs(graph, color, v, u, 1-lastColor, nodeColor);
+        }
+    }
+
+
+    private HashMap<Integer, Set<Integer>> buildGraph(int[][] edges) {
+        HashMap<Integer, Set<Integer>> graph = new HashMap<>();
+
+        for(int[] edge: edges) {
+            int a = edge[0];
+            int b = edge[1];
+            graph.computeIfAbsent(a, k->new HashSet<>()).add(b);
+            graph.computeIfAbsent(b, k->new HashSet<>()).add(a);
+        }
+
+        return graph;
+    }
+
+}
+
+
+or
+
+
+class Solution {
+    //here we are going tp count for each node the number of nodes that are at even and odd
+    //dist from itself
+
+    //lets first calcuate in subtree only (indp)
+    public void dfs(int node,int pp,ArrayList<Integer>adj[],int indp[][]){
+        indp[node][0] = 1;
+        indp[node][1] = 0;
+        for(int i = 0;i<adj[node].size();++i){
+            if(adj[node].get(i)!=pp){
+                dfs(adj[node].get(i),node,adj,indp);
+                indp[node][0] += indp[adj[node].get(i)][1];
+                indp[node][1] += indp[adj[node].get(i)][0];
+            }
+        }
+    }
+    public void dfss(int node,int pp,ArrayList<Integer>adj[],int indp[][],int outdp[][]){
+        if(pp!=-1){
+            outdp[node][0] = outdp[pp][1]+indp[pp][1]-indp[node][0];
+            outdp[node][1] = outdp[pp][0]+indp[pp][0]-indp[node][1];
+        }
+        else{
+            outdp[node][0] = 0;
+            outdp[node][1] = 0;
+        }
+        for(int i = 0;i<adj[node].size();++i){
+            if(adj[node].get(i)!=pp){
+                dfss(adj[node].get(i),node,adj,indp,outdp);
+            }
+        }
+    }
+
+    public int[] maxTargetNodes(int[][] edges1, int[][] edges2) {
+        //first we have to count the number of nodes that are at even distance int the tree itself
+        //after that as we are going to add a edge from tree1 to tree2 we have to count the number
+        //of nodes that are at odd distance from each node
+        //this can be done in O(n) using rerooting technique
+    
+        int n = edges1.length+1;
+        int m = edges2.length+1;
+        ArrayList<Integer>adj1[] = new ArrayList[n];  
+        ArrayList<Integer>adj2[] = new ArrayList[m];
+        for (int i = 0; i < n; ++i) {
+            adj1[i] = new ArrayList<>();
+        }
+        for (int i = 0; i < m; ++i) {
+            adj2[i] = new ArrayList<>();
+        }
+        for(int i = 0;i<n-1;++i){
+            adj1[edges1[i][0]].add(edges1[i][1]);
+            adj1[edges1[i][1]].add(edges1[i][0]);
+        }
+        for(int i = 0;i<m-1;++i){
+            adj2[edges2[i][0]].add(edges2[i][1]);
+            adj2[edges2[i][1]].add(edges2[i][0]);
+        }   
+        int indp1[][] = new int[n][2];
+        int outdp1[][] = new int[n][2];
+        int indp2[][] = new int[m][2];
+        int outdp2[][] = new int[m][2];
+
+        dfs(0,-1,adj1,indp1);
+        dfs(0,-1,adj2,indp2);
+        dfss(0,-1,adj1,indp1,outdp1);
+        dfss(0,-1,adj2,indp2,outdp2);
+        // for(int i = 0;i<n;++i){
+        //     System.out.println(indp1[i][0]+" "+outdp1[i][0]);
+        // }
+        int maxi2 = -1;
+        for(int i = 0;i<m;++i){
+            maxi2 = Math.max(maxi2,indp2[i][1]+outdp2[i][1]);
+        }
+        int ans[] = new int[n];
+        for(int i = 0;i<n;++i){
+            ans[i] = indp1[i][0]+outdp1[i][0]+maxi2;
+        }
+        return ans;
+    }
+}   
+
+
+
+or
+
+
+
+
+class Solution {
+    public int[] maxTargetNodes(int[][] edges1, int[][] edges2) {
+        List<List<Integer>> adj1 = new ArrayList<>();
+        List<List<Integer>> adj2 = new ArrayList<>();
+
+        for(int[] edge: edges1){
+            while(adj1.size()<=edge[0]){
+                adj1.add(new ArrayList<>());
+            }
+            while(adj1.size()<=edge[1]){
+                adj1.add(new ArrayList<>());
+            }
+
+            adj1.get(edge[0]).add(edge[1]);
+            adj1.get(edge[1]).add(edge[0]);
+        }
+        
+        for(int[] edge: edges2){
+            while(adj2.size()<=edge[0]){
+                adj2.add(new ArrayList<>());
+            }
+            while(adj2.size()<=edge[1]){
+                adj2.add(new ArrayList<>());
+            }
+
+            adj2.get(edge[0]).add(edge[1]);
+            adj2.get(edge[1]).add(edge[0]);
+        }
+
+        //as it is even odd there can be only 2 tracks of even where node will lye so we will mark each node with track 1 or 2 and we also count nodes in both tracks
+
+         int[] path1 = new int[adj1.size()]; //for tree1
+         int[] path2 = new int[adj2.size()]; //for tree2
+
+         Arrays.fill(path1, -1);
+         Arrays.fill(path2, -1);
+
+         int[] countNodesInPath1 = new int[2];
+         int[] countNodesInPath2 = new int[2];
+
+        markPathToNodesAndCountNodes(adj1, 0, 0, path1, countNodesInPath1);
+        markPathToNodesAndCountNodes(adj2, 0, 0, path2, countNodesInPath2);
+
+        int maxFromTree2 = Math.max(countNodesInPath2[0],countNodesInPath2[1]);
+
+        int[] ans = new int[adj1.size()];
+
+        for(int i=0;i<ans.length;i++){
+            ans[i] = maxFromTree2 + countNodesInPath1[path1[i]];
+        }
+
+        return ans;
+    }
+
+
+    public void markPathToNodesAndCountNodes(List<List<Integer>> adj, int node, int curr, int[] path, int[] count){
+        if(path[node]!=-1) return;
+
+        path[node] = curr;
+        count[curr] += 1;
+
+        for(int nei: adj.get(node)){
+            markPathToNodesAndCountNodes(adj, nei, curr ^ 1, path, count);
+        }
+
+    }
+}
+
+
+or
+
+
+class Solution {
+    public int[] maxTargetNodes(int[][] edges1, int[][] edges2) {
+        int n1=edges1.length+1, n2=edges2.length+1;
+        ArrayList<ArrayList<Integer>> graph1=new ArrayList<>();
+        ArrayList<ArrayList<Integer>> graph2=new ArrayList<>();
+        for(int i=0;i<n1;i++){
+            graph1.add(new ArrayList<>());
+        }
+        for(int i=0;i<n2;i++){
+            graph2.add(new ArrayList<>());
+        }
+        for(int edge1[]:edges1){
+            int u=edge1[0];
+            int v=edge1[1];
+            graph1.get(u).add(v);
+            graph1.get(v).add(u);
+        }
+        for(int edge2[]:edges2){
+            int u=edge2[0];
+            int v=edge2[1];
+            graph2.get(u).add(v);
+            graph2.get(v).add(u);
+        }
+        //for graph 1 find for every node how many neighbours they have in odd distance and even distance
+        //because for a parent to even nodes he needs child's odd nodes
+        //we have to do in O(N) i.e. one traversal, filling answers in an array
+        int oddSubtree1[]=new int[n1];
+        int evenSubtree1[]=new int[n1];
+        int totalOdd1[]=new int[n1];
+        int totalEven1[]=new int[n1];
+        int oddSubtree2[]=new int[n2];
+        int evenSubtree2[]=new int[n2];
+        int totalOdd2[]=new int[n2];
+        int totalEven2[]=new int[n2];
+        boolean visited1[]=new boolean[n1];
+        boolean visited2[]=new boolean[n2];
+        dfs1Tree1(graph1,0,oddSubtree1,evenSubtree1,visited1);
+        totalEven1[0]=evenSubtree1[0];
+        totalOdd1[0]=oddSubtree1[0];
+        visited1=new boolean[n1];
+        dfs2Tree1(graph1,0,oddSubtree1,evenSubtree1,visited1,totalEven1,totalOdd1);
+      
+        dfs1Tree2(graph2,0,oddSubtree2,evenSubtree2,visited2);
+        totalEven2[0]=evenSubtree2[0];
+        totalOdd2[0]=oddSubtree2[0];
+        visited2=new boolean[n2];
+        dfs2Tree2(graph2,0,oddSubtree2,evenSubtree2,visited2,totalEven2,totalOdd2);
+
+        int goldenNodeOddCount=0;
+        for(int i=0;i<n2;i++){
+            goldenNodeOddCount=Math.max(goldenNodeOddCount,totalOdd2[i]);
+        }
+        int ans[]=new int[n1];
+        for(int i=0;i<n1;i++){
+            ans[i]=totalEven1[i]+goldenNodeOddCount;
+        }
+        return  ans;
+    }
+    public void dfs1Tree1 (ArrayList<ArrayList<Integer>> graph1,int node, int oddSubtree1[],int evenSubtree1[],boolean visited1[]){ // finds odd even count only for childres
+        evenSubtree1[node]=1;
+        visited1[node]=true;
+        for(int nbr:graph1.get(node)){
+            if(visited1[nbr])
+                continue;
+            dfs1Tree1(graph1,nbr,oddSubtree1,evenSubtree1,visited1);
+            oddSubtree1[node]+=evenSubtree1[nbr];
+            evenSubtree1[node]+=oddSubtree1[nbr];
+        }
+    }
+
+    public void dfs2Tree1 (ArrayList<ArrayList<Integer>> graph1,int node, int oddSubtree1[],int evenSubtree1[],boolean visited1[],int totalEven1[],int totalOdd1[]) { // go to every child node and in 2 new arrays totalEven,totalOdd ,store their children's totalEven[nbr] = evenSubtree1[nbr]+ (oddSubTree[node]-evenSubtree1[nbr]) 
+        visited1[node]=true;
+        for(int nbr:graph1.get(node)){
+            if(visited1[nbr])
+                continue;
+            totalEven1[nbr]=totalOdd1[node];
+            totalOdd1[nbr]=totalEven1[node];  
+            // System.out.println("Nbr "+nbr+" "+totalEven1[nbr]+" "+totalOdd1[nbr]);
+            dfs2Tree1(graph1,nbr,oddSubtree1,evenSubtree1,visited1,totalEven1,totalOdd1);
+        }
+    }
+
+    public void dfs1Tree2 (ArrayList<ArrayList<Integer>> graph2,int node, int oddSubtree2[],int evenSubtree2[],boolean visited2[]){ // finds odd even count only for childres
+        evenSubtree2[node]=1;
+        visited2[node]=true;
+        for(int nbr:graph2.get(node)){
+            if(visited2[nbr])
+                continue;
+            dfs1Tree2(graph2,nbr,oddSubtree2,evenSubtree2,visited2);
+            oddSubtree2[node]+=evenSubtree2[nbr];
+            evenSubtree2[node]+=oddSubtree2[nbr];
+        }
+    }
+
+    public void dfs2Tree2 (ArrayList<ArrayList<Integer>> graph2,int node, int oddSubtree2[],int evenSubtree2[],boolean visited2[],int totalEven2[],int totalOdd2[]) { // go to every child node and in 2 new arrays totalEven,totalOdd ,store their children's totalEven[nbr] = evenSubtree1[nbr]+ (oddSubTree[node]-evenSubtree1[nbr]) 
+        visited2[node]=true;
+        for(int nbr:graph2.get(node)){
+            if(visited2[nbr])
+                continue;
+            totalEven2[nbr]=totalOdd2[node];
+            totalOdd2[nbr]=totalEven2[node];  
+            // System.out.println("Nbr "+nbr+" "+totalEven1[nbr]+" "+totalOdd1[nbr]);
+            dfs2Tree2(graph2,nbr,oddSubtree2,evenSubtree2,visited2,totalEven2,totalOdd2);
+        }
+    }
+
+
+}
+
+
+or
+
+
+class Solution {
+        public int[] maxTargetNodes(int[][] edges1, int[][] edges2) {
+        // Create adjacency list for each graph
+        Map<Integer, List<Integer>> adj1 = new HashMap<>();
+        Map<Integer, List<Integer>> adj2 = new HashMap<>();
+        int[] maxTargetNodes = new int[edges1.length + 1];
+        
+        for (int[] e : edges1) {
+            adj1.computeIfAbsent(e[0], val -> new ArrayList<>()).add(e[1]);
+            adj1.computeIfAbsent(e[1], val -> new ArrayList<>()).add(e[0]);
+        }
+        
+        for (int[] e : edges2) {
+            adj2.computeIfAbsent(e[0], val -> new ArrayList<>()).add(e[1]);
+            adj2.computeIfAbsent(e[1], val -> new ArrayList<>()).add(e[0]);
+        }
+        
+        // Create 2 arrays - first stores count of nodes at even and odd distances from current root.
+        // Consider index 0 as even, index 1 as odd. Calculate this for each graph and store the values in
+        // graph1SubtreeData and graph2SubtreeData
+        int[][] graph1SubtreeData = new int[adj1.size()][2];
+        dfs(0, -1, adj1, graph1SubtreeData);
+        int[][] graph2SubtreeData = new int[adj2.size()][2];
+        dfs(0, -1, adj2, graph2SubtreeData);
+        
+        // Now run the 2nd DFS. For each graph, calculate count of nodes at even and odd distances while including tree nodes accessible from parent path. Store the even and odd counts in graph1FinalData and graph2FinalData
+        int[][] graph1FinalData = new int[adj1.size()][2];
+        dfs2(0, -1, adj1, graph1FinalData, graph1SubtreeData);
+        int[][] graph2FinalData = new int[adj2.size()][2];
+        dfs2(0, -1, adj2, graph2FinalData, graph2SubtreeData);
+        
+        // For the 2nd graph, find the node that is connected to highest number of nodes of odd distance child nodes
+        // This is the node to which each node from first tree will be connected
+        int maxNodesTree2 = Integer.MIN_VALUE;
+        for (int i = 0; i < graph2FinalData.length; i++) {
+            maxNodesTree2 = Math.max(maxNodesTree2, graph2FinalData[i][1]);
+        }
+        
+        // For each node in the 1st graph, add the count of even nodes this node is connected to in graph 1 and max possible number of nodes from second graph that are connected through odd length paths 
+        for (int i = 0; i < maxTargetNodes.length; i++) {
+            maxTargetNodes[i] = graph1FinalData[i][0] + maxNodesTree2;
+        }
+        
+        return maxTargetNodes;
+    }
+    
+    private void dfs2(int node, int parent, Map<Integer, List<Integer>> adj, int[][] graphFinalData, int[][] graphSubtreeData) {
+        if (parent == -1) {
+            // For node 0, the final data is already calculated and stored in graphSubtreeData
+            graphFinalData[node][0] = graphSubtreeData[node][0];
+            graphFinalData[node][1] = graphSubtreeData[node][1];
+        } else {
+            int even = graphFinalData[parent][1];
+            int odd = graphFinalData[parent][0];
+            graphFinalData[node][0] = even;
+            graphFinalData[node][1] = odd;            
+        }
+        for (int adjNode : adj.get(node)) {
+            if (adjNode == parent) {
+                continue;
+            }
+            dfs2(adjNode, node, adj, graphFinalData, graphSubtreeData);
+        }
+    }
+    
+    private void dfs(int node, int parent, Map<Integer, List<Integer>> adj, int[][] graphSubtreeData) {
+        int even = 1, odd = 0;
+        
+        for (int adjNode : adj.get(node)) {
+            if (adjNode == parent) {
+                continue;
+            }
+            dfs(adjNode, node, adj, graphSubtreeData);
+            even += graphSubtreeData[adjNode][1];
+            odd += graphSubtreeData[adjNode][0];
+        }
+        
+        graphSubtreeData[node][0] = even;
+        graphSubtreeData[node][1] = odd;
+    }
+}
+
+
+or
+
+
+class Solution {
+    public static class Tree {
+        public int size;
+        public List<List<Integer>> adjList;
+
+        public Tree(final int size) {
+            this.size = size;
+        }
+
+        public void construct(final int[][] edges) {
+            this.adjList = new ArrayList<>();
+
+            for (int i = 0; i < size; i++) {
+                adjList.add(new ArrayList<>());
+            }
+
+            for (final int[] edge : edges) {
+                adjList.get(edge[0]).add(edge[1]);
+                adjList.get(edge[1]).add(edge[0]);
+            }
+        }
+
+        public boolean[] colourBipartiteBfs() {
+            final boolean[] colour = new boolean[size];
+            final boolean[] visited = new boolean[size];
+            final Queue<Node> queue = new ArrayDeque<>();
+
+            visited[0] = true;
+            queue.add(new Node(0, false)); 
+
+            while(!queue.isEmpty()) {
+                final Node cur = queue.remove();
+
+                if (cur.even) colour[cur.ele] = true;
+
+                for (final int child : adjList.get(cur.ele)) {
+                    if (!visited[child]) {
+                        visited[child] = true;
+
+                        queue.add(new Node(child, !cur.even));
+                    }
+                }
+            }
+
+            return colour;
+        }
+
+        public static class Node {
+            public int ele;
+            public boolean even;
+
+            public Node (final int ele, final boolean even) {
+                this.ele = ele;
+                this.even = even;
+            }
+        }
+    }
+    public int[] maxTargetNodes(int[][] edges1, int[][] edges2) {
+        final int n = edges1.length + 1;
+        final int m = edges2.length + 1;
+
+        final Tree t1 = new Tree(n);
+        final Tree t2 = new Tree(m);
+
+        t1.construct(edges1);
+        t2.construct(edges2);
+
+        final boolean[] t1Colour = t1.colourBipartiteBfs();
+        final boolean[] t2Colour = t2.colourBipartiteBfs();
+
+        int t1Even = 0, t2Even = 0;
+
+        for (int i = 0; i < n; i++) {
+            if (t1Colour[i]) t1Even++;
+        }
+
+        for (int i = 0; i < m; i++) {
+            if (t2Colour[i]) t2Even++;
+        }
+
+        final int[] ans = new int[n];
+        final int max = Integer.max(t2Even, m - t2Even);
+
+        for (int i = 0; i < n; i++) {
+            ans[i] = max + (t1Colour[i] ? t1Even : n - t1Even);
+        }
+
+        return ans;
+    }
+}
+
+
+or
+
+
+import java.util.*;
+
+class Solution {
+    public static Map<Integer, List<Integer>> buildMapByEdges(int[][] edges) {
+        Map<Integer, List<Integer>> map = new HashMap<>();
+        for (int[] edge : edges) {
+            map.putIfAbsent(edge[0], new ArrayList<>());
+            map.putIfAbsent(edge[1], new ArrayList<>());
+            map.get(edge[0]).add(edge[1]);
+            map.get(edge[1]).add(edge[0]);
+        
+        }
+        
+        return map;
+    }
+
+    public static void buildCounts(int[] oddCount, int[] evenCount, Map<Integer, List<Integer>> map,int[] visited) {
+        retrieveFromChildDFS(oddCount, evenCount, map, 0,visited);
+        Arrays.fill(visited,0);
+        retrieveFromParentDFS(oddCount, evenCount, map, 0, -1,visited);
+    }
+
+    public static void retrieveFromChildDFS(int[] oddCount, int[] evenCount, Map<Integer, List<Integer>> map, int node,int[] visited) {
+        
+
+        oddCount[node] = 0;
+        evenCount[node] = 1;
+        List<Integer> children = map.get(node);
+
+        visited[node] = 1;
+
+        for (int child : children) {
+            if(visited[child]==0){
+                retrieveFromChildDFS(oddCount, evenCount, map, child,visited);
+                oddCount[node] += evenCount[child];
+                evenCount[node] += oddCount[child];
+                
+            }
+            
+        }
+        //System.out.println("ChildDFS node: " + node + ": oddCount[" + node + "]=" + oddCount[node] + ", evenCount[" + node + "]=" + evenCount[node]);
+        
+    }
+
+    public static void retrieveFromParentDFS(int[] oddCount, int[] evenCount, Map<Integer, List<Integer>> map, int node, int parent,int[] visited) {
+        if(visited[node]==1){
+            return;
+        }
+        if (parent != -1) {
+            oddCount[node] += evenCount[parent] - oddCount[node];
+            evenCount[node] += oddCount[parent] - evenCount[node];
+            //System.out.println("ParentDFS node: " + node + ": oddCount[" + node + "]=" + oddCount[node] + ", evenCount[" + node + "]=" + evenCount[node]);
+        }
+
+        List<Integer> children = map.get(node);
+        for (int child : children) {
+            if (child != parent) {
+                retrieveFromParentDFS(oddCount, evenCount, map, child, node,visited);
+            }
+        }
+
+    }
+
+    public int[] maxTargetNodes(int[][] edges1, int[][] edges2) {
+        Map<Integer, List<Integer>> tree1Map;
+        Map<Integer, List<Integer>> tree2Map;
+
+        tree1Map = buildMapByEdges(edges1);
+        tree2Map = buildMapByEdges(edges2);
+
+        //System.out.println("Tree 1 Map: " + tree1Map);
+        //System.out.println("Tree 2 Map: " + tree2Map);
+
+        int[] oddCountTree1 = new int[tree1Map.size()];
+        int[] evenCountTree1 = new int[tree1Map.size()];
+
+        int[] oddCountTree2 = new int[tree2Map.size()];
+        int[] evenCountTree2 = new int[tree2Map.size()];
+
+        int[] visited1 = new int[tree1Map.size()];
+        int[] visited2 = new int[tree2Map.size()];
+
+        buildCounts(oddCountTree1, evenCountTree1, tree1Map,visited1);
+        buildCounts(oddCountTree2, evenCountTree2, tree2Map,visited2);
+
+        //System.out.println("OddCount Tree 1: " + Arrays.toString(oddCountTree1));
+        //System.out.println("EvenCount Tree 1: " + Arrays.toString(evenCountTree1));
+        //System.out.println("OddCount Tree 2: " + Arrays.toString(oddCountTree2));
+        //System.out.println("EvenCount Tree 2: " + Arrays.toString(evenCountTree2));
+
+        int maxOddCount = -1;
+        for (int i : oddCountTree2) {
+            maxOddCount = Math.max(maxOddCount, i);
+        }
+
+        //System.out.println("Max Odd Count in Tree 2: " + maxOddCount);
+
+        int[] ans = new int[tree1Map.size()];
+        for (int i = 0; i < ans.length; i++) {
+            ans[i] = evenCountTree1[i] + maxOddCount;
+        }
+
+        //System.out.println("Final Answer Array: " + Arrays.toString(ans));
+        return ans;
+    }
+}
