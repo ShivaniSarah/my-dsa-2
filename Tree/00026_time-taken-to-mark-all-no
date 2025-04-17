@@ -1,0 +1,390 @@
+https://leetcode.com/problems/time-taken-to-mark-all-nodes/description/
+
+
+3241. Time Taken to Mark All Nodes
+Hard
+Topics
+Companies
+Hint
+There exists an undirected tree with n nodes numbered 0 to n - 1. You are given a 2D integer array edges of length n - 1, where edges[i] = [ui, vi] indicates that there is an edge between nodes ui and vi in the tree.
+
+Initially, all nodes are unmarked. For each node i:
+
+If i is odd, the node will get marked at time x if there is at least one node adjacent to it which was marked at time x - 1.
+If i is even, the node will get marked at time x if there is at least one node adjacent to it which was marked at time x - 2.
+Return an array times where times[i] is the time when all nodes get marked in the tree, if you mark node i at time t = 0.
+
+Note that the answer for each times[i] is independent, i.e. when you mark node i all other nodes are unmarked.
+
+ 
+
+Example 1:
+
+Input: edges = [[0,1],[0,2]]
+
+Output: [2,4,3]
+
+Explanation:
+
+
+
+For i = 0:
+Node 1 is marked at t = 1, and Node 2 at t = 2.
+For i = 1:
+Node 0 is marked at t = 2, and Node 2 at t = 4.
+For i = 2:
+Node 0 is marked at t = 2, and Node 1 at t = 3.
+Example 2:
+
+Input: edges = [[0,1]]
+
+Output: [1,2]
+
+Explanation:
+
+
+
+For i = 0:
+Node 1 is marked at t = 1.
+For i = 1:
+Node 0 is marked at t = 2.
+Example 3:
+
+Input: edges = [[2,4],[0,1],[2,3],[0,2]]
+
+Output: [4,6,3,5,5]
+
+Explanation:
+
+
+
+ 
+
+Constraints:
+
+2 <= n <= 105
+edges.length == n - 1
+edges[i].length == 2
+0 <= edges[i][0], edges[i][1] <= n - 1
+The input is generated such that edges represents a valid tree.
+
+
+
+# java
+
+
+class Solution {
+  public int[] timeTaken(int[][] edges) {
+    final int n = edges.length + 1;
+    int[] ans = new int[n];
+    List<Integer>[] tree = new List[n];
+    // dp[i] := the top two direct child nodes for subtree rooted at node i,
+    // where each node contains the time taken to mark the entire subtree rooted
+    // at the node itself
+    Top2[] dp = new Top2[n];
+
+    for (int i = 0; i < n; ++i) {
+      tree[i] = new ArrayList<>();
+      dp[i] = new Top2();
+    }
+
+    for (int[] edge : edges) {
+      final int u = edge[0];
+      final int v = edge[1];
+      tree[u].add(v);
+      tree[v].add(u);
+    }
+
+    dfs(tree, 0, /*prev=*/-1, dp);
+    reroot(tree, 0, /*prev=*/-1, /*maxTime=*/0, dp, ans);
+    return ans;
+  }
+
+  private record Node(int node, int time) {
+    Node() {
+      this(0, 0);
+    }
+  }
+
+  private record Top2(Node max1, Node max2) {
+    Top2() {
+      this(new Node(), new Node());
+    }
+  }
+
+  // Return the time taken to mark node u.
+  private int getTime(int u) {
+    return u % 2 == 0 ? 2 : 1;
+  }
+
+  // Performs a DFS traversal of the subtree rooted at node `u`, computes the
+  // time taken to mark all nodes in the subtree, records the top two direct
+  // child nodes, where the time taken to mark the subtree rooted at each of the
+  // child nodes is maximized, and returns the top child node.
+  //
+  // These values are used later in the rerooting process.
+  private int dfs(List<Integer>[] tree, int u, int prev, Top2[] dp) {
+    Node max1 = new Node();
+    Node max2 = new Node();
+    for (final int v : tree[u]) {
+      if (v == prev)
+        continue;
+      final int time = dfs(tree, v, u, dp) + getTime(v);
+      if (time >= max1.time()) {
+        max2 = max1;
+        max1 = new Node(v, time);
+      } else if (time > max2.time()) {
+        max2 = new Node(v, time);
+      }
+    }
+    dp[u] = new Top2(max1, max2);
+    return max1.time();
+  }
+
+  // Reroots the tree at node `u` and updates the answer array, where `maxTime`
+  // is the longest path that doesn't go through `u`'s subtree.
+  private void reroot(List<Integer>[] tree, int u, int prev, int maxTime, Top2[] dp, int[] ans) {
+    ans[u] = Math.max(maxTime, dp[u].max1().time());
+    for (final int v : tree[u]) {
+      if (v == prev)
+        continue;
+      final int newMaxTime =
+          getTime(u) +
+          Math.max(maxTime, dp[u].max1().node() == v ? dp[u].max2().time() : dp[u].max1().time());
+      reroot(tree, v, u, newMaxTime, dp, ans);
+    }
+  }
+}
+
+
+or
+
+
+class Solution {
+    public void dfs(int root, int prev, int[] ans, List<List<Integer>> adj, int[][] dp) {
+        int curr;
+        for (int j : adj.get(root)) {
+            if (j != prev) {
+                dfs(j, root, ans, adj, dp); // check max for child
+
+                curr = dp[j][0] + (j % 2 == 1 ? 1 : 2); // add for child value
+
+                if (curr > dp[root][0]) { // set maximum
+                    dp[root][1] = dp[root][0];
+                    dp[root][0] = curr;
+                } else if (curr > dp[root][1]) {
+                    dp[root][1] = curr;
+                }
+            }
+        }
+    }
+
+    public void findMax(int root, int prev, int incoming, int[] ans, List<List<Integer>> adj, int[][] dp) {
+        ans[root] = Math.max(dp[root][0], incoming); // max for root
+
+        int pa = (root % 2 == 1 ? 1 : 2);
+
+        int curr, x;
+
+        for (int j : adj.get(root)) {
+            if (j != prev) {
+                curr = dp[j][0] + (j % 2 == 1 ? 1 : 2); // curr value
+
+                if (curr == dp[root][0]) {
+                    x = dp[root][1]; // other
+                } else {
+                    x = dp[root][0];
+                }
+
+                findMax(j, root, Math.max(pa + incoming, pa + x), ans, adj, dp); // check for adjacent
+            }
+        }
+    }
+
+    public int[] timeTaken(int[][] edges) {
+        int n = edges.length + 1;
+        int[] ans = new int[n];
+        int[][] dp = new int[n][2];
+        List<List<Integer>> adj = new ArrayList<>();
+
+        for (int i = 0; i < n; i++) {
+            adj.add(new ArrayList<>());
+        }
+
+        // build adj list
+        for (int[] x : edges) {
+            adj.get(x[0]).add(x[1]);
+            adj.get(x[1]).add(x[0]);
+        }
+
+        // find max of both childs
+        dfs(0, -1, ans, adj, dp);
+
+        // find max of child and parent
+        findMax(0, -1, 0, ans, adj, dp);
+
+        return ans;
+        
+    }
+}
+
+
+
+or
+
+
+import java.util.*;
+
+class Solution {
+    // Adjacency list to store the tree structure
+    List<List<Integer>> adj;
+    // 2D array to store marking time for each node
+    int[][] time;
+    // Variable to track whether the current node is odd
+    boolean isOdd = false;
+
+    public int[] timeTaken(int[][] edges) {
+        int n = edges.length + 1; // Since there are (n-1) edges in a tree with n nodes
+        adj = new ArrayList<>();
+        time = new int[n][3]; // Stores {max time, second max time, child contributing to max}
+
+        // Initialize adjacency list
+        for (int i = 0; i < n; i++) {
+            adj.add(new ArrayList<>());
+        }
+
+        // Build adjacency list from the given edges
+        for (int[] edge : edges) {
+            adj.get(edge[0]).add(edge[1]);
+            adj.get(edge[1]).add(edge[0]);
+        }
+
+        // Step 1: Perform a bottom-up DFS to compute downward marking times
+        computeDownwardMarkingTimes(0, -1);
+
+        // Step 2: Perform a top-down DFS to compute final marking times
+        int[] ans = new int[n];
+        ans[0] = time[0][0]; // Root node marking time
+        computeFinalMarkingTimes(0, -1, ans);
+
+        return ans;
+    }
+
+    /**
+     * First DFS (Bottom-Up)
+     * Computes the marking time from child nodes to parent.
+     * Stores the longest and second longest marking times for each node.
+     */
+    private int computeDownwardMarkingTimes(int node, int parent) {
+        int[] temp = new int[3];
+        temp[2] = -1; // Initialize to -1 (no child contributing yet)
+
+        for (int neighbor : adj.get(node)) {
+            if (neighbor == parent) continue; // Skip parent node to prevent cycles
+
+            int newPath = computeDownwardMarkingTimes(neighbor, node) + (isOdd ? 1 : 2);
+
+            // Update the longest and second longest marking times for the node
+            if (temp[0] < newPath) {
+                temp[1] = temp[0]; // Update second max time
+                temp[0] = newPath; // Update max time
+                temp[2] = neighbor; // Store the child contributing to max time
+            } else if (temp[1] < newPath) {
+                temp[1] = newPath; // Update second max time
+            }
+        }
+
+        isOdd = node % 2 == 1; // Update odd/even status
+        time[node] = temp;
+        return Math.max(temp[0], temp[1]);
+    }
+
+    /**
+     * Second DFS (Top-Down)
+     * Adjusts marking times considering parent contributions.
+     */
+    private void computeFinalMarkingTimes(int node, int parent, int[] ans) {
+        for (int neighbor : adj.get(node)) {
+            if (neighbor == parent) continue; // Skip parent node
+
+            // Compute marking time considering parent contribution
+            int newPath;
+            if (time[node][2] == neighbor) {
+                newPath = time[node][1] + (node % 2 == 0 ? 2 : 1);
+            } else {
+                newPath = time[node][0] + (node % 2 == 0 ? 2 : 1);
+            }
+
+            ans[neighbor] = Math.max(time[neighbor][0], newPath);
+
+            // Update the longest and second longest marking times for the node
+            if (time[neighbor][0] < newPath) {
+                time[neighbor][1] = time[neighbor][0]; // Update second max time
+                time[neighbor][0] = newPath; // Update max time
+                time[neighbor][2] = node; // Store the child contributing to max time
+            } else if (time[neighbor][1] < newPath) {
+                time[neighbor][1] = newPath; // Update second max time
+            }
+
+            // Recursive call for the child node
+            computeFinalMarkingTimes(neighbor, node, ans);
+        }
+    }
+}
+
+
+
+or
+
+
+class Solution {
+    	public void dfs(int node, int parent, int[] dp1, int[] dp2, List<List<Integer>> gp) {
+		for(int child : gp.get(node)) {
+			if(child == parent) continue;
+			dfs(child, node, dp1, dp2, gp);
+			int value = dp1[child] + (child % 2 == 0 ? 2 : 1);
+			if(dp1[node] <= value) {
+				dp2[node] = dp1[node];
+				dp1[node] = value;
+			} else if(dp2[node] < value) {
+				dp2[node] = value;
+			}
+		}
+	}
+
+	public void dfs2(int node, int parent, int[] dp1, int[] dp2, List<List<Integer>> gp, int incoming) {
+		if(incoming >= dp1[node]){
+            dp2[node] = dp1[node];
+            dp1[node] = incoming;
+        } else if(incoming > dp2[node])
+            dp2[node] = incoming;
+
+		for(int child : gp.get(node)) {
+			if(child == parent) continue;
+			int childValue = dp1[child] + (child % 2 == 0 ? 2 : 1);
+			int value = dp1[node] == childValue ? dp2[node] : dp1[node];
+			dfs2(child, node, dp1, dp2, gp, value + (node % 2 == 0 ? 2 : 1));
+		}
+	}
+
+	public int[] timeTaken(int[][] ed) {
+		int size = ed.length;
+		int[] dp1 = new int[size + 1];
+		int[] dp2 = new int[size + 1];
+		List<List<Integer>> gp = new ArrayList<>();
+		for(int i = 0; i <= size; i++)
+			gp.add(new ArrayList<>());
+
+		for(int[] edge : ed) {
+			gp.get(edge[0]).add(edge[1]);
+			gp.get(edge[1]).add(edge[0]);
+		}
+
+		dfs(0, -1 , dp1, dp2, gp);
+		dfs2(0, -1, dp1, dp2, gp, -1);
+		return dp1;
+
+	}
+}
+
+
