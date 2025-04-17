@@ -1,0 +1,128 @@
+https://leetcode.com/problems/reconstruct-itinerary/description/
+
+
+332. Reconstruct Itinerary
+Hard
+Topics
+Companies
+You are given a list of airline tickets where tickets[i] = [fromi, toi] represent the departure and the arrival airports of one flight. Reconstruct the itinerary in order and return it.
+
+All of the tickets belong to a man who departs from "JFK", thus, the itinerary must begin with "JFK". If there are multiple valid itineraries, you should return the itinerary that has the smallest lexical order when read as a single string.
+
+For example, the itinerary ["JFK", "LGA"] has a smaller lexical order than ["JFK", "LGB"].
+You may assume all tickets form at least one valid itinerary. You must use all the tickets once and only once.
+
+ 
+
+Example 1:
+
+
+Input: tickets = [["MUC","LHR"],["JFK","MUC"],["SFO","SJC"],["LHR","SFO"]]
+Output: ["JFK","MUC","LHR","SFO","SJC"]
+Example 2:
+
+
+Input: tickets = [["JFK","SFO"],["JFK","ATL"],["SFO","ATL"],["ATL","JFK"],["ATL","SFO"]]
+Output: ["JFK","ATL","JFK","SFO","ATL","SFO"]
+Explanation: Another possible reconstruction is ["JFK","SFO","ATL","JFK","ATL","SFO"] but it is larger in lexical order.
+ 
+
+Constraints:
+
+1 <= tickets.length <= 300
+tickets[i].length == 2
+fromi.length == 3
+toi.length == 3
+fromi and toi consist of uppercase English letters.
+fromi != toi
+
+
+
+# java
+
+
+class Solution {
+    void dfs(Map<String, Queue<String>> adjLists, List<String> ans, String curr) {
+        Queue<String> neighbors = adjLists.get(curr);
+        if (neighbors == null) {
+            ans.add(curr);
+            return;
+        }
+        while (!neighbors.isEmpty()) {
+            String neighbor = neighbors.poll();
+            dfs(adjLists, ans, neighbor);
+        }
+        ans.add(curr);
+        return;
+    }
+
+    public List<String> findItinerary(List<List<String>> tickets) {
+        Map<String, Queue<String>> adjLists = new HashMap<>();
+        for (List<String> ticket : tickets) {
+            String from = ticket.get(0);
+            String to = ticket.get(1);
+            if (!adjLists.containsKey(from)) {
+                adjLists.put(from, new PriorityQueue<>());
+            }
+            adjLists.get(from).add(to);
+        }
+        List<String> ans = new ArrayList<>();
+        dfs(adjLists, ans, "JFK");
+        Collections.reverse(ans);
+        return ans;
+    }
+}
+
+
+or
+
+class Solution {
+    public List<String> findItinerary(List<List<String>> tickets) {
+        Map<String, PriorityQueue<String>> graph = new HashMap<>();
+        
+        for (List<String> ticket : tickets) {
+            graph.putIfAbsent(ticket.get(0), new PriorityQueue<>());
+            graph.get(ticket.get(0)).add(ticket.get(1));
+        }
+        
+        LinkedList<String> itinerary = new LinkedList<>();
+        
+        dfs("JFK", graph, itinerary);
+        
+        return itinerary;
+    }
+    
+    private void dfs(String airport, Map<String, PriorityQueue<String>> graph, LinkedList<String> itinerary) {
+        PriorityQueue<String> nextAirports = graph.get(airport);
+        while (nextAirports != null && !nextAirports.isEmpty()) {
+            dfs(nextAirports.poll(), graph, itinerary);
+        }
+        itinerary.addFirst(airport);
+    }
+}
+
+or
+
+
+class Solution {
+    public List<String> findItinerary(List<List<String>> tickets) {
+        Map<String, PriorityQueue<String>> graph = new HashMap<>();
+        
+        for (List<String> ticket : tickets) {
+            graph.computeIfAbsent(ticket.get(0), k -> new PriorityQueue<>()).add(ticket.get(1));
+        }
+        
+        LinkedList<String> stack = new LinkedList<>();
+        stack.add("JFK");
+        LinkedList<String> itinerary = new LinkedList<>();
+        
+        while (!stack.isEmpty()) {
+            while (graph.getOrDefault(stack.peekLast(), new PriorityQueue<>()).size() > 0) {
+                stack.add(graph.get(stack.peekLast()).poll());
+            }
+            itinerary.addFirst(stack.pollLast());
+        }
+        
+        return itinerary;
+    }
+}
