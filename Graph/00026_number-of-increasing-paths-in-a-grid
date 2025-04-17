@@ -1,0 +1,289 @@
+https://leetcode.com/problems/number-of-increasing-paths-in-a-grid/description/
+
+
+2328. Number of Increasing Paths in a Grid
+Hard
+Topics
+Companies
+Hint
+You are given an m x n integer matrix grid, where you can move from a cell to any adjacent cell in all 4 directions.
+
+Return the number of strictly increasing paths in the grid such that you can start from any cell and end at any cell. Since the answer may be very large, return it modulo 109 + 7.
+
+Two paths are considered different if they do not have exactly the same sequence of visited cells.
+
+ 
+
+Example 1:
+
+
+Input: grid = [[1,1],[3,4]]
+Output: 8
+Explanation: The strictly increasing paths are:
+- Paths with length 1: [1], [1], [3], [4].
+- Paths with length 2: [1 -> 3], [1 -> 4], [3 -> 4].
+- Paths with length 3: [1 -> 3 -> 4].
+The total number of paths is 4 + 3 + 1 = 8.
+Example 2:
+
+Input: grid = [[1],[2]]
+Output: 3
+Explanation: The strictly increasing paths are:
+- Paths with length 1: [1], [2].
+- Paths with length 2: [1 -> 2].
+The total number of paths is 2 + 1 = 3.
+ 
+
+Constraints:
+
+m == grid.length
+n == grid[i].length
+1 <= m, n <= 1000
+1 <= m * n <= 105
+1 <= grid[i][j] <= 105
+
+
+# java
+
+
+
+class Solution {
+    private int[][] f;
+    private int[][] grid;
+    private int m;
+    private int n;
+    private final int mod = (int) 1e9 + 7;
+
+    public int countPaths(int[][] grid) {
+        m = grid.length;
+        n = grid[0].length;
+        this.grid = grid;
+        f = new int[m][n];
+        int ans = 0;
+        for (int i = 0; i < m; ++i) {
+            for (int j = 0; j < n; ++j) {
+                ans = (ans + dfs(i, j)) % mod;
+            }
+        }
+        return ans;
+    }
+
+    private int dfs(int i, int j) {
+        if (f[i][j] != 0) {
+            return f[i][j];
+        }
+        int ans = 1;
+        int[] dirs = {-1, 0, 1, 0, -1};
+        for (int k = 0; k < 4; ++k) {
+            int x = i + dirs[k], y = j + dirs[k + 1];
+            if (x >= 0 && x < m && y >= 0 && y < n && grid[i][j] < grid[x][y]) {
+                ans = (ans + dfs(x, y)) % mod;
+            }
+        }
+        return f[i][j] = ans;
+    }
+}
+
+
+or
+
+
+class Solution {
+  public int countPaths(int[][] grid) {
+    final int m = grid.length;
+    final int n = grid[0].length;
+    int ans = 0;
+    Integer[][] mem = new Integer[m][n];
+
+    for (int i = 0; i < m; ++i)
+      for (int j = 0; j < n; ++j) {
+        ans += countPaths(grid, i, j, mem);
+        ans %= MOD;
+      }
+
+    return ans;
+  }
+
+  private static final int MOD = 1_000_000_007;
+  private static final int[][] DIRS = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
+
+  // Returns the number of increasing paths starting from (i, j).
+  private int countPaths(int[][] grid, int i, int j, Integer[][] mem) {
+    if (mem[i][j] != null)
+      return mem[i][j];
+
+    mem[i][j] = 1; // The current cell contributes 1 length.
+
+    for (int[] dir : DIRS) {
+      int x = i + dir[0];
+      int y = j + dir[1];
+      if (x < 0 || x == grid.length || y < 0 || y == grid[0].length)
+        continue;
+      if (grid[x][y] <= grid[i][j])
+        continue;
+      mem[i][j] += countPaths(grid, x, y, mem);
+      mem[i][j] %= MOD;
+    }
+
+    return mem[i][j];
+  }
+}
+
+
+or
+
+
+class Solution {
+    int[][] dir = {{0, 1}, {1, 0}, {-1, 0}, {0, -1}};
+    public int countPaths(int[][] grid) {
+        int mod = (int) 1e9 + 7;
+        int m = grid.length, n = grid[0].length;
+        int[][] in = new int[m][n];
+        int[] dp = new int[m * n];
+        Arrays.fill(dp, 1);
+        Queue<Integer> queue = new LinkedList();
+
+        for (int i = 0; i < m; i++) {
+            for (int j = 0; j < n; j++) {
+                for (int[] d : dir) {
+                    int r = i + d[0];
+                    int c = j + d[1];
+                    if(!isValid(m, n, r, c))
+                        continue;
+                    if(grid[i][j] > grid[r][c])
+                        in[i][j]++;
+                }
+                if(in[i][j] == 0) {
+                    queue.offer(i * n + j);
+                }
+            }
+        }
+
+        while(!queue.isEmpty()) {
+            int element = queue.poll();
+            int r = element / n;
+            int c = element % n;
+
+            for (int[] d : dir) {
+                int rdash = r + d[0];
+                int cdash = c + d[1];
+                if(!isValid(m, n, rdash, cdash))
+                    continue;
+                if(grid[rdash][cdash] > grid[r][c]) {
+                    int cell = rdash * n + cdash;
+                    dp[cell] = (dp[cell] + dp[element]) % mod;
+                    in[rdash][cdash]--;
+                    if(in[rdash][cdash] == 0) {
+                        queue.offer(cell);
+                    }
+                }
+            }
+        }
+        int incPaths = 0;
+        for(int val : dp) {
+            incPaths = (incPaths + val) % mod;
+        }
+        return incPaths;
+    }
+    public boolean isValid(int m, int n, int r, int c) {
+        return r >= 0 && r < m && c >= 0 && c < n;
+    }
+}
+
+
+or
+
+
+class Solution {
+    int mod = (int)1e9+7;
+
+    // Topological sorting
+    private int countPathsHelp(List<List<Integer>> adj) {
+        int n = adj.size(), cnt = 0;
+        int indeg[] = new int[n], path[] = new int[n];
+        Arrays.fill(path, 1);
+
+        for(int i=0; i<n; i++){
+            for(int nbr : adj.get(i))
+                indeg[nbr]++;
+        }
+
+        Queue<Integer> q = new LinkedList<>();
+        for(int i=0; i<n; i++) if(indeg[i] == 0) q.add(i);
+
+        while(q.size()>0){
+            int node = q.poll();
+            cnt = (cnt + path[node])%mod;
+
+            for(Integer nbr : adj.get(node)){
+                path[nbr] = (path[nbr] + path[node])%mod;
+                indeg[nbr]--;
+                if(indeg[nbr] == 0 ) q.add(nbr);
+            }
+        }
+        return cnt;
+    }
+
+
+    public int countPaths(int[][] g) {
+        int n = g.length, m = g[0].length;
+        int ways[][] = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}};
+        List<List<Integer>> adj = new ArrayList<>();
+        for(int i=0; i<n*m; i++) adj.add(new ArrayList<>());
+
+        for(int i=0; i<n; i++){
+            for(int j=0; j<m; j++){
+                for(int[] w : ways){
+                    int x = i + w[0], y = j + w[1];
+                    if( x>=0 && y>=0 && x<n && y<m && g[i][j] < g[x][y] ) 
+                        adj.get(m*i+j).add(m*x+y);
+                }
+            }
+        }
+        return countPathsHelp(adj);
+    }
+}
+
+
+
+or
+
+
+
+class Solution {
+    int mod = (int)(1e9+7);
+    public int countPaths(int[][] grid) {
+        int n = grid.length;
+        int m = grid[0].length;
+        
+        int[][] dp = new int[n][m];
+        for(int[] arr: dp){
+            Arrays.fill(arr, -1);
+        }
+        int paths = 0;
+        for(int i=0; i<n; i++){
+            for(int j=0; j<m; j++){
+                paths = (paths+solve(grid, i, j, -1, dp))%mod;
+            }
+        }
+        
+        return paths;
+    }
+    
+    public int solve(int[][] grid, int i, int j, int prev, int[][] dp){
+        if(i<0 || j<0 || i>=grid.length || j>=grid[0].length || grid[i][j]<=prev){
+            return 0;
+        }
+        
+        if(dp[i][j]!=-1){
+            return dp[i][j];
+        }
+        
+        int left = solve(grid, i, j-1, grid[i][j], dp);
+        int right = solve(grid, i, j+1, grid[i][j], dp);
+        int up = solve(grid, i-1, j, grid[i][j], dp);
+        int down = solve(grid, i+1, j, grid[i][j], dp);
+        
+        return dp[i][j] = (1+left+right+up+down)%mod;
+    }
+}
