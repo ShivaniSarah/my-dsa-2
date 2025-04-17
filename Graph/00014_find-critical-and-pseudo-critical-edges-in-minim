@@ -1,0 +1,230 @@
+https://leetcode.com/problems/find-critical-and-pseudo-critical-edges-in-minimum-spanning-tree/
+
+
+1489. Find Critical and Pseudo-Critical Edges in Minimum Spanning Tree
+Hard
+Topics
+Companies
+Hint
+Given a weighted undirected connected graph with n vertices numbered from 0 to n - 1, and an array edges where edges[i] = [ai, bi, weighti] represents a bidirectional and weighted edge between nodes ai and bi. A minimum spanning tree (MST) is a subset of the graph's edges that connects all vertices without cycles and with the minimum possible total edge weight.
+
+Find all the critical and pseudo-critical edges in the given graph's minimum spanning tree (MST). An MST edge whose deletion from the graph would cause the MST weight to increase is called a critical edge. On the other hand, a pseudo-critical edge is that which can appear in some MSTs but not all.
+
+Note that you can return the indices of the edges in any order.
+
+ 
+
+Example 1:
+
+
+
+Input: n = 5, edges = [[0,1,1],[1,2,1],[2,3,2],[0,3,2],[0,4,3],[3,4,3],[1,4,6]]
+Output: [[0,1],[2,3,4,5]]
+Explanation: The figure above describes the graph.
+The following figure shows all the possible MSTs:
+
+Notice that the two edges 0 and 1 appear in all MSTs, therefore they are critical edges, so we return them in the first list of the output.
+The edges 2, 3, 4, and 5 are only part of some MSTs, therefore they are considered pseudo-critical edges. We add them to the second list of the output.
+Example 2:
+
+
+
+Input: n = 4, edges = [[0,1,1],[1,2,1],[2,3,1],[0,3,1]]
+Output: [[],[0,1,2,3]]
+Explanation: We can observe that since all 4 edges have equal weight, choosing any 3 edges from the given 4 will yield an MST. Therefore all 4 edges are pseudo-critical.
+ 
+
+Constraints:
+
+2 <= n <= 100
+1 <= edges.length <= min(200, n * (n - 1) / 2)
+edges[i].length == 3
+0 <= ai < bi < n
+1 <= weighti <= 1000
+All pairs (ai, bi) are distinct.
+
+
+# java
+
+class UnionFind {
+  public UnionFind(int n) {
+    id = new int[n];
+    rank = new int[n];
+    for (int i = 0; i < n; ++i)
+      id[i] = i;
+  }
+
+  public void unionByRank(int u, int v) {
+    final int i = find(u);
+    final int j = find(v);
+    if (i == j)
+      return;
+    if (rank[i] < rank[j]) {
+      id[i] = j;
+    } else if (rank[i] > rank[j]) {
+      id[j] = i;
+    } else {
+      id[i] = j;
+      ++rank[j];
+    }
+  }
+
+  public int find(int u) {
+    return id[u] == u ? u : (id[u] = find(id[u]));
+  }
+
+  private int[] id;
+  private int[] rank;
+}
+
+class Solution {
+  public List<List<Integer>> findCriticalAndPseudoCriticalEdges(int n, int[][] edges) {
+    List<Integer> criticalEdges = new ArrayList<>();
+    List<Integer> pseudoCriticalEdges = new ArrayList<>();
+
+    // Record the index information, so edges[i] := (u, v, weight, index).
+    for (int i = 0; i < edges.length; ++i)
+      edges[i] = new int[] {edges[i][0], edges[i][1], edges[i][2], i};
+
+    // Sort by the weight.
+    Arrays.sort(edges, Comparator.comparingInt(edge -> edge[2]));
+
+    final int mstWeight = getMSTWeight(n, edges, new int[] {}, -1);
+
+    for (int[] edge : edges) {
+      final int index = edge[3];
+      // Deleting the `edge` increases the MST's weight or makes the MST
+      // invalid.
+      if (getMSTWeight(n, edges, new int[] {}, index) > mstWeight)
+        criticalEdges.add(index);
+      // If an edge can be in any MST, we can always add `edge` to the edge set.
+      else if (getMSTWeight(n, edges, edge, -1) == mstWeight)
+        pseudoCriticalEdges.add(index);
+    }
+
+    return List.of(criticalEdges, pseudoCriticalEdges);
+  }
+
+  private int getMSTWeight(int n, int[][] edges, int[] firstEdge, int deletedEdgeIndex) {
+    int mstWeight = 0;
+    UnionFind uf = new UnionFind(n);
+
+    if (firstEdge.length == 4) {
+      uf.unionByRank(firstEdge[0], firstEdge[1]);
+      mstWeight += firstEdge[2];
+    }
+
+    for (int[] edge : edges) {
+      final int u = edge[0];
+      final int v = edge[1];
+      final int weight = edge[2];
+      final int index = edge[3];
+      if (index == deletedEdgeIndex)
+        continue;
+      if (uf.find(u) == uf.find(v))
+        continue;
+      uf.unionByRank(u, v);
+      mstWeight += weight;
+    }
+
+    final int root = uf.find(0);
+    for (int i = 0; i < n; ++i)
+      if (uf.find(i) != root)
+        return Integer.MAX_VALUE;
+
+    return mstWeight;
+  }
+}
+
+
+
+or
+
+
+class Solution {
+    public List<List<Integer>> findCriticalAndPseudoCriticalEdges(int n, int[][] edges) {
+        for (int i = 0; i < edges.length; ++i) {
+            int[] e = edges[i];
+            int[] t = new int[4];
+            System.arraycopy(e, 0, t, 0, 3);
+            t[3] = i;
+            edges[i] = t;
+        }
+        Arrays.sort(edges, Comparator.comparingInt(a -> a[2]));
+        int v = 0;
+        UnionFind uf = new UnionFind(n);
+        for (int[] e : edges) {
+            int f = e[0], t = e[1], w = e[2];
+            if (uf.union(f, t)) {
+                v += w;
+            }
+        }
+        List<List<Integer>> ans = new ArrayList<>();
+        for (int i = 0; i < 2; ++i) {
+            ans.add(new ArrayList<>());
+        }
+        for (int[] e : edges) {
+            int f = e[0], t = e[1], w = e[2], i = e[3];
+            uf = new UnionFind(n);
+            int k = 0;
+            for (int[] ne : edges) {
+                int x = ne[0], y = ne[1], z = ne[2], j = ne[3];
+                if (j != i && uf.union(x, y)) {
+                    k += z;
+                }
+            }
+            if (uf.getN() > 1 || (uf.getN() == 1 && k > v)) {
+                ans.get(0).add(i);
+                continue;
+            }
+            uf = new UnionFind(n);
+            uf.union(f, t);
+            k = w;
+            for (int[] ne : edges) {
+                int x = ne[0], y = ne[1], z = ne[2], j = ne[3];
+                if (j != i && uf.union(x, y)) {
+                    k += z;
+                }
+            }
+            if (k == v) {
+                ans.get(1).add(i);
+            }
+        }
+        return ans;
+    }
+}
+
+class UnionFind {
+    private int[] p;
+    private int n;
+
+    public UnionFind(int n) {
+        p = new int[n];
+        this.n = n;
+        for (int i = 0; i < n; ++i) {
+            p[i] = i;
+        }
+    }
+
+    public int getN() {
+        return n;
+    }
+
+    public boolean union(int a, int b) {
+        if (find(a) == find(b)) {
+            return false;
+        }
+        p[find(a)] = find(b);
+        --n;
+        return true;
+    }
+
+    public int find(int x) {
+        if (p[x] != x) {
+            p[x] = find(p[x]);
+        }
+        return p[x];
+    }
+}
+
+
