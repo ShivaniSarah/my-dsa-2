@@ -1,0 +1,316 @@
+https://leetcode.com/problems/gcd-sort-of-an-array/description/
+
+1998. GCD Sort of an Array
+Hard
+Topics
+Companies
+Hint
+You are given an integer array nums, and you can perform the following operation any number of times on nums:
+
+Swap the positions of two elements nums[i] and nums[j] if gcd(nums[i], nums[j]) > 1 where gcd(nums[i], nums[j]) is the greatest common divisor of nums[i] and nums[j].
+Return true if it is possible to sort nums in non-decreasing order using the above swap method, or false otherwise.
+
+ 
+
+Example 1:
+
+Input: nums = [7,21,3]
+Output: true
+Explanation: We can sort [7,21,3] by performing the following operations:
+- Swap 7 and 21 because gcd(7,21) = 7. nums = [21,7,3]
+- Swap 21 and 3 because gcd(21,3) = 3. nums = [3,7,21]
+Example 2:
+
+Input: nums = [5,2,6,2]
+Output: false
+Explanation: It is impossible to sort the array because 5 cannot be swapped with any other element.
+Example 3:
+
+Input: nums = [10,5,9,3,15]
+Output: true
+We can sort [10,5,9,3,15] by performing the following operations:
+- Swap 10 and 15 because gcd(10,15) = 5. nums = [15,5,9,3,10]
+- Swap 15 and 3 because gcd(15,3) = 3. nums = [3,5,9,15,10]
+- Swap 10 and 15 because gcd(10,15) = 5. nums = [3,5,9,10,15]
+ 
+
+Constraints:
+
+1 <= nums.length <= 3 * 104
+2 <= nums[i] <= 105
+
+
+# java
+
+class UnionFind {
+  public UnionFind(int n) {
+    id = new int[n];
+    rank = new int[n];
+    for (int i = 0; i < n; ++i)
+      id[i] = i;
+  }
+
+  public void unionByRank(int u, int v) {
+    final int i = find(u);
+    final int j = find(v);
+    if (i == j)
+      return;
+    if (rank[i] < rank[j]) {
+      id[i] = j;
+    } else if (rank[i] > rank[j]) {
+      id[j] = i;
+    } else {
+      id[i] = j;
+      ++rank[j];
+    }
+  }
+
+  public int find(int u) {
+    return id[u] == u ? u : (id[u] = find(id[u]));
+  }
+
+  private int[] id;
+  private int[] rank;
+}
+
+class Solution {
+  public boolean gcdSort(int[] nums) {
+    final int mx = Arrays.stream(nums).max().getAsInt();
+    final int[] minPrimeFactors = sieveEratosthenes(mx + 1);
+    UnionFind uf = new UnionFind(mx + 1);
+
+    for (final int num : nums)
+      for (final int primeFactor : getPrimeFactors(num, minPrimeFactors))
+        uf.unionByRank(num, primeFactor);
+
+    int[] sortedNums = nums.clone();
+    Arrays.sort(sortedNums);
+
+    for (int i = 0; i < nums.length; ++i)
+      // Can't swap nums[i] with sortedNums[i].
+      if (uf.find(nums[i]) != uf.find(sortedNums[i]))
+        return false;
+
+    return true;
+  }
+
+  // Gets the minimum prime factor of i, where 1 < i <= n.
+  private int[] sieveEratosthenes(int n) {
+    int[] minPrimeFactors = new int[n + 1];
+    for (int i = 2; i <= n; ++i)
+      minPrimeFactors[i] = i;
+    for (int i = 2; i * i < n; ++i)
+      if (minPrimeFactors[i] == i) // `i` is prime.
+        for (int j = i * i; j < n; j += i)
+          minPrimeFactors[j] = Math.min(minPrimeFactors[j], i);
+    return minPrimeFactors;
+  }
+
+  private List<Integer> getPrimeFactors(int num, int[] minPrimeFactors) {
+    List<Integer> primeFactors = new ArrayList<>();
+    while (num > 1) {
+      final int divisor = minPrimeFactors[num];
+      primeFactors.add(divisor);
+      while (num % divisor == 0)
+        num /= divisor;
+    }
+    return primeFactors;
+  }
+}
+
+
+or
+
+
+class Solution {
+    private int[] p;
+
+    public boolean gcdSort(int[] nums) {
+        int n = 100010;
+        p = new int[n];
+        Map<Integer, List<Integer>> f = new HashMap<>();
+        for (int i = 0; i < n; ++i) {
+            p[i] = i;
+        }
+        int mx = 0;
+        for (int num : nums) {
+            mx = Math.max(mx, num);
+        }
+        for (int i = 2; i <= mx; ++i) {
+            if (f.containsKey(i)) {
+                continue;
+            }
+            for (int j = i; j <= mx; j += i) {
+                f.computeIfAbsent(j, k -> new ArrayList<>()).add(i);
+            }
+        }
+        for (int i : nums) {
+            for (int j : f.get(i)) {
+                p[find(i)] = find(j);
+            }
+        }
+        int[] s = new int[nums.length];
+        System.arraycopy(nums, 0, s, 0, nums.length);
+        Arrays.sort(s);
+        for (int i = 0; i < nums.length; ++i) {
+            if (s[i] != nums[i] && find(nums[i]) != find(s[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    int find(int x) {
+        if (p[x] != x) {
+            p[x] = find(p[x]);
+        }
+        return p[x];
+    }
+}
+
+
+or
+
+class Solution {
+    
+    // Important concepts 
+    
+      // 1) if a can be swapped with b && a can be swapped with c => b can be swapped with c
+      // eg -> a= 3 , b = 9 , c = 15;
+      
+      // 2) we have to make connected components with numbers having same gcd
+    
+    // IMPORTANT
+    /*
+     // 3) gcd of two numbers would be a number that divides both of them
+          //  but finding gcd would be a n^2 task   
+    
+    // 4) so we will pair numbers with there prime factors 
+      //  and prime factors start from 2 so the rule of gcd(a,b)>1 will also not be broken
+    
+    */
+    
+    int[] par;
+    public int findPar(int u){
+        if(par[u]==u) return u;
+        
+        return par[u] = findPar(par[u]);
+    }
+    
+
+    
+    public boolean gcdSort(int[] nums) {
+        
+        par = new int[100005];
+        
+        for(int i=0;i<100005;i++){
+            par[i] = i;
+        }
+    
+            
+        for(int e : nums){
+            
+            int c = e;
+            
+            // finding prime factors
+            for(int i=2;i<=Math.sqrt(c);i++){
+                if(c%i==0){
+                    
+                    int p1 = findPar(c);
+                    int p2 = findPar(i);
+                    
+                    // union(c,i);
+                    
+                    if(p1!=p2){
+                        par[p2] = p1;
+                    }
+                    
+                    int p3 = findPar(c/i);
+                    
+                    if(p1!=p3){
+                        par[p3] = p1;
+                    }
+                    
+                    // union(c,c/i);
+                }
+            }
+            
+        }
+        
+        // cloning nums
+        int[] temp = nums.clone();
+        
+        Arrays.sort(temp);
+        
+        for(int i=0;i<nums.length;i++){
+            
+            // if at a certain point the ith elements in sorted array and nums dont match 
+            // => they don't belong to the same component the can not be swapped
+            if(nums[i]!=temp[i]){
+                if(findPar(nums[i])!=findPar(temp[i])) return false;
+            }
+        }
+        
+        return true;
+    }
+}
+
+
+or
+
+
+class Solution {
+    public boolean gcdSort(int[] nums) {
+        int[] A = nums.clone();
+        Arrays.sort(A);
+        int N = A[A.length-1];
+        UF uf = new UF(N+1);
+        boolean[] present = new boolean[N+1];
+        for (int n : A){ // so that we can look up whether an element is in the array in O(1)
+            present[n] = true;
+        }
+        for (int i = 2; i <= N; i++){ // sieve
+            for (int j = i, prev=-1; j <= N; j+=i){
+                if (present[j]){
+                    uf.union(prev, j);
+                    prev = j;
+                }
+            }
+        }
+        for (int i = 0; i < A.length; i++){ // verify everything.
+            if (uf.find(A[i]) != uf.find(nums[i])){
+                return false;
+            }
+        }
+        return true;
+    }
+    
+    private class UF {
+        int[] parent;
+        int[] rank;
+        UF (int n){
+            parent = IntStream.range(0, n).toArray();
+            rank = new int[n];
+        }
+        int find(int x){
+            return x == parent[x]? x : (parent[x] = find(parent[x]));
+        }
+        void union(int x, int y){
+            if (x < 0 || y < 0){
+                return;
+            }
+            x = find(x); y = find(y);
+            if (x == y){
+                return;
+            }
+            if (rank[x] > rank[y]){
+                parent[y] = x;
+            }else{
+                parent[x] = y;
+                if (rank[x] == rank[y]){
+                    rank[y]++;
+                }
+            }
+        }
+    }
+}
