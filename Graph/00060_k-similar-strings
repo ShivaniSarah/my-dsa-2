@@ -1,0 +1,451 @@
+https://leetcode.com/problems/k-similar-strings/description/
+
+854. K-Similar Strings
+Hard
+Topics
+Companies
+Strings s1 and s2 are k-similar (for some non-negative integer k) if we can swap the positions of two letters in s1 exactly k times so that the resulting string equals s2.
+
+Given two anagrams s1 and s2, return the smallest k for which s1 and s2 are k-similar.
+
+ 
+
+Example 1:
+
+Input: s1 = "ab", s2 = "ba"
+Output: 1
+Explanation: The two string are 1-similar because we can use one swap to change s1 to s2: "ab" --> "ba".
+Example 2:
+
+Input: s1 = "abc", s2 = "bca"
+Output: 2
+Explanation: The two strings are 2-similar because we can use two swaps to change s1 to s2: "abc" --> "bac" --> "bca".
+ 
+
+Constraints:
+
+1 <= s1.length <= 20
+s2.length == s1.length
+s1 and s2 contain only lowercase letters from the set {'a', 'b', 'c', 'd', 'e', 'f'}.
+s2 is an anagram of s1.
+
+
+
+# java
+
+
+class Solution {
+    String[] alphabet = new String[]{"a", "b", "c", "d", "e", "f"};
+    Map<String, Integer> memo;
+
+    public int kSimilarity(String A, String B) {
+        if (A.equals(B)) return 0;
+        int N = A.length();
+        memo = new HashMap();
+        int ans = 0;
+
+        int[] count = new int[alphabet.length * alphabet.length];
+        for (int i = 0; i < N; ++i)
+            if (A.charAt(i) != B.charAt(i)) {
+                count[alphabet.length * (A.charAt(i) - 'a') + (B.charAt(i) - 'a')]++;
+                ans++;
+            }
+
+        List<int[]> possibles = new ArrayList();
+        // Enumerate over every cycle
+        for (int size = 2; size <= alphabet.length; ++size)
+            search: for (String cycle: permutations(alphabet, 0, size)) {
+                // Check if cycle is canonical
+                for (int i = 1; i < size; ++i)
+                    if (cycle.charAt(i) < cycle.charAt(0))
+                        continue search;
+
+                // Add count to possibles
+                int[] row = new int[count.length];
+                for (int i = 0; i < size; ++i) {
+                    int u = cycle.charAt(i) - 'a';
+                    int v = cycle.charAt((i+1) % size) - 'a';
+                    row[alphabet.length * u + v]++;
+                }
+                possibles.add(row);
+            }
+
+        int[] ZERO = new int[count.length];
+        memo.put(Arrays.toString(ZERO), 0);
+        return ans - numCycles(possibles, count);
+    }
+
+    public int numCycles(List<int[]> possibles, int[] count) {
+        String countS = Arrays.toString(count);
+        if (memo.containsKey(countS)) return memo.get(countS);
+
+        int ans = Integer.MIN_VALUE;
+        search: for (int[] row: possibles) {
+            int[] count2 = count.clone();
+            for (int i = 0; i < row.length; ++i) {
+                if (count2[i] >= row[i])
+                    count2[i] -= row[i];
+                else
+                    continue search;
+            }
+            ans = Math.max(ans, 1 + numCycles(possibles, count2));
+        }
+
+        memo.put(countS, ans);
+        return ans;
+    }
+
+    public List<String> permutations(String[] alphabet, int used, int size) {
+        List<String> ans = new ArrayList();
+        if (size == 0) {
+            ans.add(new String(""));
+            return ans;
+        }
+
+        for (int b = 0; b < alphabet.length; ++b)
+            if (((used >> b) & 1) == 0)
+                for (String rest: permutations(alphabet, used | (1 << b), size - 1))
+                    ans.add(alphabet[b] + rest);
+        return ans;
+    }
+}
+
+
+or
+
+
+class Solution {
+    public int kSimilarity(String A, String B) {
+        Queue<String> queue = new ArrayDeque();
+        queue.offer(A);
+
+        Map<String, Integer> dist = new HashMap();
+        dist.put(A, 0);
+
+        while (!queue.isEmpty()) {
+            String S = queue.poll();
+            if (S.equals(B)) return dist.get(S);
+            for (String T: neighbors(S, B)) {
+                if (!dist.containsKey(T)) {
+                    dist.put(T, dist.get(S) + 1);
+                    queue.offer(T);
+                }
+            }
+        }
+
+        throw null;
+    }
+
+    public List<String> neighbors(String S, String target) {
+        List<String> ans = new ArrayList();
+        int i = 0;
+        for (; i < S.length(); ++i) {
+            if (S.charAt(i) != target.charAt(i)) break;
+        }
+
+        char[] T = S.toCharArray();
+        for (int j = i+1; j < S.length(); ++j)
+            if (S.charAt(j) == target.charAt(i)) {
+                swap(T, i, j);
+                ans.add(new String(T));
+                swap(T, i, j);
+            }
+
+        return ans;
+    }
+
+    public void swap(char[] T, int i, int j) {
+        char tmp = T[i];
+        T[i] = T[j];
+        T[j] = tmp;
+    }
+}
+
+or
+
+
+class Solution {
+  public int kSimilarity(String s1, String s2) {
+    Queue<String> q = new ArrayDeque<>(List.of(s1));
+    Set<String> seen = new HashSet<>(Arrays.asList(s1));
+
+    for (int step = 0; !q.isEmpty(); ++step)
+      for (int sz = q.size(); sz > 0; --sz) {
+        final String curr = q.poll();
+        if (curr.equals(s2))
+          return step;
+        for (final String child : getChildren(curr, s2)) {
+          if (seen.contains(child))
+            continue;
+          q.offer(child);
+          seen.add(child);
+        }
+      }
+
+    return -1;
+  }
+
+  private List<String> getChildren(final String curr, final String target) {
+    List<String> children = new ArrayList<>();
+    char[] charArray = curr.toCharArray();
+    int i = 0; // the first index s.t. curr.charAt(i) != target.charAt(i)
+    while (curr.charAt(i) == target.charAt(i))
+      ++i;
+
+    for (int j = i + 1; j < charArray.length; ++j)
+      if (curr.charAt(j) == target.charAt(i)) {
+        swap(charArray, i, j);
+        children.add(String.valueOf(charArray));
+        swap(charArray, i, j);
+      }
+
+    return children;
+  }
+
+  private void swap(char[] charArray, int i, int j) {
+    final char temp = charArray[i];
+    charArray[i] = charArray[j];
+    charArray[j] = temp;
+  }
+}
+
+
+or
+
+
+class Solution {
+    public int kSimilarity(String s1, String s2) {
+        Deque<String> q = new ArrayDeque<>();
+        Set<String> vis = new HashSet<>();
+        q.offer(s1);
+        vis.add(s1);
+        int ans = 0;
+        while (true) {
+            for (int i = q.size(); i > 0; --i) {
+                String s = q.pollFirst();
+                if (s.equals(s2)) {
+                    return ans;
+                }
+                for (String nxt : next(s, s2)) {
+                    if (!vis.contains(nxt)) {
+                        vis.add(nxt);
+                        q.offer(nxt);
+                    }
+                }
+            }
+            ++ans;
+        }
+    }
+
+    private List<String> next(String s, String s2) {
+        int i = 0, n = s.length();
+        char[] cs = s.toCharArray();
+        for (; cs[i] == s2.charAt(i); ++i) {
+        }
+
+        List<String> res = new ArrayList<>();
+        for (int j = i + 1; j < n; ++j) {
+            if (cs[j] == s2.charAt(i) && cs[j] != s2.charAt(j)) {
+                swap(cs, i, j);
+                res.add(new String(cs));
+                swap(cs, i, j);
+            }
+        }
+        return res;
+    }
+
+    private void swap(char[] cs, int i, int j) {
+        char t = cs[i];
+        cs[i] = cs[j];
+        cs[j] = t;
+    }
+}
+
+
+or
+
+
+class Solution {
+    public int kSimilarity(String s1, String tar) {
+        Queue<String> q = new ArrayDeque<>();
+        q.add(s1);
+        
+        int lvl = 0;
+        while(q.size() > 0){
+            int size = q.size();
+            while(size-- > 0){
+                String s = q.remove();
+                if(s.equals(tar))return lvl;
+                
+                
+                int i = 0;
+                while(s.charAt(i) == tar.charAt(i))i++;
+                
+                int j = i;
+                
+                while(j < s.length()){
+                    if(s.charAt(j) == tar.charAt(i) && tar.charAt(j) != s.charAt(j)){
+                        StringBuilder sb = new StringBuilder(s);
+                        sb.setCharAt(i, s.charAt(j));
+                        sb.setCharAt(j, s.charAt(i));
+                        
+						//A small optimization.
+                        if(sb.toString().equals(tar))return lvl+1;
+                        
+                        q.add(sb.toString());
+                    }
+                    j++;
+                }
+            }
+            lvl++;
+        }
+        return lvl;
+    }
+}
+
+or
+
+
+class Solution {
+
+    int steps(int i, int j,StringBuilder s,String t){
+        if(j>=t.length()) return 0;
+        if(s.toString().equals(s)){
+            return 0;
+        }
+        int k = (int)1e5;
+        if(s.charAt(i)!=t.charAt(j)){
+            for(int p=i;p<s.length();p++){
+                if(s.charAt(p)==t.charAt(j) && s.charAt(p) != t.charAt(p)){
+                    char temp = s.charAt(i);
+                    char swap = s.charAt(p);
+                    s.setCharAt(p,temp);
+                    s.setCharAt(i,swap);
+                    k = Math.min(k,1 + steps(i+1,j+1,s,t));
+                    s.setCharAt(p,swap);
+                    s.setCharAt(i,temp);
+                }
+            }
+        }
+        else k = steps(i+1,j+1,s,t);
+        return k;
+    }
+
+    public int kSimilarity(String s1, String s2) {
+        StringBuilder str = new StringBuilder(s1);
+        return steps(0,0,str,s2);
+    }
+}
+
+or
+
+
+class Solution {
+    public int kSimilarity(String s1, String s2) {
+        if(s1.equals(s2)) return 0;
+        int n = s1.length();
+
+        Queue<String> queue = new LinkedList<>();
+        Set<String> seen = new HashSet<>();
+        queue.offer(s1);
+        seen.add(s1);
+
+        for(int k = 1; !queue.isEmpty(); k++) { 
+            for(int size = queue.size(); size > 0; size--) { 
+                String cur = queue.poll();
+                int i = 0;
+                while(cur.charAt(i) == s2.charAt(i)) i++;
+                // swap incorrectly positioned char with a matching incorrectly positioned char 
+                for(int j = i + 1; j < n; j++) { // O(n)
+                    if(cur.charAt(j) == s2.charAt(j) || 
+                     cur.charAt(j) != s2.charAt(i)) continue; 
+                    String next = swap(cur, i, j);
+                    if(next.equals(s2)) return k;
+                    if(seen.add(next)) queue.offer(next);
+                }
+            }
+        }
+
+        return -1;
+    }
+
+    private String swap(String s, int i, int j) {
+        char[] next = s.toCharArray();
+        char temp = next[i];
+        next[i] = next[j];
+        next[j] = temp;
+        return new String(next);
+    }
+}
+
+
+or
+
+
+class Solution {
+    public int kSimilarity(String s1, String s2) {
+        HashSet<String> vis = new HashSet<>();
+        
+        ArrayDeque<String> queue = new ArrayDeque<>();
+        int level = 0;
+        queue.add(s1);
+        
+        while(queue.size() > 0){
+            int size = queue.size();
+            for(int i=0;i<size;i++){
+                
+                String rem = queue.remove();        // remove
+                
+                if(vis.contains(rem)){              // Mark*
+                    continue;
+                }
+                vis.add(rem);
+                
+                if(rem.equals(s2)){                 // Work
+                    return level;
+                }
+                
+                // Add
+                for(String s : getNeighbors(rem,s2)){
+                    if(!vis.contains(s)){
+                        queue.add(s);
+                    }
+                }
+            }
+            level++;
+        }
+        return -1;
+    }
+    
+    public ArrayList<String> getNeighbors(String rem,String s2){
+        ArrayList<String> res = new ArrayList<>();
+        
+        int idx = -1;
+        for(int i=0;i<rem.length();i++){
+            if(rem.charAt(i) != s2.charAt(i)){
+                idx = i;
+                break;
+            }
+        }
+        
+        for(int j=idx+1;j<rem.length();j++){
+            if(rem.charAt(j) == s2.charAt(idx)){
+                String s = swap(rem,idx,j);
+                res.add(s);
+            }
+        }
+        
+        return res;
+    }
+    
+    public String swap(String str,int i,int j){
+        StringBuilder sb = new StringBuilder(str);
+        char chi = sb.charAt(i);
+        char chj = sb.charAt(j);
+        
+        sb.setCharAt(i,chj);
+        sb.setCharAt(j,chi);
+        
+        return sb.toString();
+    }
+}
