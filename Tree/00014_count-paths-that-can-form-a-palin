@@ -1,0 +1,413 @@
+https://leetcode.com/problems/count-paths-that-can-form-a-palindrome-in-a-tree/description/
+
+2791. Count Paths That Can Form a Palindrome in a Tree
+Hard
+Topics
+Companies
+Hint
+You are given a tree (i.e. a connected, undirected graph that has no cycles) rooted at node 0 consisting of n nodes numbered from 0 to n - 1. The tree is represented by a 0-indexed array parent of size n, where parent[i] is the parent of node i. Since node 0 is the root, parent[0] == -1.
+
+You are also given a string s of length n, where s[i] is the character assigned to the edge between i and parent[i]. s[0] can be ignored.
+
+Return the number of pairs of nodes (u, v) such that u < v and the characters assigned to edges on the path from u to v can be rearranged to form a palindrome.
+
+A string is a palindrome when it reads the same backwards as forwards.
+
+ 
+
+Example 1:
+
+
+
+Input: parent = [-1,0,0,1,1,2], s = "acaabc"
+Output: 8
+Explanation: The valid pairs are:
+- All the pairs (0,1), (0,2), (1,3), (1,4) and (2,5) result in one character which is always a palindrome.
+- The pair (2,3) result in the string "aca" which is a palindrome.
+- The pair (1,5) result in the string "cac" which is a palindrome.
+- The pair (3,5) result in the string "acac" which can be rearranged into the palindrome "acca".
+Example 2:
+
+Input: parent = [-1,0,0,0,0], s = "aaaaa"
+Output: 10
+Explanation: Any pair of nodes (u,v) where u < v is valid.
+ 
+
+Constraints:
+
+n == parent.length == s.length
+1 <= n <= 105
+0 <= parent[i] <= n - 1 for all i >= 1
+parent[0] == -1
+parent represents a valid tree.
+s consists of only lowercase English letters.
+
+
+
+# java
+
+
+class Solution {
+    private List<int[]>[] g;
+    private Map<Integer, Integer> cnt = new HashMap<>();
+    private long ans;
+
+    public long countPalindromePaths(List<Integer> parent, String s) {
+        int n = parent.size();
+        g = new List[n];
+        cnt.put(0, 1);
+        Arrays.setAll(g, k -> new ArrayList<>());
+        for (int i = 1; i < n; ++i) {
+            int p = parent.get(i);
+            g[p].add(new int[] {i, 1 << (s.charAt(i) - 'a')});
+        }
+        dfs(0, 0);
+        return ans;
+    }
+
+    private void dfs(int i, int xor) {
+        for (int[] e : g[i]) {
+            int j = e[0], v = e[1];
+            int x = xor ^ v;
+            ans += cnt.getOrDefault(x, 0);
+            for (int k = 0; k < 26; ++k) {
+                ans += cnt.getOrDefault(x ^ (1 << k), 0);
+            }
+            cnt.merge(x, 1, Integer::sum);
+            dfs(j, x);
+        }
+    }
+}
+
+
+or
+
+
+class Solution {
+  public long countPalindromePaths(List<Integer> parent, String s) {
+    // A valid (u, v) has at most 1 letter with odd frequency on its path. The
+    // frequency of a letter on the u-v path is equal to the sum of its
+    // frequencies on the root-u and root-v paths substract twice of its
+    // frequency on the root-LCA(u, v) path. Considering only the parity
+    // (even/odd), the part involving root-LCA(u, v) can be ignored, making it
+    // possible to calculate both parts easily using a simple DFS.
+    List<Integer>[] tree = new List[parent.size()];
+
+    for (int i = 0; i < parent.size(); ++i)
+      tree[i] = new ArrayList<>();
+
+    for (int i = 1; i < parent.size(); ++i)
+      tree[parent.get(i)].add(i);
+
+    return dfs(tree, 0, 0, s, new HashMap<>(Map.of(0, 1)));
+  }
+
+  // mask := 26 bits that represent the parity of each character in the alphabet
+  // on the path from node 0 to node u
+  private long dfs(List<Integer>[] tree, int u, int mask, String s,
+                   Map<Integer, Integer> maskToCount) {
+    long res = 0;
+    if (u > 0) {
+      mask ^= 1 << (s.charAt(u) - 'a');
+      // Consider any u-v path with 1 bit set.
+      for (int i = 0; i < 26; ++i)
+        if (maskToCount.containsKey(mask ^ (1 << i)))
+          res += maskToCount.get(mask ^ (1 << i));
+      // Consider u-v path with 0 bit set.
+      res += maskToCount.getOrDefault(mask ^ 0, 0);
+      maskToCount.merge(mask, 1, Integer::sum);
+    }
+    for (final int v : tree[u])
+      res += dfs(tree, v, mask, s, maskToCount);
+    return res;
+  }
+}
+
+
+or
+
+
+class Solution {
+    
+    HashMap<Integer , Long> freq = new HashMap<>() ;
+    long default_ =0 ; 
+    int M = Integer.MAX_VALUE ; 
+
+    public long countPalindromePaths(List<Integer> parent, String s) {
+        int n = parent.size() ; 
+        int[] dp = new int[n] ; 
+        Arrays.fill(dp, M) ; 
+        long ans = 0 ; 
+        for(int i =0 ; i<parent.size() ; i++){
+            int mask = f(i , parent , s , dp) ;  // mask from root to curr_node
+            for(int j=0 ; j<26 ; j++){
+                int mask_ = mask^(1<<j) ;    // mask_ : 1 bit difference from mask
+                ans += freq.getOrDefault(mask_ , default_) ;   
+            }
+            long v = freq.getOrDefault(mask , default_) ; // masks with 0 bit difference
+            ans += v ; 
+            freq.put(mask , ++v) ;   
+        }
+        return ans ; 
+        
+    }
+    
+    private int f(int idx , List<Integer> li ,String s , int[]dp){
+        int c = idx , p = li.get(idx) ; 
+        if(p==-1) return 0 ; 
+        if(dp[c]!=M) return dp[c] ; 
+        
+        int mask = 1<<(s.charAt(c)-'a') ;  
+        dp[c] = mask ; 
+        dp[c] ^= f(p , li , s ,dp) ;    // xoring with mask of (parent to root) 
+        return  dp[c] ; 
+    }
+}
+
+or
+
+
+    public long countPalindromePaths(List<Integer> parent, String s) {
+        int n = parent.size(), dp[] = new int[n];
+        long res = 0;
+        Map<Integer, Integer> count = new HashMap<>();
+        for (int i = 0; i < n; i++) {
+            int mask = f(dp, parent, s, i), v = count.getOrDefault(mask, 0);
+            for (int j = 0; j < 26; j++)
+                res += count.getOrDefault(mask ^ (1 << j), 0);
+            res += v;
+            count.put(mask, v + 1);
+        }
+        return res;
+    }
+
+    private int f(int[] dp, List<Integer> parent, String s, int i) {
+        if (i > 0 && dp[i] == 0)
+            dp[i] = f(dp, parent, s, parent.get(i)) ^ (1 << (s.charAt(i) - 'a'));
+        return dp[i];
+    }
+
+
+or
+
+class Solution {
+     private long dfs(int x, int mask, String s, List<List<Integer>> con, Map<Integer, Integer> have) {
+        long r = 0;
+        if (x != 0) {
+            mask ^= 1 << (s.charAt(x) - 'a');
+            for (int i = 1 << 25; i > 0; i >>= 1) {
+                if (have.containsKey(mask ^ i)) {
+                    r += have.get(mask ^ i);
+                }
+            }
+            r += have.getOrDefault(mask, 0);
+            have.put(mask, have.getOrDefault(mask, 0) + 1);
+        }
+        for (int y : con.get(x)) {
+            r += dfs(y, mask, s, con, have);
+        }
+        return r;
+    }
+
+    public long countPalindromePaths(List<Integer> parent, String s) {
+        int n = s.length();
+        List<List<Integer>> con = new ArrayList<>();
+        for (int i = 0; i < n; i++) {
+            con.add(new ArrayList<>());
+        }
+        for (int i = 1; i < n; i++) {
+            con.get(parent.get(i)).add(i);
+        }
+        Map<Integer, Integer> have = new HashMap<>();
+        have.put(0, 1);
+        return dfs(0, 0, s, con, have);
+    }
+}
+
+
+or
+
+class Solution {
+    public long countPalindromePaths(List<Integer> parent, String s) {
+        int n = parent.size();
+        List<List<int[]>> tree = new ArrayList<>();
+        for (int i = 0; i < n; i++) tree.add(new ArrayList<>());
+
+        for (int i = 1; i < n; i++) {
+            tree.get(parent.get(i)).add(new int[]{i, s.charAt(i) - 'a'});
+        }
+
+        Map<Integer, Integer> count = new HashMap<>();
+        long[] result = new long[1];
+
+        dfs(0, 0, tree, count, result);
+
+        return result[0];
+    }
+
+    private void dfs(int u, int mask, List<List<int[]>> tree, Map<Integer, Integer> count, long[] result) {
+        result[0] += count.getOrDefault(mask, 0);
+
+        for (int i = 0; i < 26; i++) {
+            result[0] += count.getOrDefault(mask ^ (1 << i), 0);
+        }
+
+        count.put(mask, count.getOrDefault(mask, 0) + 1);
+
+        for (int[] child : tree.get(u)) {
+            int v = child[0], ch = child[1];
+            dfs(v, mask ^ (1 << ch), tree, count, result);
+        }
+    }
+}
+
+
+
+or
+
+
+class Solution {
+    private Map<Integer, Integer> map = new HashMap<>();  // Stores frequency of each bitmask
+    private int[] xr;                                     // Stores XOR path masks
+    private List<List<int[]>> graph;                      // Tree adjacency list
+
+    public long countPalindromePaths(List<Integer> parent, String s) {
+        int n = parent.size();
+        graph = new ArrayList<>();
+        xr = new int[n];
+        
+        for (int i = 0; i < n; i++) graph.add(new ArrayList<>());
+
+        for (int i = 1; i < n; i++) {
+            graph.get(parent.get(i)).add(new int[]{i, s.charAt(i) - 'a'});
+        }
+
+        dfs(0, 0);
+
+        long count = 0;
+        for (int i = 0; i < n; i++) {
+            // Check for all masks differing by at most 1 bit (palindromic property)
+            for (int j = 0; j < 26; j++) {
+                count += map.getOrDefault(xr[i] ^ (1 << j), 0);
+            }
+            count += map.getOrDefault(xr[i], 0) - 1;  // subtract self
+        }
+
+        return count / 2;  // Each path counted twice (once from each end)
+    }
+
+    private void dfs(int node, int mask) {
+        map.put(mask, map.getOrDefault(mask, 0) + 1);
+        xr[node] = mask;
+        for (int[] neighbor : graph.get(node)) {
+            int next = neighbor[0];
+            int ch = neighbor[1];
+            dfs(next, mask ^ (1 << ch));
+        }
+    }
+}
+
+
+or
+
+
+class Solution {
+    public long countPalindromePaths(List<Integer> parent, String s) {
+        int n = parent.size();
+        List<List<Integer>> tree = new ArrayList<>();
+        for (int i = 0; i < n; i++) tree.add(new ArrayList<>());
+        
+        for (int i = 1; i < n; i++) {
+            tree.get(parent.get(i)).add(i);
+        }
+
+        Queue<int[]> queue = new LinkedList<>();
+        queue.offer(new int[]{0, 0});  // node, mask
+
+        Map<Integer, Integer> freq = new HashMap<>();
+        long ans = 0;
+
+        while (!queue.isEmpty()) {
+            int[] curr = queue.poll();
+            int node = curr[0], mask = curr[1];
+
+            ans += freq.getOrDefault(mask, 0);
+            for (int bit = 0; bit < 26; bit++) {
+                ans += freq.getOrDefault(mask ^ (1 << bit), 0);
+            }
+
+            freq.put(mask, freq.getOrDefault(mask, 0) + 1);
+
+            for (int child : tree.get(node)) {
+                int newMask = mask ^ (1 << (s.charAt(child) - 'a'));
+                queue.offer(new int[]{child, newMask});
+            }
+        }
+
+        return ans;
+    }
+}
+
+
+or
+
+
+class Solution {
+    public long countPalindromePaths(List<Integer> parent, String s) {
+        /*
+        1. we find the mask from the root to the node.
+        2. to find the data between the nodes, we check if this mask existed before, 
+        if yes, that makes it a plaindrome to exist between the 
+        last mask from the last node and this node
+        3. One more check will be to flip one bit and check if that mask existed before,
+        if yes, that means we found a palindrome with odd length
+        4. We maintain the list if last seen masks, and we maintain the mask!
+        5. we maintain the value for the complete count of plaindrome while looping 
+        over the nodes
+        */
+        
+        List<List<Integer>> graph = createAdjList(parent);
+        Map<Integer, Long> previousMaskCountMap = new HashMap<>();
+        return dfs(graph, 0, 0, previousMaskCountMap, s);        
+    }
+
+    private List<List<Integer>> createAdjList(List<Integer> parent) {
+        List<List<Integer>> graph = new ArrayList<>();
+        for(int i=0;i<parent.size();i++) {
+            graph.add(new ArrayList<>());
+        }
+        for(int i=1;i<parent.size();i++) {
+            graph.get(parent.get(i)).add(i);
+        }
+        return graph;
+    }
+
+    private long dfs(List<List<Integer>> graph, int i, int mask, 
+        Map<Integer, Long> previousMaskCountMap, String s) {
+        long r=0;
+
+        // Update the mask on this path for this character at position i
+         mask = mask ^ 1 << (s.charAt(i)-'a');
+        // increament the count of palindrome fromed with this node with the 
+        // previous node found
+        if(previousMaskCountMap.containsKey(mask)) {
+            r += previousMaskCountMap.get(mask);
+        }
+
+        // we update the number for mask
+        previousMaskCountMap.put(mask, r+1);
+        
+        // Move the 1 to the 25th position, and loop to find the match by flipping one bit
+        for(int currMask=1<<25; currMask > 0;currMask >>= 1) {
+            if(previousMaskCountMap.containsKey(mask ^ currMask)) {
+                r += previousMaskCountMap.get(mask ^ currMask);
+            }
+        }
+
+        List<Integer> neighbours = graph.get(i);
+        for(Integer neighbour: neighbours) {
+            r += dfs(graph, neighbour, mask, previousMaskCountMap, s);
+        }
+        return r;
+    }
+}
