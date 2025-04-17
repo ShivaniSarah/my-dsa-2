@@ -1,0 +1,411 @@
+https://leetcode.com/problems/maximum-score-of-a-node-sequence/description/
+
+
+2242. Maximum Score of a Node Sequence
+Hard
+Topics
+Companies
+Hint
+There is an undirected graph with n nodes, numbered from 0 to n - 1.
+
+You are given a 0-indexed integer array scores of length n where scores[i] denotes the score of node i. You are also given a 2D integer array edges where edges[i] = [ai, bi] denotes that there exists an undirected edge connecting nodes ai and bi.
+
+A node sequence is valid if it meets the following conditions:
+
+There is an edge connecting every pair of adjacent nodes in the sequence.
+No node appears more than once in the sequence.
+The score of a node sequence is defined as the sum of the scores of the nodes in the sequence.
+
+Return the maximum score of a valid node sequence with a length of 4. If no such sequence exists, return -1.
+
+ 
+
+Example 1:
+
+
+Input: scores = [5,2,9,8,4], edges = [[0,1],[1,2],[2,3],[0,2],[1,3],[2,4]]
+Output: 24
+Explanation: The figure above shows the graph and the chosen node sequence [0,1,2,3].
+The score of the node sequence is 5 + 2 + 9 + 8 = 24.
+It can be shown that no other node sequence has a score of more than 24.
+Note that the sequences [3,1,2,0] and [1,0,2,3] are also valid and have a score of 24.
+The sequence [0,3,2,4] is not valid since no edge connects nodes 0 and 3.
+Example 2:
+
+
+Input: scores = [9,20,6,4,11,12], edges = [[0,3],[5,3],[2,4],[1,3]]
+Output: -1
+Explanation: The figure above shows the graph.
+There are no valid node sequences of length 4, so we return -1.
+ 
+
+Constraints:
+
+n == scores.length
+4 <= n <= 5 * 104
+1 <= scores[i] <= 108
+0 <= edges.length <= 5 * 104
+edges[i].length == 2
+0 <= ai, bi <= n - 1
+ai != bi
+There are no duplicate edges.
+
+
+# java
+
+class Solution {
+  public int maximumScore(int[] scores, int[][] edges) {
+    final int n = scores.length;
+    int ans = -1;
+    Queue<Integer>[] graph = new Queue[n];
+
+    for (int i = 0; i < n; ++i)
+      graph[i] = new PriorityQueue<>(Comparator.comparingInt(a -> scores[a]));
+
+    for (int[] edge : edges) {
+      final int u = edge[0];
+      final int v = edge[1];
+      graph[u].offer(v);
+      graph[v].offer(u);
+      if (graph[u].size() > 3)
+        graph[u].poll();
+      if (graph[v].size() > 3)
+        graph[v].poll();
+    }
+
+    // To find the target sequence: a - u - v - b, enumerate each edge (u, v),
+    // and find a (u's child) and b (v's child). That's why we find the 3
+    // children that have the highest scores because one of the 3 children is
+    // guaranteed to be valid.
+    for (int[] edge : edges) {
+      final int u = edge[0];
+      final int v = edge[1];
+      for (final int a : graph[u])
+        for (final int b : graph[v])
+          if (a != b && a != v && b != u)
+            ans = Math.max(ans, scores[a] + scores[u] + scores[v] + scores[b]);
+    }
+
+    return ans;
+  }
+}
+
+
+or
+
+
+class Solution {
+    public int maximumScore(int[] scores, int[][] edges) {
+        int n = scores.length;
+        List<Integer>[] g = new List[n];
+        Arrays.setAll(g, k -> new ArrayList<>());
+        for (int[] e : edges) {
+            int a = e[0], b = e[1];
+            g[a].add(b);
+            g[b].add(a);
+        }
+        for (int i = 0; i < n; ++i) {
+            g[i].sort((a, b) -> scores[b] - scores[a]);
+            g[i] = g[i].subList(0, Math.min(3, g[i].size()));
+        }
+        int ans = -1;
+        for (int[] e : edges) {
+            int a = e[0], b = e[1];
+            for (int c : g[a]) {
+                for (int d : g[b]) {
+                    if (c != b && c != d && a != d) {
+                        int t = scores[a] + scores[b] + scores[c] + scores[d];
+                        ans = Math.max(ans, t);
+                    }
+                }
+            }
+        }
+        return ans;
+    }
+}
+
+or
+
+
+class Solution {
+    public int maximumScore(int[] scores, int[][] edges) {
+        
+        Map<Integer, ArrayList<Integer>> map = new HashMap<Integer, ArrayList<Integer>>();
+        
+        // initialize nodes arraylists takes O(n)
+        for(int i =0; i< scores.length;i++)
+        {
+           map.put(i,new ArrayList<Integer>()); 
+        }
+        
+        // add bidirectional edges to respective nodes to indicate a connection between them
+        // again takes O(e) time
+        for(int i =0; i< edges.length;i++)
+        {
+           map.get(edges[i][0]).add(edges[i][1]);
+           map.get(edges[i][1]).add(edges[i][0]);
+        }
+        
+        // sort each arraylist indicating connection according to highest scores (i.e. in decreasing order)
+        // again takes O(n) time
+        for(int i =0; i< scores.length;i++)
+        {
+           Collections.sort(map.get(i), new Comparator<Integer>(){
+               public int compare(Integer a, Integer b)
+               {
+                   return(scores[b] - scores[a]);
+               }
+           });
+        }
+        
+        // now fix the middle edge and look for 1st and 4th vertices, make sure all the elements in the 
+        //result are unique elements, the elemnts at the end with which you are left is your answer.
+		// takes (3*3*n) time i.e. O(n)
+        int ans = -1;
+        for(int i=0;i<edges.length;i++)
+        {
+            int u = edges[i][0];
+            int v = edges[i][1];
+            int least = scores[u] + scores[v];
+            
+            for(int j=0;j< Math.min(3, map.get(u).size());j++)
+            {
+                int x = map.get(u).get(j);
+                if(x == v) 
+                  continue;
+                
+                for(int k=0;k< Math.min(3, map.get(v).size());k++)
+                {
+                    int y = map.get(v).get(k);
+                    if(y == u || y == x)
+                    continue;
+                    
+                    ans = Math.max(ans, least+scores[x]+scores[y]);
+                }
+                
+            }
+        }
+        
+        return ans;
+    }
+}
+
+or
+
+class Solution {
+    public int maximumScore(int[] scores, int[][] edges) {
+        if (scores == null || scores.length == 0 || edges == null || edges.length == 0) {
+            return -1;
+        }
+        int n = scores.length;
+        
+        PriorityQueue<Integer>[] neighbors = new PriorityQueue[n];
+        
+        // Create an array of Priority Queues to store node (at index) and its all the neighboring nodes in a Priority Queue.
+        // O(V)
+        for (int i = 0; i < n; i++) {
+            neighbors[i] = new PriorityQueue<Integer>((a, b) -> scores[a] - scores[b]);
+        }
+        
+        // O(E)
+        for (int[] edge : edges) {
+            int u = edge[0];
+            int v = edge[1];
+            neighbors[u].offer(v);
+            neighbors[v].offer(u);
+            if (neighbors[u].size() > 3) neighbors[u].poll();
+            if (neighbors[v].size() > 3) neighbors[v].poll();
+        }
+        
+        // in case there are no edges at all between all the nodes
+        int res = -1;
+        
+        // O(E)
+        for (int[] edge : edges) {
+            int u = edge[0];
+            int v = edge[1];
+            for (int nei1 : neighbors[u]) {
+                for (int nei2 : neighbors[v]) {
+                    if (nei1 != v && nei2 != u && nei1 != nei2) {
+                        res = Math.max(res, scores[u] + scores[v] + scores[nei1] + scores[nei2]);
+                    }
+                }
+            }
+        }
+        return res;
+    }
+}
+
+or
+
+class Solution {
+    public int maximumScore(int[] scores, int[][] edges) {
+		int n = scores.length;
+		
+        int[][] count = new int[n][6];
+		for (int[] edge : edges) {
+			int s = edge[0];
+			int e = edge[1];
+			if (count[s][0] == 0) {
+				count[s][1] = e;
+				count[s][0] = scores[e];
+			} else if (count[s][2] == 0) {
+				if (scores[e] > count[s][0]) {
+					count[s][3] = count[s][1];
+					count[s][2] = count[s][0];
+					count[s][1] = e;
+					count[s][0] = scores[e];
+				} else {
+					count[s][3] = e;
+					count[s][2] = scores[e];
+				}
+			} else if (scores[e] > count[s][4]) {
+				if (scores[e] > count[s][0]) {
+					count[s][5] = count[s][3];
+					count[s][4] = count[s][2];
+					count[s][3] = count[s][1];
+					count[s][2] = count[s][0];
+					count[s][1] = e;
+					count[s][0] = scores[e];
+				} else if (scores[e] > count[s][2]) {
+					count[s][5] = count[s][3];
+					count[s][4] = count[s][2];
+					count[s][3] = e;
+					count[s][2] = scores[e];
+				} else {
+					count[s][5] = e;
+					count[s][4] = scores[e];
+				}
+			}
+			if (count[e][0] == 0) {
+				count[e][1] = s;
+				count[e][0] = scores[s];
+			} else if (count[e][2] == 0) {
+				if (scores[s] > count[e][0]) {
+					count[e][3] = count[e][1];
+					count[e][2] = count[e][0];
+					count[e][1] = s;
+					count[e][0] = scores[s];
+				} else {
+					count[e][3] = s;
+					count[e][2] = scores[s];
+				}
+			} else if (scores[s] > count[e][4]) {
+				if (scores[s] > count[e][0]) {
+					count[e][5] = count[e][3];
+					count[e][4] = count[e][2];
+					count[e][3] = count[e][1];
+					count[e][2] = count[e][0];
+					count[e][1] = s;
+					count[e][0] = scores[s];
+				} else if (scores[s] > count[e][2]) {
+					count[e][5] = count[e][3];
+					count[e][4] = count[e][2];
+					count[e][3] = s;
+					count[e][2] = scores[s];
+				} else {
+					count[e][5] = s;
+					count[e][4] = scores[s];
+				}
+			}
+		}
+		int max = -1;
+		for (int[] edge : edges) {
+			int s = edge[0];
+			int e = edge[1];
+			int pos = scores[s] + scores[e];
+			int p1 = -1;
+			int p2 = -1;
+			boolean fine = true;
+			if (count[s][1] == e) {
+				if (count[s][2] == 0)
+					fine = false;
+				p1 = count[s][3];
+				if (count[s][4] > 0)
+					p2 = count[s][5];
+			} else if (count[s][3] == e) {
+				if (count[s][0] == 0)
+					fine = false;
+				p1 = count[s][1];
+				if (count[s][4] > 0)
+					p2 = count[s][5];
+			} else {
+				p1 = count[s][1];
+				if (count[s][0] == 0)
+					fine = false;
+				if (count[s][2] > 0)
+					p2 = count[s][3];
+			} 
+			int p3 = -1;
+			int p4 = -1;
+			if (count[e][1] == s) {
+				if (count[e][2] == 0)
+					fine = false;
+				p3 = count[e][3];
+				if (count[e][4] > 0)
+					p4 = count[e][5];
+			} else if (count[e][3] == s) {
+				if (count[e][0] == 0)
+					fine = false;
+				p3 = count[e][1];
+				if (count[e][4] > 0)
+					p4 = count[e][5];
+			} else {
+				p3 = count[e][1];
+				if (count[e][0] == 0)
+					fine = false;
+				if (count[e][2] > 0)
+					p4 = count[e][3];
+			} 
+			if (fine) {
+				if (p1 == p3) {
+					if (p4 > -1)
+						max = Math.max(max, pos + scores[p1] + scores[p4]);
+					if (p2 > -1)
+						max = Math.max(max, pos + scores[p1] + scores[p2]);
+				} else {
+					max = Math.max(max, pos + scores[p1] + scores[p3]);
+				} 
+			}
+		}
+		return max;
+    }
+}
+
+or
+
+
+// beta
+
+class Solution {
+    public int maximumScore(int[] scores, int[][] edges) {
+        PriorityQueue<Integer>[] minheap = new PriorityQueue[scores.length];
+        Comparator<Integer> cmp = Comparator.comparingInt(o -> scores[o]);
+        Arrays.setAll(minheap, o -> new PriorityQueue<>(cmp));
+        for (int[] e : edges){
+            minheap[e[0]].offer(e[1]);
+            minheap[e[1]].offer(e[0]);
+            if (minheap[e[0]].size()>3){
+                minheap[e[0]].poll();
+            }
+            if (minheap[e[1]].size()>3){
+                minheap[e[1]].poll();
+            }
+        }
+
+        int ans = -1;
+        for (int[] e : edges){
+            for (int x : minheap[e[0]]){
+                if (x != e[1]){
+                    for (int y : minheap[e[1]]){
+                        if (y != e[0] && y != x){
+                            ans = Math.max(ans, scores[x] + scores[y] + scores[e[0]] + scores[e[1]]);
+                        }
+                    }
+                }
+            }
+        }
+
+        return ans;
+    }
+}
