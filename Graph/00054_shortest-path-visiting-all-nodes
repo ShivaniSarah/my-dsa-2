@@ -1,0 +1,187 @@
+https://leetcode.com/problems/shortest-path-visiting-all-nodes/description/
+
+847. Shortest Path Visiting All Nodes
+Hard
+Topics
+Companies
+You have an undirected, connected graph of n nodes labeled from 0 to n - 1. You are given an array graph where graph[i] is a list of all the nodes connected with node i by an edge.
+
+Return the length of the shortest path that visits every node. You may start and stop at any node, you may revisit nodes multiple times, and you may reuse edges.
+
+ 
+
+Example 1:
+
+
+Input: graph = [[1,2,3],[0],[0],[0]]
+Output: 4
+Explanation: One possible path is [1,0,2,0,3]
+Example 2:
+
+
+Input: graph = [[1],[0,2,4],[1,3,4],[2],[1,2]]
+Output: 4
+Explanation: One possible path is [0,1,4,2,3]
+ 
+
+Constraints:
+
+n == graph.length
+1 <= n <= 12
+0 <= graph[i].length < n
+graph[i] does not contain i.
+If graph[a] contains b, then graph[b] contains a.
+The input graph is always connected.
+
+
+
+# java
+
+
+class Solution {
+  public int shortestPathLength(int[][] graph) {
+    final int n = graph.length;
+    final int goal = (1 << n) - 1;
+    Queue<Pair<Integer, Integer>> q = new ArrayDeque<>(); // (u, state)
+    boolean[][] seen = new boolean[n][1 << n];
+
+    for (int i = 0; i < n; ++i)
+      q.offer(new Pair<>(i, 1 << i));
+
+    for (int step = 0; !q.isEmpty(); ++step)
+      for (int sz = q.size(); sz > 0; --sz) {
+        final int u = q.peek().getKey();
+        final int state = q.poll().getValue();
+        if (state == goal)
+          return step;
+        if (seen[u][state])
+          continue;
+        seen[u][state] = true;
+        for (final int v : graph[u])
+          q.offer(new Pair<>(v, state | 1 << v));
+      }
+
+    return -1;
+  }
+}
+
+
+or
+
+
+class Solution {
+    public int shortestPathLength(int[][] graph) {
+        int n = graph.length;
+        Deque<int[]> q = new ArrayDeque<>();
+        boolean[][] vis = new boolean[n][1 << n];
+        for (int i = 0; i < n; ++i) {
+            q.offer(new int[] {i, 1 << i});
+            vis[i][1 << i] = true;
+        }
+        for (int ans = 0;; ++ans) {
+            for (int k = q.size(); k > 0; --k) {
+                var p = q.poll();
+                int i = p[0], st = p[1];
+                if (st == (1 << n) - 1) {
+                    return ans;
+                }
+                for (int j : graph[i]) {
+                    int nst = st | 1 << j;
+                    if (!vis[j][nst]) {
+                        vis[j][nst] = true;
+                        q.offer(new int[] {j, nst});
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+or
+
+
+class Solution {
+    public int shortestPathLength(int[][] graph) {
+        int n = graph.length;
+        int allVisited = (1 << n) - 1;
+        Queue<int[]> queue = new LinkedList<>();
+        Set<Integer> visited = new HashSet<>();
+
+        for (int i = 0; i < n; i++) {
+            queue.offer(new int[]{1 << i, i, 0});
+            visited.add((1 << i) * 16 + i);
+        }
+
+        while (!queue.isEmpty()) {
+            int[] cur = queue.poll();
+
+            if (cur[0] == allVisited) {
+                return cur[2];
+            }
+
+            for (int neighbor : graph[cur[1]]) {
+                int newMask = cur[0] | (1 << neighbor);
+                int hashValue = newMask * 16 + neighbor;
+
+                if (!visited.contains(hashValue)) {
+                    visited.add(hashValue);
+                    queue.offer(new int[]{newMask, neighbor, cur[2] + 1});
+                }
+            }
+        }
+
+        return -1;
+    }
+}
+
+or
+
+
+class Solution {
+    public int shortestPathLength(int[][] graph) {
+        int numNodes = graph.length;
+        int allVisitedMask = (1 << numNodes) - 1;
+        Queue<int[]> q = new LinkedList<>();
+
+        // Initialize visited array
+        boolean[][] visited = new boolean[allVisitedMask + 1][numNodes];
+        for (boolean[] row : visited) {
+            Arrays.fill(row, false);
+        }
+
+        // Start from each node and add it to the queue as a starting point
+        for (int node = 0; node < numNodes; ++node) {
+            int initialMask = (1 << node);
+            q.add(new int[] { node, initialMask, 1 });
+            visited[initialMask][node] = true;
+        }
+
+        while (!q.isEmpty()) {
+            int[] current = q.poll();
+
+            int currentNode = current[0];
+            int currentMask = current[1];
+            int currentLength = current[2];
+
+            // Check if all nodes have been visited
+            if (currentMask == allVisitedMask)
+                return currentLength - 1;
+
+            // Explore the neighbors of the current node
+            for (int i = 0; i < graph[currentNode].length; ++i) {
+                int neighbor = graph[currentNode][i];
+                int newMask = currentMask | (1 << neighbor);
+
+                // Check if this state has been visited before
+                if (visited[newMask][neighbor])
+                    continue;
+
+                // Add the neighbor to the queue with updated state
+                q.add(new int[] { neighbor, newMask, currentLength + 1 });
+                visited[newMask][neighbor] = true;
+            }
+        }
+        return -1; // No valid path found
+    }
+}
