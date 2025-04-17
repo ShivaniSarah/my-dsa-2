@@ -1,0 +1,334 @@
+https://leetcode.com/problems/groups-of-strings/description/
+
+
+2157. Groups of Strings
+Hard
+Topics
+Companies
+Hint
+You are given a 0-indexed array of strings words. Each string consists of lowercase English letters only. No letter occurs more than once in any string of words.
+
+Two strings s1 and s2 are said to be connected if the set of letters of s2 can be obtained from the set of letters of s1 by any one of the following operations:
+
+Adding exactly one letter to the set of the letters of s1.
+Deleting exactly one letter from the set of the letters of s1.
+Replacing exactly one letter from the set of the letters of s1 with any letter, including itself.
+The array words can be divided into one or more non-intersecting groups. A string belongs to a group if any one of the following is true:
+
+It is connected to at least one other string of the group.
+It is the only string present in the group.
+Note that the strings in words should be grouped in such a manner that a string belonging to a group cannot be connected to a string present in any other group. It can be proved that such an arrangement is always unique.
+
+Return an array ans of size 2 where:
+
+ans[0] is the maximum number of groups words can be divided into, and
+ans[1] is the size of the largest group.
+ 
+
+Example 1:
+
+Input: words = ["a","b","ab","cde"]
+Output: [2,3]
+Explanation:
+- words[0] can be used to obtain words[1] (by replacing 'a' with 'b'), and words[2] (by adding 'b'). So words[0] is connected to words[1] and words[2].
+- words[1] can be used to obtain words[0] (by replacing 'b' with 'a'), and words[2] (by adding 'a'). So words[1] is connected to words[0] and words[2].
+- words[2] can be used to obtain words[0] (by deleting 'b'), and words[1] (by deleting 'a'). So words[2] is connected to words[0] and words[1].
+- words[3] is not connected to any string in words.
+Thus, words can be divided into 2 groups ["a","b","ab"] and ["cde"]. The size of the largest group is 3.  
+Example 2:
+
+Input: words = ["a","ab","abc"]
+Output: [1,3]
+Explanation:
+- words[0] is connected to words[1].
+- words[1] is connected to words[0] and words[2].
+- words[2] is connected to words[1].
+Since all strings are connected to each other, they should be grouped together.
+Thus, the size of the largest group is 3.
+ 
+
+Constraints:
+
+1 <= words.length <= 2 * 104
+1 <= words[i].length <= 26
+words[i] consists of lowercase English letters only.
+No letter occurs more than once in words[i].
+
+
+
+# java
+
+
+class UnionFind {
+  public UnionFind(int n) {
+    count = n;
+    id = new int[n];
+    sz = new int[n];
+    for (int i = 0; i < n; ++i)
+      id[i] = i;
+    for (int i = 0; i < n; ++i)
+      sz[i] = 1;
+  }
+
+  public void unionBySize(int u, int v) {
+    final int i = find(u);
+    final int j = find(v);
+    if (i == j)
+      return;
+    if (sz[i] < sz[j]) {
+      sz[j] += sz[i];
+      id[i] = j;
+    } else {
+      sz[i] += sz[j];
+      id[j] = i;
+    }
+    --count;
+  }
+
+  public int getCount() {
+    return count;
+  }
+
+  public int getMaxSize() {
+    return Arrays.stream(sz).max().getAsInt();
+  }
+
+  private int count;
+  private int[] id;
+  private int[] sz;
+
+  private int find(int u) {
+    return id[u] == u ? u : (id[u] = find(id[u]));
+  }
+}
+
+class Solution {
+  public int[] groupStrings(String[] words) {
+    UnionFind uf = new UnionFind(words.length);
+    Map<Integer, Integer> maskToIndex = new HashMap<>();
+    Map<Integer, Integer> deletedMaskToIndex = new HashMap<>();
+
+    for (int i = 0; i < words.length; ++i) {
+      final int mask = getMask(words[i]);
+      for (int j = 0; j < 26; ++j)
+        if ((mask >> j & 1) == 1) {
+          // Going to delete this bit.
+          final int m = mask ^ 1 << j;
+          if (maskToIndex.containsKey(m))
+            uf.unionBySize(i, maskToIndex.get(m));
+          if (deletedMaskToIndex.containsKey(m))
+            uf.unionBySize(i, deletedMaskToIndex.get(m));
+          else
+            deletedMaskToIndex.put(m, i);
+        } else {
+          // Going to add this bit.
+          final int m = mask | 1 << j;
+          if (maskToIndex.containsKey(m))
+            uf.unionBySize(i, maskToIndex.get(m));
+        }
+      maskToIndex.put(mask, i);
+    }
+
+    return new int[] {uf.getCount(), uf.getMaxSize()};
+  }
+
+  private int getMask(final String s) {
+    int mask = 0;
+    for (final char c : s.toCharArray())
+      mask |= 1 << c - 'a';
+    return mask;
+  }
+}
+
+
+
+or
+
+
+class Solution {
+    private Map<Integer, Integer> p;
+    private Map<Integer, Integer> size;
+    private int mx;
+    private int n;
+
+    public int[] groupStrings(String[] words) {
+        p = new HashMap<>();
+        size = new HashMap<>();
+        n = words.length;
+        mx = 0;
+        for (String word : words) {
+            int x = 0;
+            for (char c : word.toCharArray()) {
+                x |= 1 << (c - 'a');
+            }
+            p.put(x, x);
+            size.put(x, size.getOrDefault(x, 0) + 1);
+            mx = Math.max(mx, size.get(x));
+            if (size.get(x) > 1) {
+                --n;
+            }
+        }
+        for (int x : p.keySet()) {
+            for (int i = 0; i < 26; ++i) {
+                union(x, x ^ (1 << i));
+                if (((x >> i) & 1) != 0) {
+                    for (int j = 0; j < 26; ++j) {
+                        if (((x >> j) & 1) == 0) {
+                            union(x, x ^ (1 << i) | (1 << j));
+                        }
+                    }
+                }
+            }
+        }
+        return new int[] {n, mx};
+    }
+
+    private int find(int x) {
+        if (p.get(x) != x) {
+            p.put(x, find(p.get(x)));
+        }
+        return p.get(x);
+    }
+
+    private void union(int a, int b) {
+        if (!p.containsKey(b)) {
+            return;
+        }
+        int pa = find(a), pb = find(b);
+        if (pa == pb) {
+            return;
+        }
+        p.put(pa, pb);
+        size.put(pb, size.get(pb) + size.get(pa));
+        mx = Math.max(mx, size.get(pb));
+        --n;
+    }
+}
+
+
+or
+
+
+
+class Solution {
+    public int[] groupStrings(String[] words) {
+        int n = words.length;
+        // System.out.println(n);
+        UnionFind uf = new UnionFind(n);
+        
+        // map mask -> original index
+        Map<Integer, Integer> map = new HashMap<>();
+        int[] mask = new int[n];
+        
+        for (int i = 0; i < n; i++) {            
+            int x = 0;
+            char[] temp = words[i].toCharArray();
+            for (int j = 0; j < temp.length; j++) {
+                char c = temp[j];
+                
+                // set the (c - 'a')th digit to 1
+                x = x | (1 << (c - 'a'));
+            }
+            map.put(x, i);
+            mask[i] = x;
+        }
+        
+		// start checking words one by one, if it has connected words, join them in Union Find
+        for (int i = 0; i < n; i++) {
+            String current = words[i];
+            int len = current.length();
+            int x = mask[i];
+            
+            for (int j = 0; j < len; j++) {
+                char c = current.charAt(j);
+                
+                // delete char at j -> set the (c - 'a')th digit to 0
+                x = x & (~(1 << (c - 'a')));
+                if (map.containsKey(x)) {
+                    int next = map.get(x);
+                    uf.join(i, next);
+                }               
+                
+                // replace char at j with 'a' to 'z':
+                // replace = delete(already done) + add
+                for (char t = 'a'; t <= 'z'; t++) {
+                    // take the bit of the (t - 'a')th digit
+                    int dig = (x >> (t - 'a')) & 1;
+                    if (dig == 1) {
+                        // since no letter occurs more than once in words[i], 
+                        // if this digit is already 1, we can continue;
+                        continue;
+                    }
+                    
+                    // set the (t - 'a')th digit to 1, complete the replacing
+                    x = x | (1 << (t - 'a'));                 
+                    if (map.containsKey(x)) {
+                        int next = map.get(x);
+                        uf.join(i, next);
+                    }
+                    
+                    // backtracking , set it back to 0
+                    x = x & (~(1 << (t - 'a')));                    
+                }
+                
+                // backtracking, add back the char we delete
+                x = x | (1 << (c - 'a'));                           
+            }         
+        }
+        
+        // get output from the union Find
+        Set<Integer> set = new HashSet<>();
+        int max = 1;
+        for (int i = 0; i < n; i++) {
+            int fx = uf.find(i);
+            set.add(fx);
+            max = Math.max(max, uf.size[i]);
+        }
+		
+        return new int[] {set.size(), max};
+    }  
+    
+}
+
+
+
+class UnionFind {
+    
+    int[] father;
+    int[] size;
+    
+    public UnionFind(int n) {
+        father = new int[n];
+        for (int i = 0; i < n; i++) {
+            father[i] = i;
+        }
+        size = new int[n];
+        Arrays.fill(size, 1);
+    }
+    
+    public void join(int x, int y) {
+        int fx = find(x);
+        int fy = find(y);
+        if (fx != fy) {
+            father[fx] = fy;
+            size[fy] += size[fx];
+        }
+    }
+    
+    public int find(int x) {
+        int root = x;
+        while (father[root] != root) {
+            root = father[root];
+        }
+        while (x != root) {
+            int fx = father[x];
+            father[x] = root;
+            x = fx;
+        }
+        return root;
+    }
+    
+    public boolean isConnected(int x, int y) {
+        return find(x) == find(y);
+    }
+}
