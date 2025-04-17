@@ -1,0 +1,289 @@
+https://leetcode.com/problems/maximize-sum-of-weights-after-edge-removals/description/
+
+
+3367. Maximize Sum of Weights after Edge Removals
+Hard
+Topics
+Companies
+Hint
+There exists an undirected tree with n nodes numbered 0 to n - 1. You are given a 2D integer array edges of length n - 1, where edges[i] = [ui, vi, wi] indicates that there is an edge between nodes ui and vi with weight wi in the tree.
+
+Your task is to remove zero or more edges such that:
+
+Each node has an edge with at most k other nodes, where k is given.
+The sum of the weights of the remaining edges is maximized.
+Return the maximum possible sum of weights for the remaining edges after making the necessary removals.
+
+ 
+
+Example 1:
+
+Input: edges = [[0,1,4],[0,2,2],[2,3,12],[2,4,6]], k = 2
+
+Output: 22
+
+Explanation:
+
+
+
+Node 2 has edges with 3 other nodes. We remove the edge [0, 2, 2], ensuring that no node has edges with more than k = 2 nodes.
+The sum of weights is 22, and we can't achieve a greater sum. Thus, the answer is 22.
+Example 2:
+
+Input: edges = [[0,1,5],[1,2,10],[0,3,15],[3,4,20],[3,5,5],[0,6,10]], k = 3
+
+Output: 65
+
+Explanation:
+
+Since no node has edges connecting it to more than k = 3 nodes, we don't remove any edges.
+The sum of weights is 65. Thus, the answer is 65.
+ 
+
+Constraints:
+
+2 <= n <= 105
+1 <= k <= n - 1
+edges.length == n - 1
+edges[i].length == 3
+0 <= edges[i][0] <= n - 1
+0 <= edges[i][1] <= n - 1
+1 <= edges[i][2] <= 106
+The input is generated such that edges form a valid tree.
+
+
+
+# java
+
+
+class Solution {
+  public long maximizeSumOfWeights(int[][] edges, int k) {
+    final int n = edges.length + 1;
+    List<Pair<Integer, Integer>>[] graph = new List[n];
+
+    for (int i = 0; i < n; ++i)
+      graph[i] = new ArrayList<>();
+
+    for (int[] edge : edges) {
+      final int u = edge[0];
+      final int v = edge[1];
+      final int w = edge[2];
+      graph[u].add(new Pair<>(v, w));
+      graph[v].add(new Pair<>(u, w));
+    }
+
+    return dfs(graph, 0, -1, k).getValue();
+  }
+
+  // Returns
+  // (the weight sum of the subtree rooted at u with at most k - 1 children,
+  //  the weight sum of the subtree rooted at u with at most k children).
+  private Pair<Long, Long> dfs(List<Pair<Integer, Integer>>[] graph, int u, int prev, int k) {
+    long weightSum = 0;
+    Queue<Long> diffs = new PriorityQueue<>(Collections.reverseOrder());
+
+    for (Pair<Integer, Integer> pair : graph[u]) {
+      final int v = pair.getKey();
+      final int w = pair.getValue();
+      if (v == prev)
+        continue;
+      Pair<Long, Long> subResult = dfs(graph, v, u, k);
+      final long subK1 = subResult.getKey();
+      final long subK = subResult.getValue();
+      weightSum += subK;
+      // If picking (u, v) makes the sum larger, we should pick it.
+      diffs.offer(Math.max(0L, subK1 - subK + w));
+    }
+
+    long topK1 = 0;
+    long topK = 0;
+
+    for (int i = 0; i < k && !diffs.isEmpty(); ++i) {
+      if (i < k - 1)
+        topK1 += diffs.peek();
+      topK += diffs.poll();
+    }
+
+    return new Pair<>(weightSum + topK1, weightSum + topK);
+  }
+}
+
+
+or
+
+
+class Solution {
+    private List<int[]>[] g;
+    private int k;
+
+    public long maximizeSumOfWeights(int[][] edges, int k) {
+        this.k = k;
+        int n = edges.length + 1;
+        g = new List[n];
+        Arrays.setAll(g, i -> new ArrayList<>());
+        for (var e : edges) {
+            int u = e[0], v = e[1], w = e[2];
+            g[u].add(new int[] {v, w});
+            g[v].add(new int[] {u, w});
+        }
+        var ans = dfs(0, -1);
+        return Math.max(ans[0], ans[1]);
+    }
+
+    private long[] dfs(int u, int fa) {
+        long s = 0;
+        List<Long> t = new ArrayList<>();
+        for (var e : g[u]) {
+            int v = e[0], w = e[1];
+            if (v == fa) {
+                continue;
+            }
+            var res = dfs(v, u);
+            s += res[0];
+            long d = w + res[1] - res[0];
+            if (d > 0) {
+                t.add(d);
+            }
+        }
+        t.sort(Comparator.reverseOrder());
+        for (int i = 0; i < Math.min(t.size(), k - 1); ++i) {
+            s += t.get(i);
+        }
+        return new long[] {s + (t.size() >= k ? t.get(k - 1) : 0), s};
+    }
+}
+
+
+or
+
+
+class Solution {
+    public long maximizeSumOfWeights(int[][] edges, int k) {
+        HashMap<Integer, ArrayList<int[]>> map = new HashMap<>();
+        for (int[] edge : edges) {
+            map.computeIfAbsent(edge[0], t -> new ArrayList<>()).add(new int[] { edge[1], edge[2] });
+            map.computeIfAbsent(edge[1], t -> new ArrayList<>()).add(new int[] { edge[0], edge[2] });
+        }
+        return maximizeSumOfWeights(0, -1, k, map)[0];
+    }
+    private long[] maximizeSumOfWeights(int v, int from, int k, HashMap<Integer, ArrayList<int[]>> map) {
+        long sum = 0;
+        PriorityQueue<Long> queue = new PriorityQueue<>();
+        for (int[] i : map.get(v)) {
+            if (i[0] != from) {
+                long[] next = maximizeSumOfWeights(i[0], v, k, map);
+                sum += Math.max(next[0], next[1] += i[1]);
+                if (next[0] < next[1]) {
+                    queue.offer(next[1] - next[0]);
+                    sum -= queue.size() > k ? queue.poll() : 0;
+                }
+            }
+        }
+        return new long[] { sum, sum - (queue.size() < k ? 0 : queue.peek()) };
+    }
+}
+
+
+or
+
+
+class Result {
+    public long includingParent;
+    public long excludingParent;
+
+    public Result(long excludingParent, long includingParent) {
+        this.includingParent = includingParent;
+        this.excludingParent = excludingParent;
+    }
+}
+
+class MyBean {
+    public int vertex;
+    public long weight;
+
+    public MyBean(int vertex, long weight) {
+        this.vertex = vertex;
+        this.weight = weight;
+    }
+}
+class Solution {
+    public long maximizeSumOfWeights(int[][] edges, int k) {
+        int n = edges.length + 1;
+        List<MyBean> adj[] = new List[n];
+
+        for (int i = 0; i < n; i++) {
+            adj[i] = new ArrayList<>();
+        }
+
+        for (int i = 0; i < edges.length; i++) {
+            adj[edges[i][0]].add(new MyBean(edges[i][1], (long)edges[i][2]));
+            adj[edges[i][1]].add(new MyBean(edges[i][0], (long)edges[i][2]));
+        }
+
+        return maximizeSumOfWeightsHelper(adj, 0, -1, 0, k).excludingParent;
+        
+    }
+
+    public Result maximizeSumOfWeightsHelper(List<MyBean> adj[], int start, int parent, long parentCost, int k) {
+
+        long excludingParent = 0;
+        long includingParent = 0;
+        PriorityQueue<Result> pq = new PriorityQueue<>((r1, r2) -> {
+            long diff1 = r1.includingParent - r1.excludingParent;
+            long diff2 = r2.includingParent - r2.excludingParent;
+
+            return (int)(Long.compare(diff1, diff2));
+        });
+
+        for (MyBean adjBean : adj[start]) {
+            if (adjBean.vertex == parent) {
+                continue;
+            }
+
+            Result vertexResult = maximizeSumOfWeightsHelper(adj, adjBean.vertex, start, adjBean.weight, k);
+
+            if (vertexResult.excludingParent >= vertexResult.includingParent) {
+                excludingParent = excludingParent + vertexResult.excludingParent;
+            } else {
+                pq.add(vertexResult);
+
+                if (pq.size() > k) {
+                    Result top = pq.poll();
+                    excludingParent = excludingParent + top.excludingParent;
+                }
+            }
+        }
+
+            if (parent == -1) {
+                 while (!pq.isEmpty()) {
+                    Result top = pq.poll();
+                    excludingParent = excludingParent + top.includingParent;
+                 }
+
+                 return new Result(excludingParent, includingParent);
+            }
+
+            if (pq.size() == k) {
+                Result min = pq.peek();
+
+                 while (!pq.isEmpty()) {
+                    Result top = pq.poll();
+                    excludingParent = excludingParent + top.includingParent;
+                 }
+
+                 includingParent = excludingParent - min.includingParent + min.excludingParent + parentCost;
+
+                  return new Result(excludingParent, includingParent);
+
+            } else {
+                 while (!pq.isEmpty()) {
+                    Result top = pq.poll();
+                    excludingParent = excludingParent + top.includingParent;
+                 }
+
+                  return new Result(excludingParent, excludingParent + parentCost);
+            }
+        
+
+    }
+}
