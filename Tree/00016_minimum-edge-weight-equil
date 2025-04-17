@@ -1,0 +1,705 @@
+https://leetcode.com/problems/minimum-edge-weight-equilibrium-queries-in-a-tree/description/
+
+
+2846. Minimum Edge Weight Equilibrium Queries in a Tree
+Hard
+Topics
+Companies
+Hint
+There is an undirected tree with n nodes labeled from 0 to n - 1. You are given the integer n and a 2D integer array edges of length n - 1, where edges[i] = [ui, vi, wi] indicates that there is an edge between nodes ui and vi with weight wi in the tree.
+
+You are also given a 2D integer array queries of length m, where queries[i] = [ai, bi]. For each query, find the minimum number of operations required to make the weight of every edge on the path from ai to bi equal. In one operation, you can choose any edge of the tree and change its weight to any value.
+
+Note that:
+
+Queries are independent of each other, meaning that the tree returns to its initial state on each new query.
+The path from ai to bi is a sequence of distinct nodes starting with node ai and ending with node bi such that every two adjacent nodes in the sequence share an edge in the tree.
+Return an array answer of length m where answer[i] is the answer to the ith query.
+
+ 
+
+Example 1:
+
+
+Input: n = 7, edges = [[0,1,1],[1,2,1],[2,3,1],[3,4,2],[4,5,2],[5,6,2]], queries = [[0,3],[3,6],[2,6],[0,6]]
+Output: [0,0,1,3]
+Explanation: In the first query, all the edges in the path from 0 to 3 have a weight of 1. Hence, the answer is 0.
+In the second query, all the edges in the path from 3 to 6 have a weight of 2. Hence, the answer is 0.
+In the third query, we change the weight of edge [2,3] to 2. After this operation, all the edges in the path from 2 to 6 have a weight of 2. Hence, the answer is 1.
+In the fourth query, we change the weights of edges [0,1], [1,2] and [2,3] to 2. After these operations, all the edges in the path from 0 to 6 have a weight of 2. Hence, the answer is 3.
+For each queries[i], it can be shown that answer[i] is the minimum number of operations needed to equalize all the edge weights in the path from ai to bi.
+Example 2:
+
+
+Input: n = 8, edges = [[1,2,6],[1,3,4],[2,4,6],[2,5,3],[3,6,6],[3,0,8],[7,0,2]], queries = [[4,6],[0,4],[6,5],[7,4]]
+Output: [1,2,2,3]
+Explanation: In the first query, we change the weight of edge [1,3] to 6. After this operation, all the edges in the path from 4 to 6 have a weight of 6. Hence, the answer is 1.
+In the second query, we change the weight of edges [0,3] and [3,1] to 6. After these operations, all the edges in the path from 0 to 4 have a weight of 6. Hence, the answer is 2.
+In the third query, we change the weight of edges [1,3] and [5,2] to 6. After these operations, all the edges in the path from 6 to 5 have a weight of 6. Hence, the answer is 2.
+In the fourth query, we change the weights of edges [0,7], [0,3] and [1,3] to 6. After these operations, all the edges in the path from 7 to 4 have a weight of 6. Hence, the answer is 3.
+For each queries[i], it can be shown that answer[i] is the minimum number of operations needed to equalize all the edge weights in the path from ai to bi.
+ 
+
+Constraints:
+
+1 <= n <= 104
+edges.length == n - 1
+edges[i].length == 3
+0 <= ui, vi < n
+1 <= wi <= 26
+The input is generated such that edges represents a valid tree.
+1 <= queries.length == m <= 2 * 104
+queries[i].length == 2
+0 <= ai, bi < n
+
+
+# java
+
+
+class Solution {
+    public int[] minOperationsQueries(int n, int[][] edges, int[][] queries) {
+        int m = 32 - Integer.numberOfLeadingZeros(n);
+        List<int[]>[] g = new List[n];
+        Arrays.setAll(g, i -> new ArrayList<>());
+        int[][] f = new int[n][m];
+        int[] p = new int[n];
+        int[][] cnt = new int[n][0];
+        int[] depth = new int[n];
+        for (var e : edges) {
+            int u = e[0], v = e[1], w = e[2] - 1;
+            g[u].add(new int[] {v, w});
+            g[v].add(new int[] {u, w});
+        }
+        cnt[0] = new int[26];
+        Deque<Integer> q = new ArrayDeque<>();
+        q.offer(0);
+        while (!q.isEmpty()) {
+            int i = q.poll();
+            f[i][0] = p[i];
+            for (int j = 1; j < m; ++j) {
+                f[i][j] = f[f[i][j - 1]][j - 1];
+            }
+            for (var nxt : g[i]) {
+                int j = nxt[0], w = nxt[1];
+                if (j != p[i]) {
+                    p[j] = i;
+                    cnt[j] = cnt[i].clone();
+                    cnt[j][w]++;
+                    depth[j] = depth[i] + 1;
+                    q.offer(j);
+                }
+            }
+        }
+        int k = queries.length;
+        int[] ans = new int[k];
+        for (int i = 0; i < k; ++i) {
+            int u = queries[i][0], v = queries[i][1];
+            int x = u, y = v;
+            if (depth[x] < depth[y]) {
+                int t = x;
+                x = y;
+                y = t;
+            }
+            for (int j = m - 1; j >= 0; --j) {
+                if (depth[x] - depth[y] >= (1 << j)) {
+                    x = f[x][j];
+                }
+            }
+            for (int j = m - 1; j >= 0; --j) {
+                if (f[x][j] != f[y][j]) {
+                    x = f[x][j];
+                    y = f[y][j];
+                }
+            }
+            if (x != y) {
+                x = p[x];
+            }
+            int mx = 0;
+            for (int j = 0; j < 26; ++j) {
+                mx = Math.max(mx, cnt[u][j] + cnt[v][j] - 2 * cnt[x][j]);
+            }
+            ans[i] = depth[u] + depth[v] - 2 * depth[x] - mx;
+        }
+        return ans;
+    }
+}
+
+
+or
+
+class Solution {
+  public int[] minOperationsQueries(int n, int[][] edges, int[][] queries) {
+    final int MAX = 26;
+    final int m = (int) (Math.log(n) / Math.log(2)) + 1;
+    int[] ans = new int[queries.length];
+    List<Pair<Integer, Integer>>[] graph = new List[n];
+    // jump[i][j] := the node you reach after jumping 2^j from i
+    int[][] jump = new int[n][m];
+    // count[i][j] := the count of j from root to i, where 1 <= j <= 26
+    int[][] count = new int[n][];
+    // depth[i] := the depth of i
+    int[] depth = new int[n];
+
+    for (int i = 0; i < n; ++i)
+      graph[i] = new ArrayList<>();
+
+    for (int[] edge : edges) {
+      final int u = edge[0];
+      final int v = edge[1];
+      final int w = edge[2];
+      graph[u].add(new Pair<>(v, w));
+      graph[v].add(new Pair<>(u, w));
+    }
+
+    count[0] = new int[MAX + 1];
+    dfs(graph, 0, /*prev=*/-1, 0, jump, count, depth);
+
+    // Calculate binary lifting.
+    for (int j = 1; j < m; ++j)
+      for (int i = 0; i < n; ++i)
+        jump[i][j] = jump[jump[i][j - 1]][j - 1];
+
+    for (int i = 0; i < queries.length; ++i) {
+      final int u = queries[i][0];
+      final int v = queries[i][1];
+      final int lca = getLCA(u, v, jump, depth);
+      // the number of edges between (u, v).
+      final int numEdges = depth[u] + depth[v] - 2 * depth[lca];
+      // the maximum frequency of edges between (u, v)
+      int maxFreq = 0;
+      for (int j = 1; j <= MAX; ++j)
+        maxFreq = Math.max(maxFreq, count[u][j] + count[v][j] - 2 * count[lca][j]);
+      ans[i] = numEdges - maxFreq;
+    }
+
+    return ans;
+  }
+
+  private void dfs(List<Pair<Integer, Integer>>[] graph, int u, int prev, int d, int[][] jump,
+                   int[][] count, int[] depth) {
+    if (prev != -1)
+      jump[u][0] = prev;
+    depth[u] = d;
+    for (Pair<Integer, Integer> pair : graph[u]) {
+      final int v = pair.getKey();
+      final int w = pair.getValue();
+      if (v == prev)
+        continue;
+      // Inherit the count from the parent.
+      count[v] = count[u].clone();
+      // Add one to this edge.
+      ++count[v][w];
+      dfs(graph, v, u, d + 1, jump, count, depth);
+    }
+  }
+
+  // Returns the lca(u, v) via Calculate binary lifting.
+  private int getLCA(int u, int v, int[][] jump, int[] depth) {
+    // v is always deeper than u.
+    if (depth[u] > depth[v])
+      return getLCA(v, u, jump, depth);
+    // Jump v to the same height of u.
+    for (int j = 0; j < jump[0].length; ++j)
+      if ((depth[v] - depth[u] >> j & 1) == 1)
+        v = jump[v][j];
+    if (u == v)
+      return u;
+    // Jump u and v to the node right below the lca.
+    for (int j = jump[0].length - 1; j >= 0; --j)
+      if (jump[u][j] != jump[v][j]) {
+        u = jump[u][j];
+        v = jump[v][j];
+      }
+    return jump[v][0];
+  }
+}
+
+
+
+or
+
+
+
+class Solution {
+    public void dfs(int x, int f, int dep, List<Pair<Integer, Integer>> []g, int [][]fa, int [][]w, int []d) {
+        fa[0][x] = f;
+        d[x] = dep;
+        for (Pair<Integer, Integer> p: g[x]) {
+            //Pair<Integer, Integer> p = g[x].get(i);
+            int c = p.getKey().intValue(), weight = p.getValue().intValue();
+            if (f == c) continue;
+            for (int j = 0; j < w[c].length; ++j)
+                w[c][j] = w[x][j];
+            w[c][weight]++;
+            dfs(c, x, dep + 1, g, fa, w, d);
+        }
+    }
+    public int lca(int x, int y, int [][]fa, int []d) {
+        int m = fa.length;
+        if (d[x] > d[y]) {
+            int t = x;
+            x = y;
+            y = t;
+        }
+        // adjust x and y to the same depth:
+        for (int p = 0; (1 << p) <= d[y] - d[x]; ++p) {
+            if (((1 << p) & d[y] - d[x]) != 0) {
+                y = fa[p][y];
+            }
+        }
+        // conservatively jump x and y together:
+        for (int p = m - 1; p >= 0; --p) {
+            if (fa[p][x] != fa[p][y]) {
+                x = fa[p][x];
+                y = fa[p][y];
+            }
+        }
+        return x == y ? x : fa[0][x];
+    }
+    public int[] minOperationsQueries(int n, int[][] edges, int[][] queries) {
+        int m = 15, C = 27;
+        List<Pair<Integer, Integer>> []g = new ArrayList[n];
+        for (int i = 0; i < n; ++i)
+            g[i] = new ArrayList<Pair<Integer, Integer>>();
+        for (int[] e : edges) {
+            g[e[0]].add(new Pair<Integer, Integer>(e[1], e[2]));
+            g[e[1]].add(new Pair<Integer, Integer>(e[0], e[2]));
+        }
+
+        // fa[i][j] means the 2^i -th father of vertex j:
+        int [][]fa = new int[m][n];
+        // w[i][j] means the count of j from root to vertex i:
+        int [][]w = new int[n][C];
+        // d[i] means the depth of vertex i:
+        int []d = new int[n];
+        dfs(0, 0, 0, g, fa, w, d);
+        // binary lifting: 
+        for (int i = 1; i < m; ++i) {
+            for (int j = 0; j < n; ++j) {
+                fa[i][j] = fa[i-1][fa[i-1][j]];
+            }
+        }
+        
+        int []res = new int[queries.length];
+        for (int i = 0; i < queries.length; ++i) {
+            int x = queries[i][0], y = queries[i][1], l = lca(x, y, fa, d);
+            // the total length between x and y:
+            int len = d[x] + d[y] - 2 * d[l];
+            // the mode of weight between x and y:
+            int max_z = 0;
+            for (int z = 1; z < C; ++z) {
+                int num_z = w[x][z] + w[y][z] - w[l][z] * 2;
+                max_z = Math.max(max_z, num_z);
+            }
+            // the others must be changed:
+            res[i] = len - max_z;
+        }
+        return res;
+    }
+}
+
+
+or
+
+
+
+class Solution {
+    public int[] minOperationsQueries(int n, int[][] edges, int[][] queries) {
+        List<Pair>[] con = new ArrayList[n];
+        for (int i = 0; i < n; i++) {
+            con[i] = new ArrayList<>();
+        }
+
+        for (int[] e : edges) {
+            con[e[0]].add(new Pair(e[1], e[2] - 1));
+            con[e[1]].add(new Pair(e[0], e[2] - 1));
+        }
+
+        int[][] all = new int[n][26];
+        int[][] f = new int[n][20];
+        int[] b = new int[n];
+        int[] e = new int[n];
+        int[] w = new int[26];
+
+        int[] t = {0};
+        dfs(con, 0, -1, b, e, f, t, all, w);
+        f[0][0] = 0;
+
+        for (int i = 1; i < 20; ++i) {
+            for (int j = 0; j < n; ++j) {
+                f[j][i] = f[f[j][i - 1]][i - 1];
+            }
+        }
+
+        int[] result = new int[queries.length];
+        int index = 0;
+        for (int[] q : queries) {
+            if (q[0] == q[1]) {
+                result[index++] = 0;
+                continue;
+            }
+            int tLca = lca(f, b, e, q[0], q[1]);
+            int sum = 0, m = 0;
+            for (int i = 0; i < 26; ++i) {
+                int temp = all[q[0]][i] + all[q[1]][i] - (all[tLca][i] << 1);
+                sum += temp;
+                m = Math.max(m, temp);
+            }
+            result[index++] = sum - m;
+        }
+        return result;
+    }
+
+    private static class Pair {
+        int first;
+        int second;
+
+        Pair(int first, int second) {
+            this.first = first;
+            this.second = second;
+        }
+    }
+
+    void dfs(List<Pair>[] con, int x, int p, int[] b, int[] e, int[][] f, int[] t, int[][] all, int[] w) {
+        all[x] = w.clone();
+        f[x][0] = p;
+        b[x] = ++t[0];
+        for (Pair v : con[x]) {
+            if (v.first != p) {
+                w[v.second]++;
+                dfs(con, v.first, x, b, e, f, t, all, w);
+                w[v.second]--;
+            }
+        }
+        e[x] = t[0];
+    }
+
+    boolean isAncestor(int[] b, int[] e, int x, int y) {
+        return b[x] <= b[y] && e[x] >= e[y];
+    }
+
+    int lca(int[][] f, int[] b, int[] e, int x, int y) {
+        if (isAncestor(b, e, x, y)) {
+            return x;
+        }
+        if (isAncestor(b, e, y, x)) {
+            return y;
+        }
+
+        int r = 0;
+        for (int i = 19; i >= 0; --i) {
+            int temp = f[x][i];
+            if (isAncestor(b, e, temp, y)) {
+                r = temp;
+            } else {
+                x = temp;
+            }
+        }
+        return r;
+    }
+}
+
+
+
+or
+
+// binary lifting
+
+class Solution {
+    class Edge {
+        int nbd, weight;
+        public Edge(int nbd, int weight) {
+            this.nbd = nbd;
+            this.weight = weight;
+        }
+    }
+    List<List<Edge>> edgeList;
+    int[] depth, parent, minOperationReqd;
+    int[][] edgeWeightFreq, ancestorDP;
+    int maxPower, m;
+    public int[] minOperationsQueries(int n, int[][] edges, int[][] queries) {
+        m = queries.length;
+        init(n);
+        createGraph(n, edges);
+        dfs(0, -1, new int[27]);
+        //System.out.print("depth -> ");for (int i=0;i<n;i++) {System.out.print("i="+i+","+depth[i] + " :: "); }System.out.println();
+        generateBinaryLiftingDPArrayToComputeLCA(n);
+        for (int i=0; i<m; i++) {
+            int u = queries[i][0], v = queries[i][1];
+            int lca = findLCA(u, v);
+            //System.out.println("u="+u+", v="+v+", lca="+lca);
+            minOperationReqd[i] = computeMinOperations(u, v, lca);
+        }
+        return minOperationReqd;
+    }
+
+    void generateBinaryLiftingDPArrayToComputeLCA(int n) {
+        for (int j=1; j<maxPower; j++) {
+            for (int i=0; i<n; i++) {
+                int midAncestor = ancestorDP[i][j-1];
+                ancestorDP[i][j] = midAncestor == -1 ? -1 :  ancestorDP[ midAncestor ][j-1];
+            }
+        }
+    }
+
+    int findLCA(int u, int v) {
+        //System.out.println("findLCA -> u="+u+", v="+v);
+        if (depth[u] < depth[v]) return findLCA(v, u);
+        int node = u;
+        for (int i=maxPower-1; i>=0; i--) {
+            int stepCnt = (1 << i);
+            if ( (depth[node] - stepCnt )  >= depth[v]) {
+                node = ancestorDP[node][i];
+            }
+        } 
+        //System.out.println("mid -> u="+node+", v="+v);
+        if (node == v) return node;
+        for (int i=maxPower-1; i>=0; i--) {
+            if (ancestorDP[node][i] != ancestorDP[v][i]) {
+                node = ancestorDP[node][i];
+                v = ancestorDP[v][i];
+            }
+        } 
+        //System.out.println("u="+node+", v="+v);
+        return ancestorDP[node][0];
+
+    }
+
+    int computeMinOperations(int u, int v, int lca) {
+        int maxNum = 0, totalSum = 0;
+        for (int i=1; i<=26; i++) {
+            int curPathFreq = edgeWeightFreq[u][i] + edgeWeightFreq[v][i] - 2 * edgeWeightFreq[lca][i];
+            totalSum += curPathFreq;
+            maxNum = Math.max(maxNum, curPathFreq);
+        }
+        return totalSum - maxNum;
+    }
+
+    void dfs(int node, int parent, int[] freq) {
+        //System.out.println("dfs= > "+node+", parent="+parent);
+        ancestorDP[node][0] = parent;
+        for (Edge edge : edgeList.get(node)) {
+            int nbd = edge.nbd;
+            if (nbd == parent) continue;
+            int edgeWeight = edge.weight;
+            freq[ edgeWeight ]++;
+            depth[nbd] = depth[node] + 1;
+            for (int i=1; i<=26; i++) {
+                edgeWeightFreq[nbd][i] = freq[i];
+            }
+            dfs(nbd, node, freq);
+            freq[ edgeWeight ]--;
+        }
+    }
+
+    void createGraph(int n, int[][] edges) {
+        for (int i=0; i<n; i++) {
+            edgeList.add(new ArrayList<>());
+        }
+        for (int i=0; i<edges.length; i++) {
+            edgeList.get(edges[i][0]).add(new Edge(edges[i][1], edges[i][2]));
+            edgeList.get(edges[i][1]).add(new Edge(edges[i][0], edges[i][2]));
+        }
+    }
+
+    void init(int n) {
+        depth = new int[n];
+        parent = new int[n];
+        maxPower = (int) (Math.log(n) / Math.log(2)) + 1;
+        ancestorDP = new int[n][maxPower];
+        minOperationReqd = new int[m];
+        edgeWeightFreq = new int[n][27];
+        edgeList = new ArrayList<>();
+    }
+
+
+}
+
+
+or
+
+
+// best
+
+
+class Solution {
+    class node{
+        int i, v;
+        node(int _i, int _v){
+            i=_i; v=_v;
+        }
+    }
+    public int[] minOperationsQueries(int n, int[][] es, int[][] qs) {
+        List<node>[] con = new List[n];
+        for(int i=0; i<n; i++)con[i]=new ArrayList<>();
+
+        for(int[] e:es){
+            con[e[0]].add(new node(e[1],e[2]));
+            con[e[1]].add(new node(e[0],e[2]));   
+        }
+
+        int[][] p = new int[n][15];
+        int[] l = new int[n];
+        int[][] w = new int[n][27];
+        makeP(0, 0, con, p, w, l);
+
+        int[] x = new int[qs.length];
+        for(int i=0; i<qs.length; i++){
+            x[i] = calc(qs[i][0], qs[i][1], p, w, l);
+        }
+        return x;
+    }
+    private int calc(int a, int b, int[][] p, int[][] w, int[] l){
+        int c = getComPar(a, b, p, l);
+        
+        int min = Integer.MAX_VALUE;
+        for(int i=1; i<=26; i++){
+            int tmp = (w[a][0]-w[c][0])+(w[b][0]-w[c][0]) 
+            - (w[a][i]-w[c][i]) - (w[b][i]-w[c][i]);
+            if(min>tmp)min=tmp;
+        }
+        return min;
+    }
+    private int getComPar(int a, int b, int[][] p, int[] l){
+        if(l[a]<l[b]){
+            b = ance(b, p, l[b]-l[a]);
+        }else if(l[a]>l[b]){
+            a = ance(a, p, l[a]-l[b]);
+        }
+        int u;
+        while(a!=b){
+            if(p[a][0]==p[b][0])return p[a][0];
+            for(u=0; p[a][u+1]!=p[b][u+1];u++);
+            a=p[a][u]; b=p[b][u];
+        }
+        return a;
+    }
+    private int ance(int a, int[][] p, int t){
+        for(int i=0; t>0; i++){
+            if(t%2==1)a = p[a][i];
+            t/=2;
+        }
+        return a;
+    }
+    private void makeP(int c, int a, List<node>[] con, int[][] p, int[][] w, int[] l){
+        p[c][0]=a;
+        l[c]=l[a]+1;
+        for(int i=0; p[c][i]!=0; i++)p[c][i+1]=p[p[c][i]][i];
+        for(node b:con[c]){
+            if(b.i == a)continue;
+            for(int i=0; i<=26; i++)w[b.i][i]=w[c][i];
+            w[b.i][b.v]++; w[b.i][0]++;
+            makeP(b.i, c, con, p, w, l);
+        }
+    }
+}
+
+
+or
+
+
+class Solution {
+    // n : number of nodes/edges
+    // m : 2nd dimension from binary lifting  dp matrix
+    // q : number of queries
+    // 26 : maximum weight
+
+    class Node {
+        int id;
+        Map<Integer, Integer> neighbors;
+
+        public Node(int id) {
+            this.id = id;
+            this.neighbors = new HashMap<>();
+        }
+    }
+
+    private Node[] nodes;
+    private int[][] weight, dp;
+    private int[] depth;
+    private int m;
+    private final int WEIGHT_LIMIT = 26, ROOT_ID = 0;
+
+    // O(n * (m + 26)) + O(26 * q * log(n))
+    public int[] minOperationsQueries(int n, int[][] edges, int[][] queries) {
+        init(n, edges);
+        buildTree(ROOT_ID, -1);
+        int[] result = new int[queries.length];
+
+        for (int i = 0; i < result.length; i++) { // O(26 * q * log(n))
+            int a = queries[i][0], b = queries[i][1], c = lca(a, b);
+            int pathLen = depth[a] + depth[b] - 2 * depth[c], maxFreq = 0;
+            for (int w = 1; w <= WEIGHT_LIMIT; w++) {
+                int freq = weight[a][w] + weight[b][w] - 2 * weight[c][w];
+                maxFreq = Math.max(maxFreq, freq);
+            }
+            result[i] = pathLen - maxFreq;
+        }
+
+        return result;
+    }
+
+    // O(log(n)) even for skewed tree
+    private int lca(int a, int b) {
+        if (depth[a] < depth[b]) return lca(b, a);
+        int diff = depth[a] - depth[b];
+        for (int j = m - 1; j >= 0; j--) {
+            if ((diff & (1 << j)) > 0) {
+                a = dp[a][j];
+            }
+        }
+        if (a == b) return a;
+        for (int j = m - 1; j >= 0; j--) {
+            if (dp[a][j] != dp[b][j]) {
+                a = dp[a][j];
+                b = dp[b][j];
+            }
+        }
+        return dp[a][0];
+    }
+    
+    // O(n * (m + 26))
+    // transform the undirected graph to a tree
+    private void buildTree(int rootId, int parentId) {
+        for (int childId: nodes[rootId].neighbors.keySet()) {
+            // skip parent node to keep the graph directed
+            if (childId == parentId) continue;
+
+            // populate depth matrix
+            depth[childId] = depth[rootId] + 1;
+            
+            // binary lifting
+            for (int j = 0; j < m; j++) {
+                if (j == 0) dp[childId][j] = rootId;
+                else dp[childId][j] = dp[childId][j - 1] == -1 ? -1 : dp[dp[childId][j - 1]][j - 1];
+            }
+
+            // update weight matrix
+            int newWeight = nodes[rootId].neighbors.get(childId);
+            for (int w = 1; w <= WEIGHT_LIMIT; w++) {
+                weight[childId][w] += weight[rootId][w];
+                if (w == newWeight) weight[childId][w]++;
+            }
+
+            buildTree(childId, rootId);
+        }
+    }
+
+    // O(n)
+    private void init(int n, int[][] edges) {
+        this.depth = new int[n];
+        this.weight = new int[n][WEIGHT_LIMIT + 1];
+        this.m = (int)(Math.log(n) / Math.log(2)) + 1;
+        this.dp = new int[n][m];
+        Arrays.fill(dp[ROOT_ID], -1);
+        
+        this.nodes = new Node[n];
+        for (int i = 0; i < n; i++) nodes[i] = new Node(i);
+        
+        for (int[] edge: edges) {
+            int from = edge[0], to = edge[1], weight = edge[2];
+            nodes[from].neighbors.put(to, weight);
+            nodes[to].neighbors.put(from, weight);
+        }
+    }
+}
