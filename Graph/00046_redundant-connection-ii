@@ -1,0 +1,253 @@
+https://leetcode.com/problems/redundant-connection-ii/description/
+
+
+685. Redundant Connection II
+Hard
+Topics
+Companies
+In this problem, a rooted tree is a directed graph such that, there is exactly one node (the root) for which all other nodes are descendants of this node, plus every node has exactly one parent, except for the root node which has no parents.
+
+The given input is a directed graph that started as a rooted tree with n nodes (with distinct values from 1 to n), with one additional directed edge added. The added edge has two different vertices chosen from 1 to n, and was not an edge that already existed.
+
+The resulting graph is given as a 2D-array of edges. Each element of edges is a pair [ui, vi] that represents a directed edge connecting nodes ui and vi, where ui is a parent of child vi.
+
+Return an edge that can be removed so that the resulting graph is a rooted tree of n nodes. If there are multiple answers, return the answer that occurs last in the given 2D-array.
+
+ 
+
+Example 1:
+
+
+Input: edges = [[1,2],[1,3],[2,3]]
+Output: [2,3]
+Example 2:
+
+
+Input: edges = [[1,2],[2,3],[3,4],[4,1],[1,5]]
+Output: [4,1]
+ 
+
+Constraints:
+
+n == edges.length
+3 <= n <= 1000
+edges[i].length == 2
+1 <= ui, vi <= n
+ui != vi
+
+
+
+# java
+
+
+class Solution {
+    public int[] findRedundantDirectedConnection(int[][] edges) {
+        int n = edges.length;
+        int[] p = new int[n + 1];
+        for (int i = 0; i <= n; ++i) {
+            p[i] = i;
+        }
+        UnionFind uf = new UnionFind(n + 1);
+        int conflict = -1, cycle = -1;
+        for (int i = 0; i < n; ++i) {
+            int u = edges[i][0], v = edges[i][1];
+            if (p[v] != v) {
+                conflict = i;
+            } else {
+                p[v] = u;
+                if (!uf.union(u, v)) {
+                    cycle = i;
+                }
+            }
+        }
+        if (conflict == -1) {
+            return edges[cycle];
+        }
+        int v = edges[conflict][1];
+        if (cycle != -1) {
+            return new int[] {p[v], v};
+        }
+        return edges[conflict];
+    }
+}
+
+class UnionFind {
+    public int[] p;
+    public int n;
+
+    public UnionFind(int n) {
+        p = new int[n];
+        for (int i = 0; i < n; ++i) {
+            p[i] = i;
+        }
+        this.n = n;
+    }
+
+    public boolean union(int a, int b) {
+        int pa = find(a);
+        int pb = find(b);
+        if (pa == pb) {
+            return false;
+        }
+        p[pa] = pb;
+        --n;
+        return true;
+    }
+
+    public int find(int x) {
+        if (p[x] != x) {
+            p[x] = find(p[x]);
+        }
+        return p[x];
+    }
+}
+
+
+or
+
+
+class UnionFind {
+  public UnionFind(int n) {
+    id = new int[n];
+    rank = new int[n];
+    for (int i = 0; i < n; ++i)
+      id[i] = i;
+  }
+
+  public boolean unionByRank(int u, int v) {
+    final int i = find(u);
+    final int j = find(v);
+    if (i == j)
+      return false;
+    if (rank[i] < rank[j]) {
+      id[i] = j;
+    } else if (rank[i] > rank[j]) {
+      id[j] = i;
+    } else {
+      id[i] = j;
+      ++rank[j];
+    }
+    return true;
+  }
+
+  private int[] id;
+  private int[] rank;
+
+  private int find(int u) {
+    return id[u] == u ? u : (id[u] = find(id[u]));
+  }
+}
+
+class Solution {
+  public int[] findRedundantDirectedConnection(int[][] edges) {
+    int[] ids = new int[edges.length + 1];
+    int nodeWithTwoParents = 0;
+
+    for (int[] edge : edges) {
+      final int v = edge[1];
+      if (++ids[v] == 2) {
+        nodeWithTwoParents = v;
+        break;
+      }
+    }
+
+    // If there is no edge with two ids, don't skip any edge.
+    if (nodeWithTwoParents == 0)
+      return findRedundantDirectedConnection(edges, -1);
+
+    for (int i = edges.length - 1; i >= 0; --i)
+      if (edges[i][1] == nodeWithTwoParents)
+        // Try to delete the edges[i].
+        if (findRedundantDirectedConnection(edges, i).length == 0)
+          return edges[i];
+
+    throw new IllegalArgumentException();
+  }
+
+  private int[] findRedundantDirectedConnection(int[][] edges, int skippedEdgeIndex) {
+    UnionFind uf = new UnionFind(edges.length + 1);
+
+    for (int i = 0; i < edges.length; ++i) {
+      if (i == skippedEdgeIndex)
+        continue;
+      if (!uf.unionByRank(edges[i][0], edges[i][1]))
+        return edges[i];
+    }
+
+    return new int[] {};
+  }
+}
+
+
+or
+
+// https://leetcode.com/problems/redundant-connection-ii/solutions/2190590/explained-why-can-i-apply-dsu-to-a-directional-graph
+
+class Solution {
+    public int[] findRedundantDirectedConnection(int[][] edges) {
+        
+        int[]inDegree = new int[edges.length+1];        // Case 1: Check for double parents
+        Arrays.fill(inDegree, -1);
+        
+        int bl1 = -1, bl2 = -1;
+        
+        for(int i=0; i<edges.length; i++){
+            int u = edges[i][0];
+            int v = edges[i][1];
+            
+            if(inDegree[v] == -1){
+                inDegree[v] = i;
+            } else {
+                bl1 = i;                        // If double parents exist, we need to find which one of them is unecessary
+                bl2 = inDegree[v];              // We store them both in vars and then run DSU on both, ignoring
+                                                // one edge at a time and check for correct removal
+                break;
+            }
+        }
+        
+         // DSU Implementation
+        
+        int[]parent = new int[edges.length+1];
+        int[]rank = new int[edges.length+1];
+        
+        for(int i=0; i<parent.length; i++) parent[i] = i;
+        
+        for(int i=0; i<edges.length; i++){
+            if(i == bl1) continue;
+            
+            int[]edge = edges[i];
+            boolean bool = union(edge[0], edge[1], parent, rank);
+            if(bool){
+                if(bl1 == -1){                  // Case 3: Double parents dont exist. Cycle exists.
+                    return edge;
+                } else{
+                    return edges[bl2];          // Case 2: Double parents and cycle both exist
+                }
+            }
+        }
+        
+        return edges[bl1];
+    }
+    
+    public int find(int x, int[]parent){
+        if(x == parent[x]) return x;
+        else return find(parent[x], parent);
+    }
+	
+    public boolean union(int s1, int s2, int[]parent, int[]rank){
+		int s1lead = find(s1, parent);        // Finding the parent nodes of both the nodes
+        int s2lead = find(s2, parent);
+        
+        if(s1lead != s2lead){
+            if(rank[s1lead] > rank[s2lead]){
+                parent[s2lead] = s1lead;
+            } else if(rank[s2lead] > rank[s1lead]){
+                parent[s1lead] = s2lead;
+            } else{
+                parent[s2lead] = s1lead;
+                rank[s1lead]++;
+            }
+            return false;       // No cycle due to this edge  
+        } else return true;     // Indicates that the cycle exists
+    }
+}
