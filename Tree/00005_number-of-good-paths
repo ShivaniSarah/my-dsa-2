@@ -1,0 +1,492 @@
+https://leetcode.com/problems/number-of-good-paths/description/
+
+2421. Number of Good Paths
+Hard
+Topics
+Companies
+Hint
+There is a tree (i.e. a connected, undirected graph with no cycles) consisting of n nodes numbered from 0 to n - 1 and exactly n - 1 edges.
+
+You are given a 0-indexed integer array vals of length n where vals[i] denotes the value of the ith node. You are also given a 2D integer array edges where edges[i] = [ai, bi] denotes that there exists an undirected edge connecting nodes ai and bi.
+
+A good path is a simple path that satisfies the following conditions:
+
+The starting node and the ending node have the same value.
+All nodes between the starting node and the ending node have values less than or equal to the starting node (i.e. the starting node's value should be the maximum value along the path).
+Return the number of distinct good paths.
+
+Note that a path and its reverse are counted as the same path. For example, 0 -> 1 is considered to be the same as 1 -> 0. A single node is also considered as a valid path.
+
+ 
+
+Example 1:
+
+
+Input: vals = [1,3,2,1,3], edges = [[0,1],[0,2],[2,3],[2,4]]
+Output: 6
+Explanation: There are 5 good paths consisting of a single node.
+There is 1 additional good path: 1 -> 0 -> 2 -> 4.
+(The reverse path 4 -> 2 -> 0 -> 1 is treated as the same as 1 -> 0 -> 2 -> 4.)
+Note that 0 -> 2 -> 3 is not a good path because vals[2] > vals[0].
+Example 2:
+
+
+Input: vals = [1,1,2,2,3], edges = [[0,1],[1,2],[2,3],[2,4]]
+Output: 7
+Explanation: There are 5 good paths consisting of a single node.
+There are 2 additional good paths: 0 -> 1 and 2 -> 3.
+Example 3:
+
+
+Input: vals = [1], edges = []
+Output: 1
+Explanation: The tree consists of only one node, so there is one good path.
+ 
+
+Constraints:
+
+n == vals.length
+1 <= n <= 3 * 104
+0 <= vals[i] <= 105
+edges.length == n - 1
+edges[i].length == 2
+0 <= ai, bi < n
+ai != bi
+edges represents a valid tree.
+
+# java
+
+class Solution {
+    private int[] p;
+
+    public int numberOfGoodPaths(int[] vals, int[][] edges) {
+        int n = vals.length;
+        p = new int[n];
+        int[][] arr = new int[n][2];
+        List<Integer>[] g = new List[n];
+        Arrays.setAll(g, k -> new ArrayList<>());
+        for (int[] e : edges) {
+            int a = e[0], b = e[1];
+            g[a].add(b);
+            g[b].add(a);
+        }
+        Map<Integer, Map<Integer, Integer>> size = new HashMap<>();
+        for (int i = 0; i < n; ++i) {
+            p[i] = i;
+            arr[i] = new int[] {vals[i], i};
+            size.computeIfAbsent(i, k -> new HashMap<>()).put(vals[i], 1);
+        }
+        Arrays.sort(arr, (a, b) -> a[0] - b[0]);
+        int ans = n;
+        for (var e : arr) {
+            int v = e[0], a = e[1];
+            for (int b : g[a]) {
+                if (vals[b] > v) {
+                    continue;
+                }
+                int pa = find(a), pb = find(b);
+                if (pa != pb) {
+                    ans += size.get(pa).getOrDefault(v, 0) * size.get(pb).getOrDefault(v, 0);
+                    p[pa] = pb;
+                    size.get(pb).put(
+                        v, size.get(pb).getOrDefault(v, 0) + size.get(pa).getOrDefault(v, 0));
+                }
+            }
+        }
+        return ans;
+    }
+
+    private int find(int x) {
+        if (p[x] != x) {
+            p[x] = find(p[x]);
+        }
+        return p[x];
+    }
+}
+
+
+or
+
+
+class UnionFind {
+  public UnionFind(int n) {
+    id = new int[n];
+    rank = new int[n];
+    for (int i = 0; i < n; ++i)
+      id[i] = i;
+  }
+
+  public void unionByRank(int u, int v) {
+    final int i = find(u);
+    final int j = find(v);
+    if (i == j)
+      return;
+    if (rank[i] < rank[j]) {
+      id[i] = j;
+    } else if (rank[i] > rank[j]) {
+      id[j] = i;
+    } else {
+      id[i] = j;
+      ++rank[j];
+    }
+  }
+
+  public int find(int u) {
+    return id[u] == u ? u : (id[u] = find(id[u]));
+  }
+
+  private int[] id;
+  private int[] rank;
+}
+
+class Solution {
+  public int numberOfGoodPaths(int[] vals, int[][] edges) {
+    final int n = vals.length;
+    int ans = n;
+    UnionFind uf = new UnionFind(n);
+    List<Integer>[] tree = new List[n];
+    Map<Integer, List<Integer>> valToNodes = new TreeMap<>();
+
+    for (int i = 0; i < n; ++i)
+      tree[i] = new ArrayList<>();
+
+    for (int[] edge : edges) {
+      final int u = edge[0];
+      final int v = edge[1];
+      if (vals[v] <= vals[u])
+        tree[u].add(v);
+      if (vals[u] <= vals[v])
+        tree[v].add(u);
+    }
+
+    for (int i = 0; i < vals.length; ++i) {
+      valToNodes.putIfAbsent(vals[i], new ArrayList<>());
+      valToNodes.get(vals[i]).add(i);
+    }
+
+    for (Map.Entry<Integer, List<Integer>> entry : valToNodes.entrySet()) {
+      final int val = entry.getKey();
+      List<Integer> nodes = entry.getValue();
+      for (final int u : nodes)
+        for (final int v : tree[u])
+          uf.unionByRank(u, v);
+      Map<Integer, Integer> rootCount = new HashMap<>();
+      for (final int u : nodes)
+        rootCount.merge(uf.find(u), 1, Integer::sum);
+      // For each group, C(count, 2) := count * (count - 1) / 2
+      for (final int count : rootCount.values())
+        ans += count * (count - 1) / 2;
+    }
+
+    return ans;
+  }
+}
+
+
+or
+
+class Solution {
+    private int find(int[] dsu, int node) {
+        if(dsu[node] == node) return node;
+        
+        return dsu[node] = find(dsu, dsu[node]); // path compression
+    }
+    
+    private void union(int[] dsu, int node1, int node2) {
+        int r1 = find(dsu, node1);
+        int r2 = find(dsu, node2);
+        dsu[r2] = r1;
+    }
+    
+
+    public int numberOfGoodPaths(int[] vals, int[][] edges) {
+        Map<Integer, List<Integer>> tree = new HashMap<>();
+        int n = vals.length;
+        int[] dsu = new int[n];
+        int ans = 0;
+        
+        Map<Integer, List<Integer>> valToNodes = new HashMap<>();
+        for (int i = 0; i < n; i++) {
+            dsu[i] = i;
+            
+            tree.put(i, new ArrayList<>());
+            int val = vals[i];
+            valToNodes.computeIfAbsent(val, k -> new ArrayList<>()).add(i);
+        }
+
+        for (int[] edge : edges) {
+            tree.get(edge[0]).add(edge[1]);
+            tree.get(edge[1]).add(edge[0]);
+        }
+
+        Set<Integer> visited = new HashSet<>();
+        for(int val : valToNodes.keySet().stream().sorted().toList()) {
+            // process the nodes with the smallest values first
+            for(int node : valToNodes.get(val)) {
+                if(visited.contains(node)) continue;
+                visited.add(node);
+                
+                mergeComponents(tree, node, visited, vals, dsu);
+            }
+
+            Map<Integer, Integer> rootCompFreq = new HashMap<>();
+            for(int node : valToNodes.get(val)) {
+                int root = find(dsu, node);
+                rootCompFreq.put(root, rootCompFreq.getOrDefault(root, 0) + 1);
+            }
+            
+            // nC2 combination
+            for(int nodeCount : rootCompFreq.values()) {
+                ans += (((nodeCount + 1) * nodeCount) / 2);
+            }
+        }
+
+        return ans;
+    }
+
+    private void mergeComponents(Map<Integer, List<Integer>> tree, int node, Set<Integer> visited, int[] vals, int[] dsu) {
+        for(int neighbor : tree.get(node)) {
+            if(vals[neighbor] > vals[node]) continue;
+            
+            union(dsu, node, neighbor);
+
+            if(visited.contains(neighbor)) continue;
+            visited.add(neighbor);
+            mergeComponents(tree, neighbor, visited, vals, dsu);
+        }
+    }
+}
+
+
+or
+
+class Solution {
+    int[] parents;
+    
+    private int find(int x){
+        if(x != parents[x]) 
+            parents[x] = find(parents[x]);
+        return parents[x];
+    }
+    
+    public int numberOfGoodPaths(int[] vals, int[][] edges) {
+        int n = vals.length;
+        if(n == 1) return 1;
+        // 1. init union find and ids arrayList
+        parents = new int[n];
+        List<Integer> ids = new ArrayList<>();
+        for(int i = 0; i < n; i++){
+            parents[i] = i;
+            ids.add(i);
+        }
+        
+        // build Graph
+        Map<Integer, Set<Integer>> graph = new HashMap<>();
+        
+        for (int[] edge : edges) {
+            int u = edge[0];
+            int v = edge[1];
+            
+            graph.putIfAbsent(u, new HashSet<>());
+            graph.putIfAbsent(v, new HashSet<>());
+            
+            graph.get(u).add(v);
+            graph.get(v).add(u);
+        }
+        
+        // 2. sort the ids by vals
+        Collections.sort(ids, (a, b) -> (vals[a] - vals[b]));
+        
+        // 3. iterate from smallest to biggest
+        int ret = 0;
+        for (int i = 0; i < n; i++) {
+            // get all same vals of node ids[i, j)
+            int j = i + 1;
+            while(j < n && vals[ids.get(j)] == vals[ids.get(i)]) j++;
+            
+            // enum each same val
+            for (int k = i; k < j; k++) {
+                int x = ids.get(k);
+                // traverse neighbor, if small than current node
+                for(int neighbor : graph.get(x)){
+                    if (vals[x] >= vals[neighbor]) {
+                        // union node x and its smaller neighbor
+                        parents[find(x)] = find(neighbor);
+                    }
+                }
+            }
+            // checkout for current values, the # of val in each component 
+            Map<Integer, Integer> temp = new HashMap<>();
+            for(int k = i; k < j; k++){
+                int root = find(ids.get(k));
+                temp.put(root, temp.getOrDefault(root, 0) + 1);  // # of current val in the {root} group
+            }
+			// standalone nodes are included. Note C(n, 2) + n = C(n + 1, 2)
+            for (int v : temp.values()){
+                ret += v * (v + 1) / 2;
+            }
+            
+            i = j - 1;
+        }
+        
+        return ret;
+    }
+}
+
+
+
+or
+
+
+class Solution {
+    public int numberOfGoodPaths(int[] vals, int[][] edges) {
+        int n = vals.length;
+        List<Integer>[] adj = new ArrayList[n];
+        TreeMap<Integer, List<Integer>> valueNodesMap = new TreeMap<>();
+        
+        for (int i = 0; i < n; ++i) {
+            adj[i] = new ArrayList<>();
+            valueNodesMap.computeIfAbsent(vals[i], k -> new ArrayList<>()).add(i);
+        }
+
+        for (int[] e : edges) {
+            int u = e[0], v = e[1];
+            if (vals[u] >= vals[v]) adj[u].add(v);
+            if (vals[v] >= vals[u]) adj[v].add(u);
+        }
+
+        UnionFind uf = new UnionFind(n);
+        int ans = 0;
+
+        for (int val : valueNodesMap.keySet()) {
+            List<Integer> nodes = valueNodesMap.get(val);
+            
+            for (int u : nodes) {
+                for (int v : adj[u]) {
+                    if (vals[v] <= vals[u]) {
+                        uf.union(u, v);
+                    }
+                }
+            }
+
+            Map<Integer, Integer> group = new HashMap<>();
+            for (int u : nodes) {
+                int root = uf.find(u);
+                group.put(root, group.getOrDefault(root, 0) + 1);
+            }
+
+            for (int count : group.values()) {
+                ans += count * (count + 1) / 2;
+            }
+        }
+
+        return ans;
+    }
+
+    class UnionFind {
+        int[] parent;
+
+        UnionFind(int size) {
+            parent = new int[size];
+            Arrays.fill(parent, -1);
+        }
+
+        int find(int x) {
+            if (parent[x] < 0) return x;
+            return parent[x] = find(parent[x]);
+        }
+
+        boolean union(int x, int y) {
+            int px = find(x), py = find(y);
+            if (px == py) return false;
+            if (parent[px] < parent[py]) {
+                parent[px] += parent[py];
+                parent[py] = px;
+            } else {
+                parent[py] += parent[px];
+                parent[px] = py;
+            }
+            return true;
+        }
+    }
+}
+
+
+
+or
+
+
+class UnionFind {
+    int[] parent;
+    int[] rank;
+
+    public UnionFind(int size) {
+        parent = new int[size];
+        for (int i = 0; i < size; i++)
+            parent[i] = i;
+        rank = new int[size];
+    }
+
+    public int find(int x) {
+        if (parent[x] != x)
+            parent[x] = find(parent[x]);
+        return parent[x];
+    }
+
+    public void union_set(int x, int y) {
+        int xset = find(x), yset = find(y);
+        if (xset == yset) {
+            return;
+        } else if (rank[xset] < rank[yset]) {
+            parent[xset] = yset;
+        } else if (rank[xset] > rank[yset]) {
+            parent[yset] = xset;
+        } else {
+            parent[yset] = xset;
+            rank[xset]++;
+        }
+    }
+}
+
+class Solution {
+    public int numberOfGoodPaths(int[] vals, int[][] edges) {
+        Map<Integer, List<Integer>> adj = new HashMap<>();
+        for (int[] edge : edges) {
+            int a = edge[0], b = edge[1];
+            adj.computeIfAbsent(a, value -> new ArrayList<Integer>()).add(b);
+            adj.computeIfAbsent(b, value -> new ArrayList<Integer>()).add(a);
+        }
+
+        int n = vals.length;
+        
+        TreeMap<Integer, List<Integer>> valuesToNodes = new TreeMap<>();
+        for (int i = 0; i < n; i++) {
+            valuesToNodes.computeIfAbsent(vals[i], value -> new ArrayList<Integer>()).add(i);
+        }
+
+        UnionFind dsu = new UnionFind(n);
+        int goodPaths = 0;
+
+        for (int value : valuesToNodes.keySet()) {            
+            for (int node : valuesToNodes.get(value)) {
+                if (!adj.containsKey(node))
+                    continue;
+                for (int neighbor : adj.get(node)) {
+                    if (vals[node] >= vals[neighbor])
+                        dsu.union_set(node, neighbor);
+                }
+            }
+            
+            Map<Integer, Integer> group = new HashMap<>();
+            
+            for (int u : valuesToNodes.get(value))
+                group.put(dsu.find(u), group.getOrDefault(dsu.find(u), 0) + 1);
+            
+            for (int key : group.keySet()) {
+                int size = group.get(key);
+                goodPaths += size * (size + 1) / 2;
+            }
+        }
+        return goodPaths;
+    }
+}
