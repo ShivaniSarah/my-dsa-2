@@ -1,0 +1,329 @@
+https://leetcode.com/problems/valid-arrangement-of-pairs/description/
+
+
+2097. Valid Arrangement of Pairs
+Hard
+Topics
+Companies
+Hint
+You are given a 0-indexed 2D integer array pairs where pairs[i] = [starti, endi]. An arrangement of pairs is valid if for every index i where 1 <= i < pairs.length, we have endi-1 == starti.
+
+Return any valid arrangement of pairs.
+
+Note: The inputs will be generated such that there exists a valid arrangement of pairs.
+
+ 
+
+Example 1:
+
+Input: pairs = [[5,1],[4,5],[11,9],[9,4]]
+Output: [[11,9],[9,4],[4,5],[5,1]]
+Explanation:
+This is a valid arrangement since endi-1 always equals starti.
+end0 = 9 == 9 = start1 
+end1 = 4 == 4 = start2
+end2 = 5 == 5 = start3
+Example 2:
+
+Input: pairs = [[1,3],[3,2],[2,1]]
+Output: [[1,3],[3,2],[2,1]]
+Explanation:
+This is a valid arrangement since endi-1 always equals starti.
+end0 = 3 == 3 = start1
+end1 = 2 == 2 = start2
+The arrangements [[2,1],[1,3],[3,2]] and [[3,2],[2,1],[1,3]] are also valid.
+Example 3:
+
+Input: pairs = [[1,2],[1,3],[2,1]]
+Output: [[1,2],[2,1],[1,3]]
+Explanation:
+This is a valid arrangement since endi-1 always equals starti.
+end0 = 2 == 2 = start1
+end1 = 1 == 1 = start2
+ 
+
+Constraints:
+
+1 <= pairs.length <= 105
+pairs[i].length == 2
+0 <= starti, endi <= 109
+starti != endi
+No two pairs are exactly the same.
+There exists a valid arrangement of pairs.
+
+
+# java
+
+// eulerian circuit
+
+class Solution {
+  public int[][] validArrangement(int[][] pairs) {
+    List<int[]> ans = new ArrayList<>();
+    Map<Integer, Deque<Integer>> graph = new HashMap<>();
+    Map<Integer, Integer> outDegree = new HashMap<>();
+    Map<Integer, Integer> inDegrees = new HashMap<>();
+
+    for (int[] pair : pairs) {
+      final int start = pair[0];
+      final int end = pair[1];
+      graph.putIfAbsent(start, new ArrayDeque<>());
+      graph.get(start).push(end);
+      outDegree.merge(start, 1, Integer::sum);
+      inDegrees.merge(end, 1, Integer::sum);
+    }
+
+    final int startNode = getStartNode(graph, outDegree, inDegrees, pairs);
+    euler(graph, startNode, ans);
+    Collections.reverse(ans);
+    return ans.stream().toArray(int[][] ::new);
+  }
+
+  private int getStartNode(Map<Integer, Deque<Integer>> graph, Map<Integer, Integer> outDegree,
+                           Map<Integer, Integer> inDegrees, int[][] pairs) {
+    for (final int u : graph.keySet())
+      if (outDegree.getOrDefault(u, 0) - inDegrees.getOrDefault(u, 0) == 1)
+        return u;
+    return pairs[0][0]; // Arbitrarily choose a node.
+  }
+
+  private void euler(Map<Integer, Deque<Integer>> graph, int u, List<int[]> ans) {
+    Deque<Integer> stack = graph.get(u);
+    while (stack != null && !stack.isEmpty()) {
+      final int v = stack.pop();
+      euler(graph, v, ans);
+      ans.add(new int[] {u, v});
+    }
+  }
+}
+
+
+or
+
+
+class Solution {
+    public int[][] validArrangement(int[][] pairs) {
+        Map<Integer, List<Integer>> adjacencyList = new HashMap<>();
+        Map<Integer, Integer> inOutDegree = new HashMap<>();
+        
+        // Build graph and count in/out degrees
+        for (int[] pair : pairs) {
+            adjacencyList.computeIfAbsent(pair[0], k -> new ArrayList<>()).add(pair[1]);
+            inOutDegree.merge(pair[0], 1, Integer::sum);  // out-degree
+            inOutDegree.merge(pair[1], -1, Integer::sum);  // in-degree
+        }
+        
+        // Find starting node
+        int startNode = pairs[0][0];
+        for (Map.Entry<Integer, Integer> entry : inOutDegree.entrySet()) {
+            if (entry.getValue() == 1) {
+                startNode = entry.getKey();
+                break;
+            }
+        }
+        
+        List<Integer> path = new ArrayList<>();
+        Deque<Integer> nodeStack = new ArrayDeque<>();
+        nodeStack.push(startNode);
+        
+        while (!nodeStack.isEmpty()) {
+            List<Integer> neighbors = adjacencyList.getOrDefault(nodeStack.peek(), new ArrayList<>());
+            if (neighbors.isEmpty()) {
+                path.add(nodeStack.pop());
+            } else {
+                int nextNode = neighbors.get(neighbors.size() - 1);
+                nodeStack.push(nextNode);
+                neighbors.remove(neighbors.size() - 1);
+            }
+        }
+        
+        int pathSize = path.size();
+        int[][] arrangement = new int[pathSize - 1][2];
+        
+        for (int i = pathSize - 1; i > 0; --i) {
+            arrangement[pathSize - 1 - i] = new int[]{path.get(i), path.get(i-1)};
+        }
+        
+        return arrangement;
+    }
+}
+
+
+or
+
+class Solution {
+    public int[][] validArrangement(int[][] pairs) {
+        Map<Integer, List<Integer>> adjacencyList = new HashMap<>();
+        Map<Integer, Integer> inOutDegree = new HashMap<>();
+        
+        // Build graph and count in/out degrees
+        for (int[] pair : pairs) {
+            adjacencyList.computeIfAbsent(pair[0], k -> new ArrayList<>()).add(pair[1]);
+            inOutDegree.merge(pair[0], 1, Integer::sum);  // out-degree
+            inOutDegree.merge(pair[1], -1, Integer::sum);  // in-degree
+        }
+        
+        // Find starting node
+        int startNode = pairs[0][0];
+        for (Map.Entry<Integer, Integer> entry : inOutDegree.entrySet()) {
+            if (entry.getValue() == 1) {
+                startNode = entry.getKey();
+                break;
+            }
+        }
+        
+        List<Integer> path = new ArrayList<>();
+        Deque<Integer> nodeStack = new ArrayDeque<>();
+        nodeStack.push(startNode);
+        
+        while (!nodeStack.isEmpty()) {
+            List<Integer> neighbors = adjacencyList.getOrDefault(nodeStack.peek(), new ArrayList<>());
+            if (neighbors.isEmpty()) {
+                path.add(nodeStack.pop());
+            } else {
+                int nextNode = neighbors.get(neighbors.size() - 1);
+                nodeStack.push(nextNode);
+                neighbors.remove(neighbors.size() - 1);
+            }
+        }
+        
+        int pathSize = path.size();
+        int[][] arrangement = new int[pathSize - 1][2];
+        
+        for (int i = pathSize - 1; i > 0; --i) {
+            arrangement[pathSize - 1 - i] = new int[]{path.get(i), path.get(i-1)};
+        }
+        
+        return arrangement;
+    }
+}
+
+
+or
+
+class Solution
+{
+    public int[][] validArrangement(int[][] pairs)
+    {
+        int n = pairs.length;
+        
+        // Step 1: Initialize the answer array to store the valid arrangement
+        int[][] ans = new int[n][2];
+        for (int[] a : ans)
+        {
+            a[0] = -1;  // Default value for start of the pair
+            a[1] = -1;  // Default value for end of the pair
+        }
+        
+        // Step 2: Create maps for outdegree and adjacency list (outgoing edges)
+        Map<Integer, Integer> outdegree = new HashMap<>();
+        Map<Integer, Deque<Integer>> out = new HashMap<>();
+        
+        // Step 3: Populate the outdegree map and the adjacency list for outgoing edges
+        for (int[] pair : pairs)
+        {
+            // Increase outdegree for starting node and decrease for the ending node
+            outdegree.put(pair[0], outdegree.getOrDefault(pair[0], 0) + 1);
+            outdegree.put(pair[1], outdegree.getOrDefault(pair[1], 0) - 1);
+            
+            // Create adjacency list for both start and end nodes
+            out.computeIfAbsent(pair[0], k -> new ArrayDeque<>());
+            out.computeIfAbsent(pair[1], k -> new ArrayDeque<>());
+            
+            // Add destination node to the list of outgoing edges for the starting node
+            out.get(pair[0]).addLast(pair[1]);
+        }
+        
+        // Step 4: Find the start and end nodes for the Eulerian path
+        for (Map.Entry<Integer, Integer> entry : outdegree.entrySet())
+        {
+            if (entry.getValue() == 1)
+            {
+                ans[0][0] = entry.getKey(); // Start node has outdegree > indegree
+            }
+            if (entry.getValue() == -1)
+            {
+                ans[n - 1][1] = entry.getKey(); // End node has indegree > outdegree
+            }
+        }
+        
+        // Step 5: Handle the case where no specific start and end node was identified
+        if (ans[0][0] == -1)
+        {
+            ans[0][0] = pairs[0][0]; // Default to the first pair's start node
+            ans[n - 1][1] = pairs[0][0]; // Default end node is the same as start
+        }
+        
+        // Step 6: Use a two-pointer approach to build the valid arrangement
+        int i = 0; // Pointer for the start of the array
+        int j = n - 1; // Pointer for the end of the array
+        
+        while (i < j)
+        {
+            // Step 7: Find the outgoing node for the current start node
+            int from = ans[i][0];
+            
+            // Step 8: Get the adjacency list (outgoing edges) for the current node
+            Deque<Integer> toList = out.get(from);
+            
+            // Step 9: If no outgoing edges remain, backtrack and move the pointers
+            if (toList.size() == 0)
+            {
+                ans[j][0] = ans[--i][0]; // Move start pointer backward
+                ans[--j][1] = ans[j + 1][0]; // Move end pointer backward
+            }
+            else
+            {
+                // Step 10: If there are outgoing edges, continue building the path
+                ans[i++][1] = toList.removeLast(); // Remove last element from the adjacency list
+                ans[i][0] = ans[i - 1][1]; // Update the current start node to the last pair's end node
+            }
+        }
+        
+        // Step 11: Return the final valid arrangement of pairs
+        return ans;
+    }
+}
+
+
+or
+
+
+class Solution {
+    public void dfs(List<Integer> pa, Map<Integer, Stack<Integer>> gr, int st){
+        Stack<Integer> nei= gr.getOrDefault(st, new Stack<>());
+        while(!nei.isEmpty()){
+            int ne= nei.pop();
+            dfs(pa, gr, ne);
+        }
+        pa.add(st);
+    }
+    public int[][] validArrangement(int[][] pairs) {
+        Map<Integer, Stack<Integer>> gr= new HashMap<>();
+        Map<Integer, Integer> in= new HashMap<>();
+        Map<Integer, Integer> out= new HashMap<>();
+        for(int[] a: pairs){
+            int u= a[0], v= a[1];
+            gr.computeIfAbsent(u, k-> new Stack<>()).push(v);
+            out.put(u, out.getOrDefault(u, 0)+1);
+            in.put(v, in.getOrDefault(v, 0)+1);
+        }
+        int st= pairs[0][0];
+        for(int k: gr.keySet()){
+            if(out.getOrDefault(k, 0)> in.getOrDefault(k, 0)){
+                st= k;
+                break;
+            }
+        }
+        List<Integer> path= new ArrayList<>();
+        dfs(path, gr, st);
+        Collections.reverse(path);
+        int[][] res= new int[pairs.length][2];
+        for(int i=0; i<path.size()-1; i++){
+            res[i][0]= path.get(i);
+            res[i][1]= path.get(i+1);
+        }
+        return res;
+    }
+}
+
+
