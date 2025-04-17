@@ -1,0 +1,508 @@
+https://leetcode.com/problems/rank-transform-of-a-matrix/
+
+1632. Rank Transform of a Matrix
+Hard
+Topics
+Companies
+Hint
+Given an m x n matrix, return a new matrix answer where answer[row][col] is the rank of matrix[row][col].
+
+The rank is an integer that represents how large an element is compared to other elements. It is calculated using the following rules:
+
+The rank is an integer starting from 1.
+If two elements p and q are in the same row or column, then:
+If p < q then rank(p) < rank(q)
+If p == q then rank(p) == rank(q)
+If p > q then rank(p) > rank(q)
+The rank should be as small as possible.
+The test cases are generated so that answer is unique under the given rules.
+
+ 
+
+Example 1:
+
+
+Input: matrix = [[1,2],[3,4]]
+Output: [[1,2],[2,3]]
+Explanation:
+The rank of matrix[0][0] is 1 because it is the smallest integer in its row and column.
+The rank of matrix[0][1] is 2 because matrix[0][1] > matrix[0][0] and matrix[0][0] is rank 1.
+The rank of matrix[1][0] is 2 because matrix[1][0] > matrix[0][0] and matrix[0][0] is rank 1.
+The rank of matrix[1][1] is 3 because matrix[1][1] > matrix[0][1], matrix[1][1] > matrix[1][0], and both matrix[0][1] and matrix[1][0] are rank 2.
+Example 2:
+
+
+Input: matrix = [[7,7],[7,7]]
+Output: [[1,1],[1,1]]
+Example 3:
+
+
+Input: matrix = [[20,-21,14],[-19,4,19],[22,-47,24],[-19,4,19]]
+Output: [[4,2,3],[1,3,4],[5,1,6],[1,3,4]]
+ 
+
+Constraints:
+
+m == matrix.length
+n == matrix[i].length
+1 <= m, n <= 500
+-109 <= matrix[row][col] <= 109
+
+
+
+# java
+
+
+class UnionFind {
+  public void union(int u, int v) {
+    id.putIfAbsent(u, u);
+    id.putIfAbsent(v, v);
+    final int i = find(u);
+    final int j = find(v);
+    if (i != j)
+      id.put(i, j);
+  }
+
+  public Map<Integer, List<Integer>> getGroupIdToValues() {
+    Map<Integer, List<Integer>> groupIdToValues = new HashMap<>();
+    for (Map.Entry<Integer, Integer> entry : id.entrySet()) {
+      final int u = entry.getKey();
+      final int i = find(u);
+      groupIdToValues.putIfAbsent(i, new ArrayList<>());
+      groupIdToValues.get(i).add(u);
+    }
+    return groupIdToValues;
+  }
+
+  private Map<Integer, Integer> id = new HashMap<>();
+
+  private int find(int u) {
+    return id.getOrDefault(u, u) == u ? u : find(id.get(u));
+  }
+}
+
+class Solution {
+  public int[][] matrixRankTransform(int[][] matrix) {
+    final int m = matrix.length;
+    final int n = matrix[0].length;
+    int[][] ans = new int[m][n];
+    // {val: [(i, j)]}
+    TreeMap<Integer, List<Pair<Integer, Integer>>> valToGrids = new TreeMap<>();
+    // rank[i] := the maximum rank of the row or column so far
+    int[] maxRankSoFar = new int[m + n];
+
+    for (int i = 0; i < m; ++i)
+      for (int j = 0; j < n; ++j) {
+        final int val = matrix[i][j];
+        valToGrids.putIfAbsent(val, new ArrayList<>());
+        valToGrids.get(val).add(new Pair<>(i, j));
+      }
+
+    for (Map.Entry<Integer, List<Pair<Integer, Integer>>> entry : valToGrids.entrySet()) {
+      final int val = entry.getKey();
+      List<Pair<Integer, Integer>> grids = entry.getValue();
+      UnionFind uf = new UnionFind();
+      for (Pair<Integer, Integer> grid : grids) {
+        final int i = grid.getKey();
+        final int j = grid.getValue();
+        // Union i-th row with j-th col.
+        uf.union(i, j + m);
+      }
+      for (List<Integer> values : uf.getGroupIdToValues().values()) {
+        // Get the maximum rank of all the included rows and columns.
+        int maxRank = 0;
+        for (final int i : values)
+          maxRank = Math.max(maxRank, maxRankSoFar[i]);
+        // Update all the rows and columns to maxRank + 1.
+        for (final int i : values)
+          maxRankSoFar[i] = maxRank + 1;
+      }
+      for (Pair<Integer, Integer> grid : grids) {
+        final int i = grid.getKey();
+        final int j = grid.getValue();
+        ans[i][j] = maxRankSoFar[i];
+      }
+    }
+
+    return ans;
+  }
+}
+
+
+or
+
+
+class UnionFind {
+    private int[] p;
+    private int[] size;
+
+    public UnionFind(int n) {
+        p = new int[n];
+        size = new int[n];
+        for (int i = 0; i < n; ++i) {
+            p[i] = i;
+            size[i] = 1;
+        }
+    }
+
+    public int find(int x) {
+        if (p[x] != x) {
+            p[x] = find(p[x]);
+        }
+        return p[x];
+    }
+
+    public void union(int a, int b) {
+        int pa = find(a), pb = find(b);
+        if (pa != pb) {
+            if (size[pa] > size[pb]) {
+                p[pb] = pa;
+                size[pa] += size[pb];
+            } else {
+                p[pa] = pb;
+                size[pb] += size[pa];
+            }
+        }
+    }
+
+    public void reset(int x) {
+        p[x] = x;
+        size[x] = 1;
+    }
+}
+
+class Solution {
+    public int[][] matrixRankTransform(int[][] matrix) {
+        int m = matrix.length, n = matrix[0].length;
+        TreeMap<Integer, List<int[]>> d = new TreeMap<>();
+        for (int i = 0; i < m; ++i) {
+            for (int j = 0; j < n; ++j) {
+                d.computeIfAbsent(matrix[i][j], k -> new ArrayList<>()).add(new int[] {i, j});
+            }
+        }
+        int[] rowMax = new int[m];
+        int[] colMax = new int[n];
+        int[][] ans = new int[m][n];
+        UnionFind uf = new UnionFind(m + n);
+        int[] rank = new int[m + n];
+        for (var ps : d.values()) {
+            for (var p : ps) {
+                uf.union(p[0], p[1] + m);
+            }
+            for (var p : ps) {
+                int i = p[0], j = p[1];
+                rank[uf.find(i)] = Math.max(rank[uf.find(i)], Math.max(rowMax[i], colMax[j]));
+            }
+            for (var p : ps) {
+                int i = p[0], j = p[1];
+                ans[i][j] = 1 + rank[uf.find(i)];
+                rowMax[i] = ans[i][j];
+                colMax[j] = ans[i][j];
+            }
+            for (var p : ps) {
+                uf.reset(p[0]);
+                uf.reset(p[1] + m);
+            }
+        }
+        return ans;
+    }
+}
+
+
+or
+
+
+class Solution {
+    int[] parent;
+    public int[][] matrixRankTransform(int[][] matrix) {
+        int m = matrix.length;
+        int n = matrix[0].length;
+        int[][] answer = new int[m][n];
+        
+        // GROUP BY MATRIX VAL -> {X,Y}
+        TreeMap<Integer, List<int[]>> map = new TreeMap<>();
+        for(int i = 0; i < m; i++){
+            for(int j = 0; j < n; j++){
+                int[] xy = {i,j};
+                int val = matrix[i][j];
+                if(map.get(val) == null)
+                    map.put(val, new ArrayList<>());
+                map.get(val).add(xy);
+            }
+        }
+        
+        
+        // INITIALIZE MIN-RANK ARRAY FOR EVERY COL/ROW
+        int[] minX = new int[m];
+        int[] minY = new int[n];
+        
+        for(Integer key : map.keySet()){
+            List<int[]> list = map.get(key);
+            
+            // SPLIT TO GROUPS USING UNION FIND FOR VALs IN SAME COL/ROW
+            int lSize = list.size();
+            parent = new int[lSize];
+            for(int i = 0; i < lSize; i++)
+                parent[i] = i;
+            
+            // Group the xy by col and row then union by row & by col
+            HashMap<Integer, List<Integer>> xMap = new HashMap<>();
+            HashMap<Integer, List<Integer>> yMap = new HashMap<>();
+            for(int i = 0; i < lSize; i++){
+                int[] xy = list.get(i);
+                int x = xy[0];
+                int y = xy[1];
+                
+                if(xMap.get(x) == null)
+                    xMap.put(x, new ArrayList<>());
+                if(yMap.get(y) == null)
+                    yMap.put(y, new ArrayList<>());
+                xMap.get(x).add(i);
+                yMap.get(y).add(i);
+            }
+            
+            // union by X
+            for(Integer xKey : xMap.keySet()){
+                List<Integer> xList = xMap.get(xKey);
+                for(int i = 1; i < xList.size(); i++){
+                    union(xList.get(i-1), xList.get(i));
+                }
+            }
+            
+            
+            // union by Y
+            for(Integer yKey : yMap.keySet()){
+                List<Integer> yList = yMap.get(yKey);
+                for(int i = 1; i < yList.size(); i++){
+                    union(yList.get(i-1), yList.get(i));
+                }
+            }
+            
+            HashMap<Integer, List<int[]>> group = new HashMap<>();
+            for(int i = 0; i < lSize; i++){
+                int grp = find(i);
+                if(group.get(grp) == null)
+                    group.put(grp, new ArrayList<>());
+                group.get(grp).add(list.get(i));
+            }
+            
+            
+            // SET ANSWER FOR EACH GROUP
+            for(Integer grpKey : group.keySet()){
+                int max = 1;
+                List<int[]> sublist = group.get(grpKey);
+                
+                // FIND MAX-RANK FOR THIS GROUP
+                for(int[] xy : sublist){
+                    int x = xy[0];
+                    int y = xy[1];
+                
+                    max = Math.max(max, Math.max(minX[x], minY[y]));
+                }
+            
+                // UPDATE ANSWER = MAX-RANK AND SET NEW MIN-RANK FOR ROW/COL = MAX-RANK+1
+                for(int[] xy : sublist){
+                    int x = xy[0];
+                    int y = xy[1];
+                    answer[x][y] = max;
+                    minX[x] = max+1;
+                    minY[y] = max+1;
+                }     
+            }
+        }
+        return answer;
+    }
+    
+    
+    // UNION FIND IMPL
+    void union(int a, int b){
+        int pa = find(a);
+        int pb = find(b);
+        parent[pb] = pa;
+    }
+    
+    int find(int a){
+        int pa = parent[a];
+        if(pa != a){
+            parent[a] = find(pa);
+            return parent[a];
+        } else
+            return a;
+    }
+}
+
+
+or
+
+
+
+class Solution {
+    class Node {
+        int id, val, rank;
+        List<Integer> neighbors;
+        public Node(int id, int val) {
+            this.id = id;
+            this.val = val;
+            this.neighbors = new ArrayList<>();
+        }
+    }
+    
+    class DSU {
+        int[] parent, rank;
+        int size;
+        public DSU(int n) {
+            this.parent = new int[n];
+            for (int i = 0; i < n; i++) parent[i] = i;
+            this.rank = new int[n];
+            this.size = n;
+        }
+
+        public boolean union(int[] a, int[] b) {
+            return union(encode(a[0], a[1]), encode(b[0], b[1]));
+        }
+
+        public boolean union(int a, int b) {
+            int p = find(a), q = find(b);
+            if (p == q) return false;
+            if (rank[p] > rank[q]) {
+                parent[q] = p;
+            } else if (rank[p] < rank[q]) {
+                parent[p] = q;
+            } else {
+                parent[p] = q;
+                rank[q]++;
+            }
+            size--;
+            return true;
+        }
+
+        public int find(int r, int c) {
+            return find(encode(r, c));
+        }
+
+        public int find(int a) {
+            int root = a;
+            while (root != parent[root]) {
+                root = parent[root];
+            }
+            while (root != a) {
+                int p = parent[a];
+                parent[a] = root;
+                a = p;
+            }
+            return root;
+        }
+
+        private int encode(int r, int c) {
+            return r * cols + c;
+        }
+    }
+
+    private int rows, cols;
+    public int[][] matrixRankTransform(int[][] matrix) {
+        this.rows = matrix.length;
+        this.cols = matrix[0].length;
+        DSU dsu = new DSU(rows * cols);
+        
+        connectCellWithEqualRank(dsu, matrix);
+        
+        Map<Integer, Node> graph = new HashMap<>();
+        Node[] nodes = new Node[dsu.size];
+        int[] in = new int[nodes.length];
+        
+        buildGraph(dsu, matrix, graph, nodes, in);
+
+        assignRankThroughTopologicalSort(nodes, in);
+        
+        int[][] ranks = new int[rows][cols];
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols; j++) {
+                ranks[i][j] = graph.get(dsu.find(i, j)).rank;
+            }
+        }
+        return ranks;
+    }
+
+    private void assignRankThroughTopologicalSort(Node[] nodes, int[] in) {
+        Queue<Integer> queue = new LinkedList<>();
+        int rank = 1;
+        for (int i = 0; i < in.length; i++) {
+            if (in[i] == 0) queue.offer(i);
+        }
+        while (!queue.isEmpty()) {
+            int size = queue.size();
+            while (size-- > 0) {
+                int cur = queue.poll();
+                nodes[cur].rank = rank;
+                for (int neighbor: nodes[cur].neighbors) {
+                    if (--in[neighbor] != 0) continue;
+                    queue.offer(neighbor);
+                }
+            }
+            rank++;
+        }
+    }
+
+    private void buildGraph(DSU dsu, int[][] matrix, Map<Integer, Node> graph, Node[] nodes, int[] in) {
+        int id = 0;
+        // add nodes
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols; j++) {
+                int parent = dsu.find(i, j);
+                if (graph.containsKey(parent)) continue;
+                nodes[id] = new Node(id, matrix[i][j]);
+                graph.put(parent, nodes[id]);
+                id++;
+            }
+        }
+        // add edges
+        // 1. row by row
+        for (int i = 0; i < rows; i++) {
+            List<Node> curRow = new ArrayList<>();
+            Set<Integer> seen = new HashSet<>();
+            for (int j = 0; j < cols; j++) {
+                int parent = dsu.find(i, j);
+                if (seen.add(parent)) curRow.add(graph.get(parent));
+            }
+            curRow.sort(Comparator.comparingInt(a -> a.val));
+            for (int m = 0; m < curRow.size() - 1; m++) {
+                int neighborId = curRow.get(m + 1).id;
+                curRow.get(m).neighbors.add(neighborId);
+                in[neighborId]++;
+            }
+        }
+        // 2. col by col
+        for (int j = 0; j < cols; j++) {
+            List<Node> curCol = new ArrayList<>();
+            Set<Integer> seen = new HashSet<>();
+            for (int i = 0; i < rows; i++) {
+                int parent = dsu.find(i, j);
+                if (seen.add(parent)) curCol.add(graph.get(parent));
+            }
+            curCol.sort(Comparator.comparingInt(a -> a.val));
+            for (int m = 0; m < curCol.size() - 1; m++) {
+                int neighborId = curCol.get(m + 1).id;
+                curCol.get(m).neighbors.add(curCol.get(m + 1).id);
+                in[neighborId]++;
+            }
+        }
+    }
+
+    private void connectCellWithEqualRank(DSU dsu, int[][] matrix) {
+        Map<Integer, Map<Integer, List<int[]>>> map = new HashMap<>();
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols; j++) {
+                map.putIfAbsent(matrix[i][j], new HashMap<>());
+                map.get(matrix[i][j]).computeIfAbsent(i + 1, a -> new ArrayList<>()).add(new int[]{i, j});
+                map.get(matrix[i][j]).computeIfAbsent(-j - 1, a -> new ArrayList<>()).add(new int[]{i, j});
+            }
+        }
+        for (Map<Integer, List<int[]>> nodesMap: map.values()) {
+            for (List<int[]> nodes : nodesMap.values()) {
+                for (int i = 0; i < nodes.size() - 1; i++) {
+                    dsu.union(nodes.get(i), nodes.get(i + 1));
+                }
+            }
+        }
+    }
+}
