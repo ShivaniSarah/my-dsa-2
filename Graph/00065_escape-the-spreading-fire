@@ -1,0 +1,427 @@
+https://leetcode.com/problems/escape-the-spreading-fire/description/
+
+2258. Escape the Spreading Fire
+Hard
+Topics
+Companies
+Hint
+You are given a 0-indexed 2D integer array grid of size m x n which represents a field. Each cell has one of three values:
+
+0 represents grass,
+1 represents fire,
+2 represents a wall that you and fire cannot pass through.
+You are situated in the top-left cell, (0, 0), and you want to travel to the safehouse at the bottom-right cell, (m - 1, n - 1). Every minute, you may move to an adjacent grass cell. After your move, every fire cell will spread to all adjacent cells that are not walls.
+
+Return the maximum number of minutes that you can stay in your initial position before moving while still safely reaching the safehouse. If this is impossible, return -1. If you can always reach the safehouse regardless of the minutes stayed, return 109.
+
+Note that even if the fire spreads to the safehouse immediately after you have reached it, it will be counted as safely reaching the safehouse.
+
+A cell is adjacent to another cell if the former is directly north, east, south, or west of the latter (i.e., their sides are touching).
+
+ 
+
+Example 1:
+
+
+Input: grid = [[0,2,0,0,0,0,0],[0,0,0,2,2,1,0],[0,2,0,0,1,2,0],[0,0,2,2,2,0,2],[0,0,0,0,0,0,0]]
+Output: 3
+Explanation: The figure above shows the scenario where you stay in the initial position for 3 minutes.
+You will still be able to safely reach the safehouse.
+Staying for more than 3 minutes will not allow you to safely reach the safehouse.
+Example 2:
+
+
+Input: grid = [[0,0,0,0],[0,1,2,0],[0,2,0,0]]
+Output: -1
+Explanation: The figure above shows the scenario where you immediately move towards the safehouse.
+Fire will spread to any cell you move towards and it is impossible to safely reach the safehouse.
+Thus, -1 is returned.
+Example 3:
+
+
+Input: grid = [[0,0,0],[2,2,0],[1,2,0]]
+Output: 1000000000
+Explanation: The figure above shows the initial grid.
+Notice that the fire is contained by walls and you will always be able to safely reach the safehouse.
+Thus, 109 is returned.
+ 
+
+Constraints:
+
+m == grid.length
+n == grid[i].length
+2 <= m, n <= 300
+4 <= m * n <= 2 * 104
+grid[i][j] is either 0, 1, or 2.
+grid[0][0] == grid[m - 1][n - 1] == 0
+
+
+# java
+
+class Solution {
+  public int maximumMinutes(int[][] grid) {
+    final int MAX = grid.length * grid[0].length;
+    int[][] fireMinute = new int[grid.length][grid[0].length];
+    Arrays.stream(fireMinute).forEach(A -> Arrays.fill(A, -1));
+    buildFireGrid(grid, fireMinute);
+
+    int ans = -1;
+    int l = 0;
+    int r = MAX;
+
+    while (l <= r) {
+      final int m = (l + r) / 2;
+      if (canStayFor(grid, fireMinute, m)) {
+        ans = m;
+        l = m + 1;
+      } else {
+        r = m - 1;
+      }
+    }
+
+    return ans == MAX ? 1_000_000_000 : ans;
+  }
+
+  private static final int[][] DIRS = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
+
+  private void buildFireGrid(int[][] grid, int[][] fireMinute) {
+    Queue<Pair<Integer, Integer>> q = new ArrayDeque<>();
+
+    for (int i = 0; i < grid.length; ++i)
+      for (int j = 0; j < grid[0].length; ++j)
+        if (grid[i][j] == 1) { // the fire
+          q.offer(new Pair<>(i, j));
+          fireMinute[i][j] = 0;
+        }
+
+    for (int minuteFromFire = 1; !q.isEmpty(); ++minuteFromFire)
+      for (int sz = q.size(); sz > 0; --sz) {
+        final int i = q.peek().getKey();
+        final int j = q.poll().getValue();
+        for (int[] dir : DIRS) {
+          final int x = i + dir[0];
+          final int y = j + dir[1];
+          if (x < 0 || x == grid.length || y < 0 || y == grid[0].length)
+            continue;
+          if (grid[x][y] == 2) // the wall
+            continue;
+          if (fireMinute[x][y] != -1)
+            continue;
+          fireMinute[x][y] = minuteFromFire;
+          q.offer(new Pair<>(x, y));
+        }
+      }
+  }
+
+  boolean canStayFor(int[][] grid, int[][] fireMinute, int minute) {
+    Queue<Pair<Integer, Integer>> q =
+        new ArrayDeque<>(List.of(new Pair<>(0, 0))); // the start position
+    boolean[][] seen = new boolean[grid.length][grid[0].length];
+    seen[0][0] = true;
+
+    while (!q.isEmpty()) {
+      ++minute;
+      for (int sz = q.size(); sz > 0; --sz) {
+        final int i = q.peek().getKey();
+        final int j = q.poll().getValue();
+        for (int[] dir : DIRS) {
+          final int x = i + dir[0];
+          final int y = j + dir[1];
+          if (x < 0 || x == grid.length || y < 0 || y == grid[0].length)
+            continue;
+          if (grid[x][y] == 2) // the wall
+            continue;
+          if (x == grid.length - 1 && y == grid[0].length - 1) {
+            if (fireMinute[x][y] != -1 && fireMinute[x][y] < minute)
+              continue;
+            return true;
+          }
+          if (fireMinute[x][y] != -1 && fireMinute[x][y] <= minute)
+            continue;
+          if (seen[x][y])
+            continue;
+          q.offer(new Pair<>(x, y));
+          seen[x][y] = true;
+        }
+      }
+    }
+
+    return false;
+  }
+}
+
+
+
+
+
+or
+
+
+
+class Solution {
+    private int[][] grid;
+    private boolean[][] fire;
+    private boolean[][] vis;
+    private final int[] dirs = {-1, 0, 1, 0, -1};
+    private int m;
+    private int n;
+
+    public int maximumMinutes(int[][] grid) {
+        m = grid.length;
+        n = grid[0].length;
+        this.grid = grid;
+        fire = new boolean[m][n];
+        vis = new boolean[m][n];
+        int l = -1, r = m * n;
+        while (l < r) {
+            int mid = (l + r + 1) >> 1;
+            if (check(mid)) {
+                l = mid;
+            } else {
+                r = mid - 1;
+            }
+        }
+        return l == m * n ? 1000000000 : l;
+    }
+
+    private boolean check(int t) {
+        for (int i = 0; i < m; ++i) {
+            Arrays.fill(fire[i], false);
+            Arrays.fill(vis[i], false);
+        }
+        Deque<int[]> q1 = new ArrayDeque<>();
+        for (int i = 0; i < m; ++i) {
+            for (int j = 0; j < n; ++j) {
+                if (grid[i][j] == 1) {
+                    q1.offer(new int[] {i, j});
+                    fire[i][j] = true;
+                }
+            }
+        }
+        for (; t > 0 && !q1.isEmpty(); --t) {
+            q1 = spread(q1);
+        }
+        if (fire[0][0]) {
+            return false;
+        }
+        Deque<int[]> q2 = new ArrayDeque<>();
+        q2.offer(new int[] {0, 0});
+        vis[0][0] = true;
+        for (; !q2.isEmpty(); q1 = spread(q1)) {
+            for (int d = q2.size(); d > 0; --d) {
+                int[] p = q2.poll();
+                if (fire[p[0]][p[1]]) {
+                    continue;
+                }
+                for (int k = 0; k < 4; ++k) {
+                    int x = p[0] + dirs[k], y = p[1] + dirs[k + 1];
+                    if (x >= 0 && x < m && y >= 0 && y < n && !fire[x][y] && !vis[x][y]
+                        && grid[x][y] == 0) {
+                        if (x == m - 1 && y == n - 1) {
+                            return true;
+                        }
+                        vis[x][y] = true;
+                        q2.offer(new int[] {x, y});
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private Deque<int[]> spread(Deque<int[]> q) {
+        Deque<int[]> nq = new ArrayDeque<>();
+        while (!q.isEmpty()) {
+            int[] p = q.poll();
+            for (int k = 0; k < 4; ++k) {
+                int x = p[0] + dirs[k], y = p[1] + dirs[k + 1];
+                if (x >= 0 && x < m && y >= 0 && y < n && !fire[x][y] && grid[x][y] == 0) {
+                    fire[x][y] = true;
+                    nq.offer(new int[] {x, y});
+                }
+            }
+        }
+        return nq;
+    }
+}
+
+or
+
+
+
+class Solution {
+    int[][] directions = new int[][]{{0,1},{0,-1},{1,0},{-1,0}};
+
+public int maximumMinutes(int[][] grid) {
+    int m = grid.length, n = grid[0].length;
+    List<int[]> fires = new ArrayList<>();
+
+    for (int i = 0; i < m; i++) {
+        for (int j = 0; j < n; j++) {
+            if (grid[i][j] == 1) {
+                fires.add(new int[]{i, j});
+            }
+        }
+    }
+
+    int l = -1, r = m * n;
+    while (l < r) {
+        int mid = l + (r - l) / 2 + 1;
+        if (reachable(grid, mid, fires)) l = mid;
+        else r = mid - 1;
+    }
+    return l == m * n ? (int) 1e9 : l;
+}
+
+boolean reachable(int[][] grid, int move, List<int[]> fires) {
+    int m = grid.length, n = grid[0].length;
+    int[][] copy = clone(grid);
+
+    Queue<int[]> fire = new LinkedList<>();
+    fire.addAll(fires);
+    while (!fire.isEmpty() && move-- > 0) {
+        if (spread(fire, copy)) return false;
+    }
+
+    Queue<int[]> person = new LinkedList<>();
+    person.add(new int[]{0, 0});
+    while (!person.isEmpty()) {
+        boolean onFire = spread(fire, copy);
+        if (spread(person, copy)) return true;
+        if (onFire) return false;
+    }
+    return false;
+}
+
+// return true if it spreads to safehouse
+boolean spread(Queue<int[]> queue, int[][] grid) {
+    int m = grid.length, n = grid[0].length;
+    int size = queue.size();
+
+    while (size-- > 0) {
+        int[] cell = queue.remove();
+        for (int[] d : directions) {
+            int x = cell[0] + d[0] , y = cell[1] + d[1];
+            if (x == m - 1 && y == n - 1) return true;
+            if (x >= 0 && x < m && y >= 0 && y < n && grid[x][y] == 0) {
+                grid[x][y] = -1;
+                queue.add(new int[]{x, y});
+            }
+        }
+    }
+    return false;
+}
+
+int[][] clone(int[][] grid) {
+    int m = grid.length, n = grid[0].length;
+    int[][] copy = new int[m][n];
+    for (int i = 0; i < m; i++) {
+        for (int j = 0; j < n; j++) {
+            copy[i][j] = grid[i][j];
+        }
+    }
+    return copy;
+}
+}
+
+
+or
+
+
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.Queue;
+
+class Solution {
+
+    public boolean ok(int[][] grid, int[][] dist, int wait_time) {
+        int n = grid.length;
+        int m = grid[0].length;
+
+        Queue<Pair<Integer, Integer, Integer>> Q = new LinkedList<>();
+        Q.add(new Pair<>(0, 0, wait_time));
+
+        int[][] visited = new int[n][m];
+        visited[0][0] = 1;
+
+        while (!Q.isEmpty()) {
+            Pair<Integer, Integer, Integer> at = Q.poll();
+            int[][] moves = new int[][]{{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+
+            for (int[] to : moves) {
+                int ii = at.first + to[0];
+                int jj = at.second + to[1];
+                if (!inBounds(ii, jj, n, m) || visited[ii][jj] == 1 || grid[ii][jj] == 2) continue;
+                if (ii == n - 1 && jj == m - 1 && dist[ii][jj] >= at.third + 1) return true;
+                if (dist[ii][jj] <= at.third + 1) continue;
+                Q.add(new Pair<>(ii, jj, 1 + at.third));
+                visited[ii][jj] = 1;
+            }
+        }
+        return false;
+    }
+
+    public boolean inBounds(int i, int j, int n, int m) {
+        return (0 <= i && i < n && 0 <= j && j < m);
+    }
+
+    public int maximumMinutes(int[][] grid) {
+        int n = grid.length;
+        int m = grid[0].length;
+
+        int[][] dist = new int[n][m];
+
+        for (int[] r : dist) Arrays.fill(r, Integer.MAX_VALUE);
+
+        Queue<Pair<Integer, Integer, Integer>> Q = new LinkedList<>();
+
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < m; j++) {
+                if (grid[i][j] == 1) {
+                    Q.add(new Pair<>(i, j, 0));
+                    dist[i][j] = 0;
+                }
+            }
+        }
+
+        while (!Q.isEmpty()) {
+            Pair<Integer, Integer, Integer> at = Q.poll();
+            int[][] moves = new int[][]{{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+            for (int[] to : moves) {
+                int ii = at.first + to[0];
+                int jj = at.second + to[1];
+                if (!inBounds(ii, jj, n, m) || grid[ii][jj] == 2 || dist[ii][jj] <= at.third + 1) continue;
+                dist[ii][jj] = 1 + at.third;
+                Q.add(new Pair<>(ii, jj, 1 + at.third));
+            }
+        }
+
+        int left = 0;
+        int right = 1_000_000_000;
+
+        int ans = -1;
+
+        while (left <= right) {
+            int mid = left + (right - left) / 2;
+            if (ok(grid, dist, mid)) {
+                ans = mid;
+                left = mid + 1;
+            } else right = mid - 1;
+        }
+
+        return ans;
+    }
+
+    static class Pair<T, K, L> {
+        T first;
+        K second;
+        L third;
+
+        public Pair(T first, K second, L third) {
+            this.first = first;
+            this.second = second;
+            this.third = third;
+        }
+    }
+
+}
