@@ -1,0 +1,375 @@
+https://leetcode.com/problems/maximum-points-after-collecting-coins-from-all-nodes/description/
+
+
+2920. Maximum Points After Collecting Coins From All Nodes
+Hard
+Topics
+Companies
+Hint
+There exists an undirected tree rooted at node 0 with n nodes labeled from 0 to n - 1. You are given a 2D integer array edges of length n - 1, where edges[i] = [ai, bi] indicates that there is an edge between nodes ai and bi in the tree. You are also given a 0-indexed array coins of size n where coins[i] indicates the number of coins in the vertex i, and an integer k.
+
+Starting from the root, you have to collect all the coins such that the coins at a node can only be collected if the coins of its ancestors have been already collected.
+
+Coins at nodei can be collected in one of the following ways:
+
+Collect all the coins, but you will get coins[i] - k points. If coins[i] - k is negative then you will lose abs(coins[i] - k) points.
+Collect all the coins, but you will get floor(coins[i] / 2) points. If this way is used, then for all the nodej present in the subtree of nodei, coins[j] will get reduced to floor(coins[j] / 2).
+Return the maximum points you can get after collecting the coins from all the tree nodes.
+
+ 
+
+Example 1:
+
+
+Input: edges = [[0,1],[1,2],[2,3]], coins = [10,10,3,3], k = 5
+Output: 11                        
+Explanation: 
+Collect all the coins from node 0 using the first way. Total points = 10 - 5 = 5.
+Collect all the coins from node 1 using the first way. Total points = 5 + (10 - 5) = 10.
+Collect all the coins from node 2 using the second way so coins left at node 3 will be floor(3 / 2) = 1. Total points = 10 + floor(3 / 2) = 11.
+Collect all the coins from node 3 using the second way. Total points = 11 + floor(1 / 2) = 11.
+It can be shown that the maximum points we can get after collecting coins from all the nodes is 11. 
+Example 2:
+
+
+Input: edges = [[0,1],[0,2]], coins = [8,4,4], k = 0
+Output: 16
+Explanation: 
+Coins will be collected from all the nodes using the first way. Therefore, total points = (8 - 0) + (4 - 0) + (4 - 0) = 16.
+ 
+
+Constraints:
+
+n == coins.length
+2 <= n <= 105
+0 <= coins[i] <= 104
+edges.length == n - 1
+0 <= edges[i][0], edges[i][1] < n
+0 <= k <= 104
+
+
+# java
+
+class Solution {
+  public int maximumPoints(int[][] edges, int[] coins, int k) {
+    final int n = coins.length;
+    List<Integer>[] graph = new List[n];
+
+    for (int i = 0; i < n; ++i)
+      graph[i] = new ArrayList<>();
+
+    Integer[][] mem = new Integer[n][MAX_HALVED + 1];
+
+    for (int[] edge : edges) {
+      final int u = edge[0];
+      final int v = edge[1];
+      graph[u].add(v);
+      graph[v].add(u);
+    }
+
+    return dfs(graph, 0, /*prev=*/-1, coins, k, /*halved=*/0, mem);
+  }
+
+  private static final int MAX_COIN = 10000;
+  private static final int MAX_HALVED = (int) (Math.log(MAX_COIN) / Math.log(2)) + 1;
+
+  private int dfs(List<Integer>[] graph, int u, int prev, int[] coins, int k, int halved,
+                  Integer[][] mem) {
+    // All the children will be 0, so no need to explore.
+    if (halved > MAX_HALVED)
+      return 0;
+    if (mem[u][halved] != null)
+      return mem[u][halved];
+
+    final int val = coins[u] / (1 << halved);
+    int takeAll = val - k;
+    int takeHalf = (int) Math.floor(val / 2.0);
+
+    for (final int v : graph[u]) {
+      if (v == prev)
+        continue;
+      takeAll += dfs(graph, v, u, coins, k, halved, mem);
+      takeHalf += dfs(graph, v, u, coins, k, halved + 1, mem);
+    }
+
+    return mem[u][halved] = Math.max(takeAll, takeHalf);
+  }
+}
+
+
+or
+
+
+class Solution {
+    private int k;
+    private int[] coins;
+    private Integer[][] f;
+    private List<Integer>[] g;
+
+    public int maximumPoints(int[][] edges, int[] coins, int k) {
+        this.k = k;
+        this.coins = coins;
+        int n = coins.length;
+        f = new Integer[n][15];
+        g = new List[n];
+        Arrays.setAll(g, i -> new ArrayList<>());
+        for (var e : edges) {
+            int a = e[0], b = e[1];
+            g[a].add(b);
+            g[b].add(a);
+        }
+        return dfs(0, -1, 0);
+    }
+
+    private int dfs(int i, int fa, int j) {
+        if (f[i][j] != null) {
+            return f[i][j];
+        }
+        int a = (coins[i] >> j) - k;
+        int b = coins[i] >> (j + 1);
+        for (int c : g[i]) {
+            if (c != fa) {
+                a += dfs(c, i, j);
+                if (j < 14) {
+                    b += dfs(c, i, j + 1);
+                }
+            }
+        }
+        return f[i][j] = Math.max(a, b);
+    }
+}
+
+or
+
+
+class Solution {
+       List<Integer>[] G;
+    int[] vis;
+    int dfs(int i, int p, int[] A, int k, int v) {
+        if (v > 13) return 0;
+        if (vis[i] > v) return 0;
+        vis[i]++;
+        int op1 = (A[i] >> v) - k, op2 = A[i] >> v + 1;
+        for (int j : G[i]) {
+            if (j == p) continue;
+            op1 += dfs(j, i, A, k, v);
+            op2 += dfs(j, i, A, k, v + 1);
+        }
+        return Math.max(op1, op2);
+    }
+
+    int maximumPoints(int[][] edges, int[] A, int k) {
+        int n = edges.length + 1;
+        G = new List[n];
+        vis = new int[n];
+        for (int i = 0; i < n; i++) {
+            G[i] = new ArrayList();
+        }
+        for (int[] e : edges) {
+            G[e[0]].add(e[1]);
+            G[e[1]].add(e[0]);
+        }
+        return dfs(0, -1, A, k, 0);
+    }
+}
+
+
+or
+
+
+/**************************** JAVA ************************************/
+//Approach-2 (Using Recursion + Memoization of 2 parameters - 2D Memoization)
+//T.C : O(V+E) - Just traversing the Graph using DFS
+//S.C : O(V + E) - adj
+class Solution {
+    int N;
+    List<Integer>[] G;
+    Integer dp[][];
+    public int maximumPoints(int[][] edges, int[] coins, int k) {
+        N = coins.length; 
+        G = new ArrayList[N];
+        dp = new Integer[N+1][14];
+        for (int i = 0; i < N; i++) {
+            G[i] = new ArrayList<>();
+        }
+        for (int[] e : edges) {
+            G[e[0]].add(e[1]);
+            G[e[1]].add(e[0]);
+        }
+        
+        return getMax(0, -1, 0, coins, k);
+    }
+    
+    public int getMax(int i, int parent, int pow, int[] coins, int k) {
+        if (pow >= 14) {
+            return 0;
+        }
+        if  (dp[i][pow] != null) {
+            return dp[i][pow];
+        }
+        
+        int res1 = (coins[i] >> pow) - k;
+        int res2 = (int)Math.floor((coins[i] >> (pow+1)));
+        for (int u : G[i]) {
+            if (u == parent) {
+                continue;
+            }
+            res1 += getMax(u, i, pow, coins, k);
+            res2 += getMax(u, i, pow+1, coins, k);
+        }
+
+        return dp[i][pow] = Math.max(res1, res2);
+    }
+}
+
+
+or
+
+
+
+class Solution {
+    Integer [][] dp ;
+    public int maximumPoints(int[][] e, int[] coins, int k) {
+        int n = coins.length;
+        HashMap<Integer, ArrayList<Integer>> adj = new HashMap<>();
+        for( int i =0; i<n; i++ ) adj.put(i, new ArrayList<>());
+        for( int [] arr : e){
+            adj.get(arr[0]).add(arr[1]);
+            adj.get(arr[1]).add(arr[0]);
+        }
+        // System.out.println(adj);
+        dp= new Integer[n+1][13];
+ 
+        return dfs( 0 , 0 , adj , coins , k, new boolean[n]);
+        // return 10;
+    }
+    public int dfs(int node , int pow,  HashMap<Integer, ArrayList<Integer>> adj , int[] coin , int k, boolean[] visit){
+        if(pow>= 13) return 0;
+        // System.out.println(node+" " + pow);
+        if(dp[node][pow]!=null) return dp[node][ pow];
+        int val = coin[node] / (1<<pow);
+        
+        visit[node]= true;
+        int ans =  val-k ;
+        for( int child : adj.get(node)){
+            if(visit[child]) continue;
+            ans += dfs( child, pow , adj, coin , k, visit);
+        }
+        int ans2 = val/2;
+        for( int child : adj.get(node)){
+        if(visit[child]) continue;
+            ans2 += dfs( child, pow+1 , adj, coin , k, visit);
+        }
+         visit[node]= false;
+        return dp[node] [ pow]= Math.max( ans, ans2);
+    }
+}
+
+
+or
+
+
+class Solution {
+    int rec(List<List<Integer>>adjList,Integer dp[][],int vis[] ,int[] coins, int k,int curNode,int reduced)
+    {
+        //Very very important line:  if(reduced>13) return 0;
+        /*
+            Why this works because maximum value of cost = 10,000. 
+            So if we divide 10,000/2^14 we will get 0 as integral value. 
+            Quite innovative!! 
+            Even I was unable to come up with this solution in the contest!
+         */
+
+        if(reduced>13) return 0;
+
+        vis[curNode]= 1;
+        if(dp[curNode][reduced]!=null)  return dp[curNode][reduced];
+
+        int cost = coins[curNode]/(1<<reduced);
+        int way1 = cost-k,  way2 = cost/2;
+
+        for(int i=0;i<adjList.get(curNode).size();i++)
+        {
+            int adjNode = adjList.get(curNode).get(i);
+            if(vis[adjNode]==0)
+            {
+            way1 += rec(adjList,dp,vis,coins,k,adjNode,reduced);
+            way2 += rec(adjList,dp,vis,coins,k,adjNode,reduced+1);
+            }
+        }
+
+        vis[curNode]=0;
+        return dp[curNode][reduced] = Math.max(way1,way2);
+    }
+
+    public int maximumPoints(int[][] edges, int[] coins, int k) {
+        List<List<Integer>> adjList = new ArrayList<>();
+        
+        for(int i=0;i<coins.length;i++) adjList.add(new ArrayList<>());
+
+        for(int i=0;i<edges.length;i++)
+        {
+            adjList.get(edges[i][0]).add(edges[i][1]);
+            adjList.get(edges[i][1]).add(edges[i][0]);
+        }
+
+        int vis[] = new int[coins.length];
+
+        Integer dp[][] = new Integer[coins.length][14];
+        return rec(adjList,dp,vis,coins,k,0,0);
+    }
+}
+
+or
+
+
+class Solution {
+    public int maximumPoints(int[][] edges, int[] coins, int k) {
+        int n = coins.length ;
+        List<List<Integer>> graph = new ArrayList<>();
+
+        for (int i = 0; i <n ; i++){
+            graph.add(new ArrayList<>());
+        }
+        for (int[] e: edges){
+            int s = e[0];
+            int d = e[1];
+            graph.get(s).add(d);
+            graph.get(d).add(s);
+        }
+        boolean[] vis = new boolean[n];
+        Integer[][] dp = new Integer[n][14];
+        dfs(0,0,vis,graph,k,dp, coins);
+        return dp[0][0];
+    }
+    private int dfs(int currNode, int red, boolean[] vis, List<List<Integer>>graph, int k, Integer[][] dp, int[]coins){
+        if (red >= 14) return 0;
+        if (dp[currNode][red] != null){
+            return dp[currNode][red];
+        }
+
+        vis[currNode] = true;
+        int currCoins = coins[currNode]/(1<<red);
+        int way1 = currCoins - k;
+        int way2 = currCoins/2;
+        for (Integer child : graph.get(currNode)){
+            if (!vis[child]){
+                way1 += dfs(child, red, vis, graph, k, dp, coins);
+                way2 += dfs(child, red+1, vis, graph, k, dp, coins);
+            }
+        }
+        vis[currNode] = false;
+        return dp[currNode][red] = Math.max(way1, way2);
+    }
+}
+
+
+or
+
+
+
+
+
+or
+
+
