@@ -1,0 +1,281 @@
+https://leetcode.com/problems/largest-component-size-by-common-factor/description/
+
+
+952. Largest Component Size by Common Factor
+Hard
+Topics
+Companies
+You are given an integer array of unique positive integers nums. Consider the following graph:
+
+There are nums.length nodes, labeled nums[0] to nums[nums.length - 1],
+There is an undirected edge between nums[i] and nums[j] if nums[i] and nums[j] share a common factor greater than 1.
+Return the size of the largest connected component in the graph.
+
+ 
+
+Example 1:
+
+
+Input: nums = [4,6,15,35]
+Output: 4
+Example 2:
+
+
+Input: nums = [20,50,9,63]
+Output: 2
+Example 3:
+
+
+Input: nums = [2,3,6,7,4,12,21,39]
+Output: 8
+ 
+
+Constraints:
+
+1 <= nums.length <= 2 * 104
+1 <= nums[i] <= 105
+All the values of nums are unique.
+
+
+# java
+
+
+class UnionFind {
+  public UnionFind(int n) {
+    id = new int[n];
+    rank = new int[n];
+    for (int i = 0; i < n; ++i)
+      id[i] = i;
+  }
+
+  public void unionByRank(int u, int v) {
+    final int i = find(u);
+    final int j = find(v);
+    if (i == j)
+      return;
+    if (rank[i] < rank[j]) {
+      id[i] = j;
+    } else if (rank[i] > rank[j]) {
+      id[j] = i;
+    } else {
+      id[i] = j;
+      ++rank[j];
+    }
+  }
+
+  public int find(int u) {
+    return id[u] == u ? u : (id[u] = find(id[u]));
+  }
+
+  private int[] id;
+  private int[] rank;
+}
+
+class Solution {
+  public int largestComponentSize(int[] nums) {
+    final int n = Arrays.stream(nums).max().getAsInt();
+    int ans = 0;
+    UnionFind uf = new UnionFind(n + 1);
+    Map<Integer, Integer> count = new HashMap<>();
+
+    for (final int num : nums)
+      for (int x = 2; x <= (int) Math.sqrt(num); ++x)
+        if (num % x == 0) {
+          uf.unionByRank(num, x);
+          uf.unionByRank(num, num / x);
+        }
+
+    for (final int num : nums)
+      ans = Math.max(ans, count.merge(uf.find(num), 1, Integer::sum));
+
+    return ans;
+  }
+}
+
+
+or
+
+
+class UnionFind {
+    int[] p;
+
+    UnionFind(int n) {
+        p = new int[n];
+        for (int i = 0; i < n; ++i) {
+            p[i] = i;
+        }
+    }
+
+    void union(int a, int b) {
+        int pa = find(a), pb = find(b);
+        if (pa != pb) {
+            p[pa] = pb;
+        }
+    }
+
+    int find(int x) {
+        if (p[x] != x) {
+            p[x] = find(p[x]);
+        }
+        return p[x];
+    }
+}
+
+class Solution {
+    public int largestComponentSize(int[] nums) {
+        int m = 0;
+        for (int v : nums) {
+            m = Math.max(m, v);
+        }
+        UnionFind uf = new UnionFind(m + 1);
+        for (int v : nums) {
+            int i = 2;
+            while (i <= v / i) {
+                if (v % i == 0) {
+                    uf.union(v, i);
+                    uf.union(v, v / i);
+                }
+                ++i;
+            }
+        }
+        int[] cnt = new int[m + 1];
+        int ans = 0;
+        for (int v : nums) {
+            int t = uf.find(v);
+            ++cnt[t];
+            ans = Math.max(ans, cnt[t]);
+        }
+        return ans;
+    }
+}
+
+or
+
+
+class DSU {
+    ArrayList<Integer> parent = new ArrayList();
+    public DSU (int n) {
+        for (int i = 0; i < n; i++)
+            parent.add(i);
+    }
+    int findParent(int n) {
+        if(parent.get(n) == n)
+            return n;
+        parent.set(n, findParent(parent.get(n)));
+        return parent.get(n);
+    }
+    void union(int u, int v) {
+        int uParent = findParent(u);
+        int vParent = findParent(v);
+        
+        if(uParent != vParent)
+            parent.set(uParent, parent.get(vParent));
+    }
+}
+class Solution {
+    public int largestComponentSize(int[] nums) {
+        int n = nums.length;
+        int x = nums[0];
+        for (int num : nums)
+            x = Math.max(x, num);
+        DSU dsu = new DSU(x + 1);
+        
+        for (int num : nums) {
+            for (int i = 2; i * i <= num; i++) {
+                if (num % i == 0) {
+                    dsu.union(num, i);
+                    dsu.union(num, num/i);
+                }
+            }
+        }
+        Map<Integer, Integer> map = new HashMap();
+        int ans = 1;
+        for (int num : nums) {
+            int par = dsu.findParent(num);
+            map.put(par, map.getOrDefault(par, 0) + 1);
+            ans = Math.max(ans, map.get(par));
+        }
+        return ans;
+    }
+}
+
+or
+
+
+class Solution {
+    int parent [];
+    int size [];
+    public int largestComponentSize(int[] nums) {
+     int max = nums[0] ;
+     HashMap<Integer,HashSet<Integer>> primeFactors = new HashMap<>();
+     for(int val : nums)   max = Math.max(max,val);
+     int seive [] = new int[max + 1];
+     parent = new int[max + 1];
+     size  = new int[max + 1];
+
+     for(int i = 0; i < seive.length ; i++)   parent[i] = seive[i] = i;
+
+     for(int i = 2; i*i < seive.length ; i++){
+         if(seive[i] == i){
+             for(int j = i; j < seive.length ; j+=i){
+                 if(seive[j] == j) seive[j] = i;
+             }
+         }
+     }
+
+     for(int i = 0; i < nums.length ; i++){
+         int val = nums[i];
+         size[val] = 1;
+         HashSet<Integer> set = new HashSet<>();
+        addFactors(val,seive,set);
+         primeFactors.put(val,set);
+     }
+
+
+
+
+         for(int val : nums){
+             for(int fac : primeFactors.get(val)){
+             if(val % fac == 0){
+                 if(findparent(fac) != findparent(val)) {
+                  union(fac , val);
+                 }
+             }
+         }
+         }
+     
+
+    
+            int ans = 1;
+            for(int val : size) {
+                ans = Math.max(ans,val);
+            }
+            return ans;
+     
+
+    }
+
+    public int findparent(int node){
+         if(parent[node] == node) return node;
+         return parent[node] = findparent(parent[node]);
+    }
+
+    public void union(int u , int v){
+      u = findparent(u);
+      v = findparent(v);
+      if(size[u] > size[v]){
+          parent[v] = u;
+          size[u]+=size[v];
+      }else {
+        parent[u] = v;
+          size[v]+=size[u];
+      }
+    }
+
+    public void addFactors(int val, int seive [] , HashSet<Integer> set){
+          while(val > 1){
+              set.add(seive[val]);
+              val = val/seive[val];
+          }
+    }
+}
