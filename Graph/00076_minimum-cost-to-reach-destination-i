@@ -1,0 +1,290 @@
+https://leetcode.com/problems/minimum-cost-to-reach-destination-in-time/description/
+
+
+1928. Minimum Cost to Reach Destination in Time
+Hard
+Topics
+Companies
+Hint
+There is a country of n cities numbered from 0 to n - 1 where all the cities are connected by bi-directional roads. The roads are represented as a 2D integer array edges where edges[i] = [xi, yi, timei] denotes a road between cities xi and yi that takes timei minutes to travel. There may be multiple roads of differing travel times connecting the same two cities, but no road connects a city to itself.
+
+Each time you pass through a city, you must pay a passing fee. This is represented as a 0-indexed integer array passingFees of length n where passingFees[j] is the amount of dollars you must pay when you pass through city j.
+
+In the beginning, you are at city 0 and want to reach city n - 1 in maxTime minutes or less. The cost of your journey is the summation of passing fees for each city that you passed through at some moment of your journey (including the source and destination cities).
+
+Given maxTime, edges, and passingFees, return the minimum cost to complete your journey, or -1 if you cannot complete it within maxTime minutes.
+
+ 
+
+Example 1:
+
+
+
+Input: maxTime = 30, edges = [[0,1,10],[1,2,10],[2,5,10],[0,3,1],[3,4,10],[4,5,15]], passingFees = [5,1,2,20,20,3]
+Output: 11
+Explanation: The path to take is 0 -> 1 -> 2 -> 5, which takes 30 minutes and has $11 worth of passing fees.
+Example 2:
+
+
+
+Input: maxTime = 29, edges = [[0,1,10],[1,2,10],[2,5,10],[0,3,1],[3,4,10],[4,5,15]], passingFees = [5,1,2,20,20,3]
+Output: 48
+Explanation: The path to take is 0 -> 3 -> 4 -> 5, which takes 26 minutes and has $48 worth of passing fees.
+You cannot take path 0 -> 1 -> 2 -> 5 since it would take too long.
+Example 3:
+
+Input: maxTime = 25, edges = [[0,1,10],[1,2,10],[2,5,10],[0,3,1],[3,4,10],[4,5,15]], passingFees = [5,1,2,20,20,3]
+Output: -1
+Explanation: There is no way to reach city 5 from city 0 within 25 minutes.
+ 
+
+Constraints:
+
+1 <= maxTime <= 1000
+n == passingFees.length
+2 <= n <= 1000
+n - 1 <= edges.length <= 1000
+0 <= xi, yi <= n - 1
+1 <= timei <= 1000
+1 <= passingFees[j] <= 1000 
+The graph may contain multiple edges between two nodes.
+The graph does not contain self loops.
+
+
+# javaa
+
+
+class Solution {
+  public int minCost(int maxTime, int[][] edges, int[] passingFees) {
+    final int n = passingFees.length;
+    List<Pair<Integer, Integer>>[] graph = new List[n];
+
+    for (int i = 0; i < n; ++i)
+      graph[i] = new ArrayList<>();
+
+    for (int[] edge : edges) {
+      final int u = edge[0];
+      final int v = edge[1];
+      final int t = edge[2];
+      graph[u].add(new Pair<>(v, t));
+      graph[v].add(new Pair<>(u, t));
+    }
+
+    return dijkstra(graph, 0, n - 1, maxTime, passingFees);
+  }
+
+  private int dijkstra(List<Pair<Integer, Integer>>[] graph, int src, int dst, int maxTime,
+                       int[] passingFees) {
+    int[] cost = new int[graph.length]; // cost[i] := the minimum cost to reach the i-th city
+    int[] dist = new int[graph.length]; // dist[i] := the minimum distance to reach the i-th city
+    Arrays.fill(cost, Integer.MAX_VALUE);
+    Arrays.fill(dist, maxTime + 1);
+
+    cost[0] = passingFees[0];
+    dist[0] = 0;
+    Queue<int[]> minHeap = new PriorityQueue<>(Comparator.comparingInt(a -> a[0])) {
+      { offer(new int[] {cost[src], dist[src], src}); } // (cost[u], dist[u], u)
+    };
+
+    while (!minHeap.isEmpty()) {
+      final int currCost = minHeap.peek()[0];
+      final int d = minHeap.peek()[1];
+      final int u = minHeap.poll()[2];
+      if (u == dst)
+        return cost[dst];
+      if (d > dist[u] && currCost > cost[u])
+        continue;
+      for (Pair<Integer, Integer> pair : graph[u]) {
+        final int v = pair.getKey();
+        final int w = pair.getValue();
+        if (d + w > maxTime)
+          continue;
+        // Go from x -> y
+        if (currCost + passingFees[v] < cost[v]) {
+          cost[v] = currCost + passingFees[v];
+          dist[v] = d + w;
+          minHeap.offer(new int[] {cost[v], dist[v], v});
+        } else if (d + w < dist[v]) {
+          dist[v] = d + w;
+          minHeap.offer(new int[] {currCost + passingFees[v], dist[v], v});
+        }
+      }
+    }
+
+    return -1;
+  }
+}
+
+
+or
+
+
+class Solution {
+    public int minCost(int maxTime, int[][] edges, int[] passingFees) {
+        int n = passingFees.length;
+        int[][] times = new int[n][n];
+        for (int i = 0; i < n; i++)
+            Arrays.fill(times[i], Integer.MAX_VALUE);
+        for (int[] edge : edges) {
+            int x = edge[0], y = edge[1], time = edge[2];
+            if (x > y) {
+                int temp = x;
+                x = y;
+                y = temp;
+            }
+            if (time <= maxTime && time < times[x][y]) {
+                times[x][y] = time;
+                times[y][x] = time;
+            }
+        }
+        Map<Integer, Integer>[] map = new Map[n];
+        for (int i = 0; i < n; i++)
+            map[i] = new HashMap<Integer, Integer>();
+        for (int i = 0; i < n; i++) {
+            for (int j = i + 1; j < n; j++) {
+                if (times[i][j] != Integer.MAX_VALUE) {
+                    map[i].put(j, times[i][j]);
+                    map[j].put(i, times[i][j]);
+                }
+            }
+        }
+        int[][] costs = new int[n][maxTime + 1];
+        for (int i = 0; i < n; i++)
+            Arrays.fill(costs[i], Integer.MAX_VALUE);
+        costs[0][0] = passingFees[0];
+        PriorityQueue<int[]> priorityQueue = new PriorityQueue<int[]>(new Comparator<int[]>() {
+            public int compare(int[] indexTimeCost1, int[] indexTimeCost2) {
+                if (indexTimeCost1[2] != indexTimeCost2[2])
+                    return indexTimeCost1[2] - indexTimeCost2[2];
+                else
+                    return indexTimeCost1[1] - indexTimeCost2[1];
+            }
+        });
+        priorityQueue.offer(new int[]{0, 0, passingFees[0]});
+        while (!priorityQueue.isEmpty()) {
+            int[] indexTimeCost = priorityQueue.poll();
+            int index = indexTimeCost[0], time = indexTimeCost[1], cost = indexTimeCost[2];
+            Map<Integer, Integer> nextMap = map[index];
+            for (Map.Entry<Integer, Integer> entry : nextMap.entrySet()) {
+                int nextIndex = entry.getKey(), nextTime = entry.getValue();
+                int totalTime = time + nextTime;
+                if (totalTime <= maxTime) {
+                    int totalCost = cost + passingFees[nextIndex];
+                    if (totalCost < costs[nextIndex][totalTime]) {
+                        costs[nextIndex][totalTime] = totalCost;
+                        priorityQueue.offer(new int[]{nextIndex, totalTime, totalCost});
+                    }
+                }
+            }
+        }
+        int minCost = Integer.MAX_VALUE;
+        for (int i = 0; i <= maxTime; i++)
+            minCost = Math.min(minCost, costs[n - 1][i]);
+        return minCost == Integer.MAX_VALUE ? -1 : minCost;
+    }
+}
+
+or
+
+class Solution {
+    record Node(int i, int t) {}
+    record Cell(int i, int t, int c) {}
+    public int minCost(int maxTime, int[][] edges, int[] fees) {
+        int n = fees.length;
+
+        // create the graph
+        List<Node>[] g = new List[n];
+        for (int i = 0; i < n; i++) g[i] = new ArrayList<>();
+        for (var e : edges) {
+            g[e[0]].add(new Node(e[1], e[2]));
+            g[e[1]].add(new Node(e[0], e[2]));
+        }
+
+        // min time from end to each node
+        int[] time = new int[n];
+        Arrays.fill(time, Integer.MAX_VALUE);
+        time[n-1] = 0;
+        Queue<Integer> q = new PriorityQueue<>((a, b) -> time[a] - time[b]);
+        q.offer(n-1);
+        while (!q.isEmpty()) {
+            int cur = q.poll();
+            for (var nei : g[cur]) {
+                int t2 = time[cur] + nei.t;
+                if (t2 >= time[nei.i]) continue;
+                time[nei.i] = t2;
+                q.offer(nei.i);
+            }
+        }
+
+        // Dijkstra
+        Queue<Cell> q2 = new PriorityQueue<>((a, b) -> a.c - b.c);
+        int[] T = new int[n]; // 1. visited: de-dup 2. de-dup on worst time
+
+        q2.offer(new Cell(0, 0, fees[0]));
+        Arrays.fill(T, maxTime + 1);
+        T[0] = 0;
+
+        while (!q2.isEmpty()) {
+            var cur = q2.poll();
+            if (cur.i == n-1) return cur.c;
+            
+            for (var nei : g[cur.i]) {
+                int t2 = cur.t + nei.t;
+                if (time[nei.i] + t2 > maxTime) continue; // at this point we know we can skip
+                if (t2 >= T[nei.i]) continue; // if time is worst, no reason to continue
+                T[nei.i] = t2;
+                q2.offer(new Cell(nei.i, t2, cur.c + fees[nei.i]));
+            }
+        }
+
+        return -1;
+    }
+}
+
+
+or
+
+
+class Solution {
+	public int minCost(int maxTime, int[][] edges, int[] Fees) {
+
+		int target=Fees.length-1;
+		int[] visited=new int[Fees.length];
+		Arrays.fill(visited,-1);
+		Map<Integer,List<int[]>> map=new HashMap<>();
+
+		for(int[] x: edges){
+			int u=x[0];
+			int v=x[1];
+			int time=x[2];
+
+			map.putIfAbsent(u,new ArrayList<>());
+			map.putIfAbsent(v,new ArrayList<>());
+			map.get(u).add(new int[]{v,time});
+			map.get(v).add(new int[]{u,time});
+		}
+
+		PriorityQueue<int[]> queue=new PriorityQueue<>((a,b)->a[1]==b[1] ? a[2]-b[2] : a[1]-b[1]);
+		queue.add(new int[]{0,Fees[0],0});
+		visited[0]=0;
+		while(!queue.isEmpty()){
+			int[] curr=queue.poll();
+			int u=curr[0];
+			int cost=curr[1];
+			int time=curr[2];
+			if(u==target)
+				 return cost;
+			for(int next[] : map.get(u)){
+				int v=next[0];
+				if(visited[v]!=-1 && time+next[1]>=visited[v])
+					continue;
+				visited[v]=time+next[1];
+				if(time+next[1]<=maxTime){
+					queue.add(new int[]{v,cost+Fees[v],time+next[1]});
+				}
+			}
+		}
+
+		return -1;
+	}
+}
