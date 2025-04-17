@@ -1,0 +1,312 @@
+https://leetcode.com/problems/create-components-with-same-value/description/
+
+
+2440. Create Components With Same Value
+Hard
+Topics
+Companies
+Hint
+There is an undirected tree with n nodes labeled from 0 to n - 1.
+
+You are given a 0-indexed integer array nums of length n where nums[i] represents the value of the ith node. You are also given a 2D integer array edges of length n - 1 where edges[i] = [ai, bi] indicates that there is an edge between nodes ai and bi in the tree.
+
+You are allowed to delete some edges, splitting the tree into multiple connected components. Let the value of a component be the sum of all nums[i] for which node i is in the component.
+
+Return the maximum number of edges you can delete, such that every connected component in the tree has the same value.
+
+ 
+
+Example 1:
+
+
+Input: nums = [6,2,2,2,6], edges = [[0,1],[1,2],[1,3],[3,4]] 
+Output: 2 
+Explanation: The above figure shows how we can delete the edges [0,1] and [3,4]. The created components are nodes [0], [1,2,3] and [4]. The sum of the values in each component equals 6. It can be proven that no better deletion exists, so the answer is 2.
+Example 2:
+
+Input: nums = [2], edges = []
+Output: 0
+Explanation: There are no edges to be deleted.
+ 
+
+Constraints:
+
+1 <= n <= 2 * 104
+nums.length == n
+1 <= nums[i] <= 50
+edges.length == n - 1
+edges[i].length == 2
+0 <= edges[i][0], edges[i][1] <= n - 1
+edges represents a valid tree.
+
+
+# java
+
+
+class Solution {
+    int[] nums;
+    public int componentValue(int[] nums, int[][] edges) {
+        int n = nums.length;
+        this.nums = nums;
+        List<Integer>[] graph = new ArrayList[n];
+        for(int i=0; i<n; i++) {
+            graph[i] = new ArrayList<>();
+        }
+        for(int[] e : edges) {
+            graph[e[0]].add(e[1]);
+            graph[e[1]].add(e[0]);
+        }
+        
+        int sum = 0;
+        for(int i : nums) {
+            sum += i;
+        }
+        
+        for(int k=n; k>0; k--) {
+            if(sum % k != 0) continue;
+            int ans = helper(graph, 0, -1, sum / k);
+            if(ans == 0) return k-1;
+        }
+        return 0;
+    }
+    
+    private int helper(List<Integer>[] graph, int i, int prev, int target) {
+        if(graph[i].size() == 1 && graph[i].get(0) == prev) {
+            if(nums[i] > target) return -1;
+            if(nums[i] == target) return 0;
+            return nums[i];
+        }
+        
+        int sum = nums[i];
+        for(int k : graph[i]) {
+            if(k == prev) continue;
+            int ans = helper(graph, k, i, target);
+            if(ans == -1) return -1;
+            sum += ans;
+        }
+        
+        if(sum > target) return -1;
+        if(sum == target) return 0;
+        return sum;
+    }
+}
+
+
+or
+
+
+class Solution {
+    int[] nums;
+    public int componentValue(int[] nums, int[][] edges) {
+        int n = nums.length;
+        this.nums = nums;
+        List<Integer>[] graph = new ArrayList[n];
+        for(int i=0; i<n; i++) {
+            graph[i] = new ArrayList<>();
+        }
+        for(int[] e : edges) {
+            graph[e[0]].add(e[1]);
+            graph[e[1]].add(e[0]);
+        }
+        
+        int sum = 0;
+        for(int i : nums) {
+            sum += i;
+        }
+        
+        for(int k=n; k>0; k--) {
+            if(sum % k != 0) continue;
+            int ans = helper(graph, 0, -1, sum / k);
+            if(ans == 0) return k-1;
+        }
+        return 0;
+    }
+    
+    private int helper(List<Integer>[] graph, int i, int prev, int target) {
+        if(graph[i].size() == 1 && graph[i].get(0) == prev) {
+            if(nums[i] > target) return -1;
+            if(nums[i] == target) return 0;
+            return nums[i];
+        }
+        
+        int sum = nums[i];
+        for(int k : graph[i]) {
+            if(k == prev) continue;
+            int ans = helper(graph, k, i, target);
+            if(ans == -1) return -1;
+            sum += ans;
+        }
+        
+        if(sum > target) return -1;
+        if(sum == target) return 0;
+        return sum;
+    }
+}
+
+
+or
+
+
+// best
+
+
+	//1.DFS
+    //Runtime: 64 ms, faster than 97.17% of Java online submissions for Create Components With Same Value.
+    //Memory Usage: 103.1 MB, less than 83.02% of Java online submissions for Create Components With Same Value.
+    //Time: O(V + V + E + logV * V); Space: O(V + E + V)
+    //Time: O(logV * V); Space: O(V)
+    public int componentValue(int[] nums, int[][] edges) {
+        if (edges.length == 0) return 0;
+
+        //Time: O(V)
+        int sum = 0, maxValue = 0;
+        for (int i = 0; i < nums.length; i++){
+            sum += nums[i];
+            maxValue = Math.max(maxValue, nums[i]);
+        }
+        int maxCount = sum / maxValue;
+        if (sum % maxCount == 0 && maxCount == nums.length) return nums.length - 1;
+
+        //build graph
+        //Time: O(V + E); Space: O(V + E)
+        List<Integer>[] graph = new List[nums.length];
+        for (int i = 0; i < nums.length; i++) graph[i] = new ArrayList<>();
+        for (int[] edge: edges){
+            graph[edge[0]].add(edge[1]);
+            graph[edge[1]].add(edge[0]);
+        }
+
+        //Time: O(logV * V); Space:O(V)
+        for (int k = maxCount; k > 1; k--)
+            if (sum % k == 0 && helper_dfs_sumTarget(nums, graph,0, -1, sum / k) == 0)
+                return k - 1;
+        return 0;
+    }
+
+    private int helper_dfs_sumTarget(int[] nums, List<Integer>[] graph,
+                       int index, int parent, int target) {
+        //the sum of value of current subtree
+        int sum = nums[index];
+        for (int neighbour : graph[index]){
+            if (neighbour != parent) {
+                sum += helper_dfs_sumTarget(nums, graph, neighbour, index, target);
+                if (sum > target) return sum;
+            }
+        }
+        //sum == target means current subtree can be deleted from tree.
+        return sum == target ? 0 : sum;
+    }
+
+or
+
+
+class Solution {
+    private List<Integer>[] g;
+    private int[] nums;
+    private int t;
+
+    public int componentValue(int[] nums, int[][] edges) {
+        int n = nums.length;
+        g = new List[n];
+        this.nums = nums;
+        Arrays.setAll(g, k -> new ArrayList<>());
+        for (var e : edges) {
+            int a = e[0], b = e[1];
+            g[a].add(b);
+            g[b].add(a);
+        }
+        int s = sum(nums), mx = max(nums);
+        for (int k = Math.min(n, s / mx); k > 1; --k) {
+            if (s % k == 0) {
+                t = s / k;
+                if (dfs(0, -1) == 0) {
+                    return k - 1;
+                }
+            }
+        }
+        return 0;
+    }
+
+    private int dfs(int i, int fa) {
+        int x = nums[i];
+        for (int j : g[i]) {
+            if (j != fa) {
+                int y = dfs(j, i);
+                if (y == -1) {
+                    return -1;
+                }
+                x += y;
+            }
+        }
+        if (x > t) {
+            return -1;
+        }
+        return x < t ? x : 0;
+    }
+
+    private int sum(int[] arr) {
+        int x = 0;
+        for (int v : arr) {
+            x += v;
+        }
+        return x;
+    }
+
+    private int max(int[] arr) {
+        int x = arr[0];
+        for (int v : arr) {
+            x = Math.max(x, v);
+        }
+        return x;
+    }
+}
+
+or
+
+
+//best
+class Solution {
+  public int componentValue(int[] nums, int[][] edges) {
+    final int n = nums.length;
+    final int sum = Arrays.stream(nums).sum();
+    List<Integer>[] tree = new List[n];
+
+    for (int i = 0; i < tree.length; ++i)
+      tree[i] = new ArrayList<>();
+
+    for (int[] edge : edges) {
+      final int u = edge[0];
+      final int v = edge[1];
+      tree[u].add(v);
+      tree[v].add(u);
+    }
+
+    for (int i = n; i > 1; --i)
+      // Split the tree into i parts, i.e. delete (i - 1) edges.
+      if (sum % i == 0 && dfs(nums, tree, 0, sum / i, new boolean[n]) == 0)
+        return i - 1;
+
+    return 0;
+  }
+
+  private static final int MAX = 1_000_000_000;
+
+  // Returns the sum of the subtree rooted at u substracting the sum of the deleted subtrees.
+  private int dfs(int[] nums, List<Integer>[] tree, int u, int target, boolean[] seen) {
+    int sum = nums[u];
+    seen[u] = true;
+
+    for (final int v : tree[u]) {
+      if (seen[v])
+        continue;
+      sum += dfs(nums, tree, v, target, seen);
+      if (sum > target)
+        return MAX;
+    }
+
+    // Delete the tree that has sum == target.
+    if (sum == target)
+      return 0;
+    return sum;
+  }
+}
