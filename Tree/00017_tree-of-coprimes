@@ -1,0 +1,777 @@
+https://leetcode.com/problems/tree-of-coprimes/description/
+
+
+1766. Tree of Coprimes
+Hard
+Topics
+Companies
+Hint
+There is a tree (i.e., a connected, undirected graph that has no cycles) consisting of n nodes numbered from 0 to n - 1 and exactly n - 1 edges. Each node has a value associated with it, and the root of the tree is node 0.
+
+To represent this tree, you are given an integer array nums and a 2D array edges. Each nums[i] represents the ith node's value, and each edges[j] = [uj, vj] represents an edge between nodes uj and vj in the tree.
+
+Two values x and y are coprime if gcd(x, y) == 1 where gcd(x, y) is the greatest common divisor of x and y.
+
+An ancestor of a node i is any other node on the shortest path from node i to the root. A node is not considered an ancestor of itself.
+
+Return an array ans of size n, where ans[i] is the closest ancestor to node i such that nums[i] and nums[ans[i]] are coprime, or -1 if there is no such ancestor.
+
+ 
+
+Example 1:
+
+
+
+Input: nums = [2,3,3,2], edges = [[0,1],[1,2],[1,3]]
+Output: [-1,0,0,1]
+Explanation: In the above figure, each node's value is in parentheses.
+- Node 0 has no coprime ancestors.
+- Node 1 has only one ancestor, node 0. Their values are coprime (gcd(2,3) == 1).
+- Node 2 has two ancestors, nodes 1 and 0. Node 1's value is not coprime (gcd(3,3) == 3), but node 0's
+  value is (gcd(2,3) == 1), so node 0 is the closest valid ancestor.
+- Node 3 has two ancestors, nodes 1 and 0. It is coprime with node 1 (gcd(3,2) == 1), so node 1 is its
+  closest valid ancestor.
+Example 2:
+
+
+
+Input: nums = [5,6,10,2,3,6,15], edges = [[0,1],[0,2],[1,3],[1,4],[2,5],[2,6]]
+Output: [-1,0,-1,0,0,0,-1]
+ 
+
+Constraints:
+
+nums.length == n
+1 <= nums[i] <= 50
+1 <= n <= 105
+edges.length == n - 1
+edges[j].length == 2
+0 <= uj, vj < n
+uj != vj
+
+
+
+# java
+
+class Solution {
+    private List<Integer>[] g;
+    private List<Integer>[] f;
+    private Deque<int[]>[] stks;
+    private int[] nums;
+    private int[] ans;
+
+    public int[] getCoprimes(int[] nums, int[][] edges) {
+        int n = nums.length;
+        g = new List[n];
+        Arrays.setAll(g, k -> new ArrayList<>());
+        for (var e : edges) {
+            int u = e[0], v = e[1];
+            g[u].add(v);
+            g[v].add(u);
+        }
+        f = new List[51];
+        stks = new Deque[51];
+        Arrays.setAll(f, k -> new ArrayList<>());
+        Arrays.setAll(stks, k -> new ArrayDeque<>());
+        for (int i = 1; i < 51; ++i) {
+            for (int j = 1; j < 51; ++j) {
+                if (gcd(i, j) == 1) {
+                    f[i].add(j);
+                }
+            }
+        }
+        this.nums = nums;
+        ans = new int[n];
+        dfs(0, -1, 0);
+        return ans;
+    }
+
+    private void dfs(int i, int fa, int depth) {
+        int t = -1, k = -1;
+        for (int v : f[nums[i]]) {
+            var stk = stks[v];
+            if (!stk.isEmpty() && stk.peek()[1] > k) {
+                t = stk.peek()[0];
+                k = stk.peek()[1];
+            }
+        }
+        ans[i] = t;
+        for (int j : g[i]) {
+            if (j != fa) {
+                stks[nums[i]].push(new int[] {i, depth});
+                dfs(j, i, depth + 1);
+                stks[nums[i]].pop();
+            }
+        }
+    }
+
+    private int gcd(int a, int b) {
+        return b == 0 ? a : gcd(b, a % b);
+    }
+}
+
+
+or
+
+
+class Solution {
+  public int[] getCoprimes(int[] nums, int[][] edges) {
+    int[] ans = new int[nums.length];
+    Arrays.fill(ans, -1);
+    List<Integer>[] tree = new List[nums.length];
+    // stacks[i] := (node, depth)s of nodes with value i
+    Deque<Pair<Integer, Integer>>[] stacks = new Deque[MAX + 1];
+
+    for (int i = 0; i < nums.length; ++i)
+      tree[i] = new ArrayList<>();
+
+    for (int i = 1; i <= MAX; ++i)
+      stacks[i] = new ArrayDeque<>();
+
+    for (int[] edge : edges) {
+      final int u = edge[0];
+      final int v = edge[1];
+      tree[u].add(v);
+      tree[v].add(u);
+    }
+
+    dfs(tree, 0, /*prev=*/-1, /*depth=*/0, nums, stacks, ans);
+    return ans;
+  }
+
+  private static final int MAX = 50;
+
+  private void dfs(List<Integer>[] tree, int u, int prev, int depth, int[] nums,
+                   Deque<Pair<Integer, Integer>>[] stacks, int[] ans) {
+    ans[u] = getAncestor(u, stacks, nums);
+    stacks[nums[u]].push(new Pair<>(u, depth));
+
+    for (final int v : tree[u])
+      if (v != prev)
+        dfs(tree, v, u, depth + 1, nums, stacks, ans);
+
+    stacks[nums[u]].pop();
+  }
+
+  private int getAncestor(int u, Deque<Pair<Integer, Integer>>[] stacks, int[] nums) {
+    int maxNode = -1;
+    int maxDepth = -1;
+    for (int i = 1; i <= MAX; ++i)
+      if (!stacks[i].isEmpty() && stacks[i].peek().getValue() > maxDepth && gcd(nums[u], i) == 1) {
+        maxNode = stacks[i].peek().getKey();
+        maxDepth = stacks[i].peek().getValue();
+      }
+    return maxNode;
+  }
+
+  private int gcd(int a, int b) {
+    return b == 0 ? a : gcd(b, a % b);
+  }
+}
+
+
+or
+
+
+class Solution {
+    Map<Integer,Set<Integer>> graph;
+    Map<Integer, Integer> path;
+    int[] result;
+    boolean[][] coprimes;
+    int[][] memo;
+    
+    public int[] getCoprimes(int[] nums, int[][] edges) {
+        int n = nums.length;
+        
+        result = new int[n];//for storing the result
+        graph = new HashMap<>();//graph of the tree of coprimes
+        memo = new int[n][51];//memoize the search for ancestor to avoid TLE
+        coprimes = new boolean[51][51];//precompute matrix of coprimes
+        
+        //create the graph
+        for(int[] edge: edges){
+            graph.computeIfAbsent(edge[0], k->new HashSet<>()).add(edge[1]);
+            graph.computeIfAbsent(edge[1], k->new HashSet<>()).add(edge[0]);
+        }
+         
+        //precompute coprimes. 
+        //Notice that matrix is symmetric
+        for(int i=1; i<=50; i++){
+            for(int j=1; j<=50; j++){
+                if(i>=j){
+                    boolean coprime = gcd(i,j) == 1;
+                    coprimes[i][j] = coprime;
+                    coprimes[j][i] = coprime;
+                }
+            }
+        }
+        
+        for(int[] m: memo)
+            Arrays.fill(m,-1);
+        
+        //keep track of paths while performing BFS
+        path = new HashMap<>();
+        
+        //Queue for BFS
+        Queue<Integer> queue = new LinkedList<>();
+        
+        path.put(0,-1);
+        queue.offer(0);
+        while(!queue.isEmpty()){
+            
+            int cur = queue.poll();
+            
+            //get ancestor using path map and memoization
+            result[cur] = getCoprimeAncestor(cur,path.get(cur), nums);
+            if(!graph.containsKey(cur))continue;
+            
+            for(int child: graph.get(cur)){
+                if(!path.containsKey(child)){
+                    queue.offer(child);
+                    path.put(child,cur);
+                }
+            }
+        }
+        return result;
+    }
+    
+    private int getCoprimeAncestor(int cur, int parent, int[] nums){
+        if(parent == -1)return -1;
+        if(memo[parent][nums[cur]] >= 0)return memo[parent][nums[cur]];
+        
+        int ans = 0;
+        if(coprimes[nums[cur]][nums[parent]]){
+            ans = parent;
+        }else{
+            
+            if(nums[cur] == nums[parent])
+                ans = result[parent];
+            else
+                ans = getCoprimeAncestor(cur, path.get(parent), nums);
+        }
+        memo[parent][nums[cur]] = ans;
+        return ans;
+    }
+    
+   
+    private int gcd(int a, int b){
+        if(b == 0)return a;
+        return gcd(b, a%b);
+    }
+    
+    
+}
+
+
+or
+
+
+class Solution {
+    public int[] getCoprimes(int[] nums, int[][] edges) {
+        boolean[][] valid = new boolean[51][51];
+        for (int i = 1; i <= 50; i++){
+            for (int j = i; j <= 50; j++){ // do NOT start at i+1 (edge case)
+                if (gcd(i, j)==1){
+                    valid[i][j]=valid[j][i]=true;
+                }
+            }
+        }
+
+        Node[] nodes = new Node[nums.length];
+        Arrays.setAll(nodes, o -> new Node(nums[o]));
+        for (int[] e : edges){ // build the tree
+            nodes[e[0]].children.add(e[1]);
+            nodes[e[1]].children.add(e[0]);
+        }
+
+        Info[] info = new Info[51]; // info array (saved data)
+        Arrays.setAll(info, o -> new Info(-1, 0));
+        int[] ans = new int[nums.length];
+        Arrays.fill(ans, -1); // base case
+        dfs(0, -1, 0, nodes, info, ans, valid);
+        return ans;
+    }
+
+    private void dfs(int cur, int parent, int depth, Node[] nodes, Info[] info, int[] ans, boolean[][] valid){
+        int max = -1;
+        int val = nodes[cur].val;
+        for (int i = 1; i <= 50; i++){ // bruteforce it 
+            if (valid[val][i] && info[i].idx != -1 && info[i].depth > max){
+                max = info[i].depth;
+                ans[cur] = info[i].idx;
+            }
+        }
+        int d = info[val].depth; // save it for backtracking
+        int i = info[val].idx;
+        info[val].depth = depth;
+        info[val].idx = cur;
+        for (int next : nodes[cur].children){
+            if (next != parent){
+                dfs(next, cur, depth+1, nodes, info, ans, valid);
+            }
+        }
+        info[val].depth=d; // backtrack the info
+        info[val].idx=i;
+    }
+
+    private int gcd(int a, int b){
+        return a == 0? b : gcd(b % a, a);
+    }
+
+    private class Node {
+        int val;
+        List<Integer> children = new ArrayList<>();
+        Node (int val){
+            this.val = val;
+        }
+    }
+
+    private class Info {
+        int idx;
+        int depth;
+        Info (int idx, int depth){
+            this.idx = idx;
+            this.depth = depth;
+        }
+    }
+}
+
+or
+
+
+class Solution {
+    //made TreeNode class for simple implementation in recurring function
+    class TreeNode{
+        int id;
+        int val;
+        List<TreeNode> child;
+        public TreeNode(int id,int val){
+            this.id=id;this.val=val;child=new ArrayList<>();
+        }
+    }
+    public int[] getCoprimes(int[] nums, int[][] edges) {
+        // making tree/graph with edges
+        TreeNode[] tr=new TreeNode[nums.length];
+        for(int i=0;i<nums.length;i++)tr[i]=new TreeNode(i,nums[i]);
+        for(int []x:edges){
+            tr[x[0]].child.add(tr[x[1]]);
+            tr[x[1]].child.add(tr[x[0]]);
+        }
+        // intializing answer array of length of tree's nodes which we will return
+        int [] ans=new int[nums.length];
+        Arrays.fill(ans,-1);
+        //creating gcd to not compute gcd everytime
+        boolean [][] gcd=new boolean[51][51];
+        for(int i=1;i<=50;i++){
+            for(int j=i;j<=50;j++){
+                if(find_gcd(i,j)==1){
+                    gcd[i][j]=true;
+                    gcd[j][i]=true;
+                }
+            }
+        }
+        int [][] latest= new int[51][2];
+		//instead of latest[][] as 2d array we can also use 2 arrays, one for who is latest ancestor & one for storing id
+        // in [][0] we will store height of tree so latest ancestor will be called
+        // in [][1] we will store id of latest tree
+        // initializing all to -1
+        for(int i=0;i<=50;i++){latest[i][0]=-1;latest[i][1]=-1;}
+        find_closest_ancestor(tr[0],new TreeNode(-1,-1),ans,latest,gcd,0);
+        return ans;
+    }
+    public void find_closest_ancestor(TreeNode root,TreeNode parent, int[] ans,int [][] latest, boolean [][] gcd, int height){
+        int val=root.val;
+        int latest_id=0;
+        for(int i=1;i<=50;i++){
+            //if gcd [val][i] is true & latest[i][0] is latest ancestor i.e. it's height is more then save that id
+            if(gcd[val][i] && latest[latest_id][0] < latest[i][0])latest_id=i;
+        }
+        ans[root.id]=latest[latest_id][1];// even if no latest ancestor found latest[id][1] is -1 by default
+        
+        //this is must we will save before state & after calling all it's child we will make it as it was before calling
+        //like backtracking
+        int pre_height = latest[val][0],pre_id = latest[val][1];
+        latest[val][0]=height;  latest[val][1]=root.id;
+        
+        // we recur with all child
+        for(TreeNode root_child: root.child){
+            // we will check if we aren't going upward in tree so root.child!=parent then call function
+            if(root_child!=parent)find_closest_ancestor(root_child,root,ans,latest,gcd,height+1);
+        }
+        //as it was before we will put it back
+        latest[val][0]=pre_height;  latest[val][1]=pre_id;
+    }
+    //simple gcd code
+    public int find_gcd(int a, int b){
+        if(b==0)return a;
+        return find_gcd(b,a%b);
+    }
+}
+
+
+or
+
+
+class Solution {
+    /* Each TreeNode has an id, val, depth, and children */
+    class TreeNode {
+        int nodeId = -1, value = -1, depth = -1; // defaults as -1
+        List<TreeNode> children = new ArrayList();
+
+        public TreeNode(int nodeId, int value) {
+            this.nodeId = nodeId;
+            this.value = value;
+        }
+
+        public TreeNode() {
+        }
+    }
+
+    /* Max val assigned to any node */
+    int maxVal = 50;
+
+    /* Precompute all 50 x 50 pairs being coprimes */
+    Boolean[][] isCoprime = new Boolean[maxVal + 1][maxVal + 1];
+
+    /* Key is val from [1..50] and TreeNode has the same val*/
+    Map<Integer, TreeNode> valToNode;
+
+    /* Keeps track of visited nodes for graph traversal */
+    boolean[] visited;
+
+    /* Final result arr and tree structure */
+    int[] result;
+
+    public int[] getCoprimes(int[] nums, int[][] edges) {
+        // Step 0) Compute all coprime results for all 50 x 50 pairs [1..50][1..50]
+        for (int a = 1; a <= maxVal; a++)
+            for (int b = a; b <= maxVal; b++)
+                isCoprime(a, b);
+
+        // Step 1) Make a tree out of edges
+        int nodeCount = nums.length;
+        TreeNode[] tree = new TreeNode[nodeCount];
+        for (int i = 0; i < nodeCount; i++)
+            tree[i] = new TreeNode(i, nums[i]);
+
+        // Connect each edge pair
+        for (int[] edge : edges) {
+            TreeNode nodeA = tree[edge[0]], nodeB = tree[edge[1]];
+            nodeA.children.add(nodeB);
+            nodeB.children.add(nodeA);
+        }
+
+        // Step 2) Fill the depth for each node via DFS
+        TreeNode root = tree[0];
+        dfs(root, 0);
+
+        // Prepare visited, result, and Map path for final step
+        visited = new boolean[nodeCount];
+        result = new int[nodeCount];
+        valToNode = new HashMap();
+
+        // Step 3) Find each node's deepest coprime ancestor via DFS
+        dfs(root);
+
+        return result;
+    }
+
+    private void dfs(TreeNode root, int depth) {
+        // Base case: already marked with valid depth
+        if (root.depth != -1)
+            return;
+
+        // Set depth
+        root.depth = depth;
+
+        // solve for children
+        for (TreeNode child : root.children)
+            dfs(child, depth + 1);
+    }
+
+    private void dfs(TreeNode root) {
+        // base case: already visited
+        if (visited[root.nodeId])
+            return;
+
+        // Mark root as visited to reach base case (avoid cycles)
+        visited[root.nodeId] = true;
+
+        // Find coprime node's id for root with max depth
+        TreeNode answer = new TreeNode();
+        for (int value = 1; value <= maxVal; value++) {
+            // Check if root and val are coprimes, and that some node in path has this val
+            if (isCoprime[root.value][value] && valToNode.get(value) != null) {
+                // Update answer if candidate node is deeper
+                TreeNode candidate = valToNode.get(value);
+                if (candidate.depth > answer.depth)
+                    answer = candidate;
+            }
+        }
+
+        // Save coprime answer
+        result[root.nodeId] = answer.nodeId;
+
+        // Add current to path map
+        TreeNode prevEntry = valToNode.get(root.value);
+        valToNode.put(root.value, root);
+
+        // Solve coprime ancestors for children
+        for (TreeNode child : root.children)
+            dfs(child);
+
+        // Remove current node from path with prev entry
+        valToNode.put(root.value, prevEntry);
+    }
+
+    // Recursive function to return gcd of a and b
+    private boolean isCoprime(int a, int b) {
+        // base case: pre-solved problem
+        if (isCoprime[a][b] != null)
+            return isCoprime[a][b];
+        // base case: gcd found
+        if (b == 0)
+            return a == 1;
+        // calculate and memoize result
+        return isCoprime[a][b] = isCoprime[b][a] = isCoprime(b, a % b);
+    }
+
+}
+
+
+or
+
+
+class Solution {
+    private final int[][] memo = new int[51][51];
+    public int[] getCoprimes(int[] nums, int[][] edges) {
+        Map<Integer, List<Integer>> tree = new HashMap<>();
+        for (int[] edge: edges) {
+            tree.computeIfAbsent(edge[0], e-> new ArrayList<>()).add(edge[1]);
+            tree.computeIfAbsent(edge[1], e -> new ArrayList<>()).add(edge[0]);
+        }
+        int[] coPrimes = new int[nums.length];
+        dfs(0, new HashMap<>(), new HashSet<>(), tree, coPrimes, nums, 0);
+        return coPrimes;
+    }
+
+    private void dfs(int current, Map<Integer, List<Integer>> path, Set<Integer> visited,
+                     Map<Integer, List<Integer>> tree, int[] coPrimes, int[] values, int depth) {
+        visited.add(current);
+        coPrimes[current] = isCoPrime(values[current], path);
+        Map<Integer, List<Integer>> newPath = new HashMap<>(path);
+        newPath.put(values[current], List.of(current, depth));
+        for (int child: tree.getOrDefault(current, new ArrayList<>())) {
+            if(!visited.contains(child)) {
+                dfs(child, newPath, visited, tree, coPrimes, values, depth + 1);
+            }
+        }
+    }
+
+    private int isCoPrime(int value, Map<Integer, List<Integer>> path) {
+        int node = -1, maxDepth = Integer.MIN_VALUE;
+        for (int ancestor: path.keySet()) {
+            int gcd = memo[value-1][ancestor-1] != 0 ? memo[value-1][ancestor-1] : gcd(value, ancestor);
+            if(memo[value-1][ancestor-1] == 0) {
+                memo[value-1][ancestor-1] = gcd;
+                memo[ancestor-1][value-1] = gcd;
+            }
+            if(gcd == 1) {
+                List<Integer> lastNode = path.get(ancestor);
+                if(lastNode.get(1) > maxDepth) {
+                    node = lastNode.get(0);
+                    maxDepth = lastNode.get(1);
+                }
+            }
+        }
+        return node;
+    }
+
+    private int gcd(int a, int b) {
+        if (a == 0) return b;
+        return gcd(b % a, a);
+    }
+}
+
+
+or
+
+
+class Solution {
+    public int[] getCoprimes(int[] nums, int[][] edges) {
+        int n = nums.length;
+        int[][] computedGcd = new int[51][51];
+        for (int i = 1; i <= 50; ++i) {
+            for (int j = i; j <= 50; ++j) {
+                if (gcd(i, j) == 1) {
+                    computedGcd[i][j] = computedGcd[j][i] = 1;
+                }
+            }
+        }
+        int[] parent = new int[n];
+        List<List<Integer>> g = new ArrayList<>();
+        Map<Integer, int[][]> curPath = new HashMap<>();
+        int[][] temp = new int[51][2];
+        for (int[] row : temp)
+            Arrays.fill(row, -1);
+        curPath.put(0, temp);
+        
+        for (int i = 0; i < n; ++i) {
+            g.add(new ArrayList<Integer>());
+        }
+        
+        for (int[] ed : edges) {
+            g.get(ed[0]).add(ed[1]);
+            g.get(ed[1]).add(ed[0]);
+        }
+        
+        parent[0] = -1;
+        Queue<Integer> q = new LinkedList<>();
+        q.offer(0);
+        
+        int[] res = new int[n];
+        res[0] = -1;
+        int d = 0;
+        while (!q.isEmpty()) {
+            int sz = q.size();
+            while (sz-- > 0) {
+                int cur = q.poll();
+                for (int chd : g.get(cur)) {
+                    if (chd != parent[cur]) {
+                        parent[chd] = cur;
+                        q.offer(chd);
+                    }
+                }
+
+                if (cur == 0)
+                    continue;
+                else {
+                    int anc = parent[cur];
+                    temp = curPath.get(anc).clone();
+                    temp[nums[anc]] = new int[]{anc, d-1};
+                    
+                    int minD = Integer.MAX_VALUE;
+                    for (int v = 1; v <= 50; ++v) {
+                        if (temp[v][0] != -1 && computedGcd[v][nums[cur]] == 1) {
+                            if (d - temp[v][1] < minD) {
+                                minD = d - temp[v][1];
+                                res[cur] = temp[v][0];
+                            }
+                        }
+                    }
+                    curPath.put(cur, temp);
+                    if (minD == Integer.MAX_VALUE)
+                        res[cur] = -1;
+                }
+            }
+            d ++;
+        }
+        
+        return res;
+    }
+    
+    public int gcd(int a, int b)
+    {
+        // if b=0, a is the GCD
+        if (b == 0)
+            return a;
+        // call the gcd() method recursively by
+        // replacing a with b and b with
+        // modulus(a,b) as long as b != 0
+        else
+            return gcd(b, a % b);
+    }
+}
+
+
+or
+
+
+// daniel stones
+
+
+class Solution {
+    private List<Integer>[] graph;
+    private List<Integer>[] coPrimeLists;
+    private Deque<int[]>[] ancestorStacks;
+    private int[] nums;
+    private int[] answers;
+
+    public int[] getCoprimes(int[] nums, int[][] edges) {
+        int n = nums.length;
+        this.nums = nums;
+        answers = new int[n];
+
+        // Initialize graph and adjacency list
+        graph = new List[n];
+        for (int i = 0; i < n; ++i) graph[i] = new ArrayList<>();
+
+        // Build graph from edges
+        for (int[] edge : edges) {
+            int p = edge[0], c = edge[1];
+            graph[p].add(c);
+            graph[c].add(p);
+        }
+
+        // Initialize co-prime lists and ancestor stacks
+        coPrimeLists = new List[51];
+        ancestorStacks = new Deque[51];
+        for (int i = 0; i < 51; ++i) {
+            coPrimeLists[i] = new ArrayList<>();
+            ancestorStacks[i] = new ArrayDeque<>();
+        }
+
+        // Track numbers that appear in the `nums` array
+        Set<Integer> numsInTree = new HashSet<>();
+        for (int num : nums) {
+            numsInTree.add(num);
+        }
+
+        // Pre-compute co-prime lists only for numbers present in the `nums` array
+        for (int arr : numsInTree) {
+            for (int num = 1; num <= 50; ++num) {
+                if (gcd(arr, num) == 1) { // If arr and num are coprime
+                    coPrimeLists[arr].add(num);
+                }
+            }
+        }
+
+        // Perform DFS starting from node 0 with depth 0
+        dfs(0, -1, 0);
+
+        return answers;
+    }
+
+    private void dfs(int node, int parent, int depth) {
+        // Find the closest co-prime node
+        int closestCoprimeNode = -1;
+        int maxDepth = -1;
+
+        // Check the ancestor stacks for the coprimes of the current node's value
+        for (int coprime : coPrimeLists[nums[node]]) {
+            Deque<int[]> stack = ancestorStacks[coprime];
+            if (!stack.isEmpty() && stack.peek()[1] > maxDepth) {
+                closestCoprimeNode = stack.peek()[0];
+                maxDepth = stack.peek()[1];
+            }
+        }
+        answers[node] = closestCoprimeNode;
+
+        // Explore neighbors (children in the DFS tree)
+        ancestorStacks[nums[node]].push(new int[]{node, depth}); // Mark current node on stack
+        for (int child : graph[node]) {
+            if (child != parent) {
+                dfs(child, node, depth + 1);
+            }
+        }
+        ancestorStacks[nums[node]].pop(); // Pop after finishing DFS for this node
+    }
+
+    // Helper function to calculate GCD
+    private int gcd(int a, int b) {
+        return b == 0 ? a : gcd(b, a % b);
+    }
+}
+
+
+
