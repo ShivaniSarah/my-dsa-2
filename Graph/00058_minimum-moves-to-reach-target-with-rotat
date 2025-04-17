@@ -1,0 +1,509 @@
+https://leetcode.com/problems/minimum-moves-to-reach-target-with-rotations/description/
+
+1210. Minimum Moves to Reach Target with Rotations
+Hard
+Topics
+Companies
+Hint
+In an n*n grid, there is a snake that spans 2 cells and starts moving from the top left corner at (0, 0) and (0, 1). The grid has empty cells represented by zeros and blocked cells represented by ones. The snake wants to reach the lower right corner at (n-1, n-2) and (n-1, n-1).
+
+In one move the snake can:
+
+Move one cell to the right if there are no blocked cells there. This move keeps the horizontal/vertical position of the snake as it is.
+Move down one cell if there are no blocked cells there. This move keeps the horizontal/vertical position of the snake as it is.
+Rotate clockwise if it's in a horizontal position and the two cells under it are both empty. In that case the snake moves from (r, c) and (r, c+1) to (r, c) and (r+1, c).
+
+Rotate counterclockwise if it's in a vertical position and the two cells to its right are both empty. In that case the snake moves from (r, c) and (r+1, c) to (r, c) and (r, c+1).
+
+Return the minimum number of moves to reach the target.
+
+If there is no way to reach the target, return -1.
+
+ 
+
+Example 1:
+
+
+
+Input: grid = [[0,0,0,0,0,1],
+               [1,1,0,0,1,0],
+               [0,0,0,0,1,1],
+               [0,0,1,0,1,0],
+               [0,1,1,0,0,0],
+               [0,1,1,0,0,0]]
+Output: 11
+Explanation:
+One possible solution is [right, right, rotate clockwise, right, down, down, down, down, rotate counterclockwise, right, down].
+Example 2:
+
+Input: grid = [[0,0,1,1,1,1],
+               [0,0,0,0,1,1],
+               [1,1,0,0,0,1],
+               [1,1,1,0,0,1],
+               [1,1,1,0,0,1],
+               [1,1,1,0,0,0]]
+Output: 9
+ 
+
+Constraints:
+
+2 <= n <= 100
+0 <= grid[i][j] <= 1
+It is guaranteed that the snake starts at empty cells.
+
+
+# java
+
+
+class Solution {
+    private int n;
+    private int[][] grid;
+    private boolean[][] vis;
+    private Deque<int[]> q = new ArrayDeque<>();
+
+    public int minimumMoves(int[][] grid) {
+        this.grid = grid;
+        n = grid.length;
+        vis = new boolean[n * n][2];
+        int[] target = {n * n - 2, n * n - 1};
+        q.offer(new int[] {0, 1});
+        vis[0][0] = true;
+        int ans = 0;
+        while (!q.isEmpty()) {
+            for (int k = q.size(); k > 0; --k) {
+                var p = q.poll();
+                if (p[0] == target[0] && p[1] == target[1]) {
+                    return ans;
+                }
+                int i1 = p[0] / n, j1 = p[0] % n;
+                int i2 = p[1] / n, j2 = p[1] % n;
+                // 尝试向右平移（保持身体水平/垂直状态）
+                move(i1, j1 + 1, i2, j2 + 1);
+                // 尝试向下平移（保持身体水平/垂直状态）
+                move(i1 + 1, j1, i2 + 1, j2);
+                // 当前处于水平状态，且 grid[i1 + 1][j2] 无障碍，尝试顺时针旋转90°
+                if (i1 == i2 && i1 + 1 < n && grid[i1 + 1][j2] == 0) {
+                    move(i1, j1, i1 + 1, j1);
+                }
+                // 当前处于垂直状态，且 grid[i2][j1 + 1] 无障碍，尝试逆时针旋转90°
+                if (j1 == j2 && j1 + 1 < n && grid[i2][j1 + 1] == 0) {
+                    move(i1, j1, i1, j1 + 1);
+                }
+            }
+            ++ans;
+        }
+        return -1;
+    }
+
+    private void move(int i1, int j1, int i2, int j2) {
+        if (i1 >= 0 && i1 < n && j1 >= 0 && j1 < n && i2 >= 0 && i2 < n && j2 >= 0 && j2 < n) {
+            int a = i1 * n + j1, b = i2 * n + j2;
+            int status = i1 == i2 ? 0 : 1;
+            if (!vis[a][status] && grid[i1][j1] == 0 && grid[i2][j2] == 0) {
+                q.offer(new int[] {a, b});
+                vis[a][status] = true;
+            }
+        }
+    }
+}
+
+
+or
+
+
+enum Pos { HORIZONTAL, VERTICAL }
+
+class Solution {
+  public int minimumMoves(int[][] grid) {
+    record T(int x, int y, Pos pos) {}
+    final int n = grid.length;
+    Queue<T> q = new ArrayDeque<>(List.of(new T(0, 0, Pos.HORIZONTAL)));
+    boolean[][][] seen = new boolean[n][n][2];
+    seen[0][0][Pos.HORIZONTAL.ordinal()] = true;
+
+    for (int step = 0; !q.isEmpty(); ++step)
+      for (int sz = q.size(); sz > 0; --sz) {
+        final int x = q.peek().x;
+        final int y = q.peek().y;
+        final Pos pos = q.poll().pos;
+        if (x == n - 1 && y == n - 2 && pos == Pos.HORIZONTAL)
+          return step;
+        if (canMoveRight(grid, x, y, pos) && !seen[x][y + 1][pos.ordinal()]) {
+          q.offer(new T(x, y + 1, pos));
+          seen[x][y + 1][pos.ordinal()] = true;
+        }
+        if (canMoveDown(grid, x, y, pos) && !seen[x + 1][y][pos.ordinal()]) {
+          q.offer(new T(x + 1, y, pos));
+          seen[x + 1][y][pos.ordinal()] = true;
+        }
+        final Pos newPos = pos == Pos.HORIZONTAL ? Pos.VERTICAL : Pos.HORIZONTAL;
+        if ((canRotateClockwise(grid, x, y, pos) || canRotateCounterclockwise(grid, x, y, pos)) &&
+            !seen[x][y][newPos.ordinal()]) {
+          q.offer(new T(x, y, newPos));
+          seen[x][y][newPos.ordinal()] = true;
+        }
+      }
+
+    return -1;
+  }
+
+  private boolean canMoveRight(int[][] grid, int x, int y, Pos pos) {
+    if (pos == Pos.HORIZONTAL)
+      return y + 2 < grid.length && grid[x][y + 2] == 0;
+    return y + 1 < grid.length && grid[x][y + 1] == 0 && grid[x + 1][y + 1] == 0;
+  }
+
+  private boolean canMoveDown(int[][] grid, int x, int y, Pos pos) {
+    if (pos == Pos.VERTICAL)
+      return x + 2 < grid.length && grid[x + 2][y] == 0;
+    return x + 1 < grid.length && grid[x + 1][y] == 0 && grid[x + 1][y + 1] == 0;
+  }
+
+  private boolean canRotateClockwise(int[][] grid, int x, int y, Pos pos) {
+    return pos == Pos.HORIZONTAL && x + 1 < grid.length && grid[x + 1][y + 1] == 0 &&
+        grid[x + 1][y] == 0;
+  }
+
+  private boolean canRotateCounterclockwise(int[][] grid, int x, int y, Pos pos) {
+    return pos == Pos.VERTICAL && y + 1 < grid.length && grid[x + 1][y + 1] == 0 &&
+        grid[x][y + 1] == 0;
+  }
+}
+
+
+
+or
+
+
+public class Solution {
+    public int minimumMoves(int[][] grid) {
+        int n = grid.length;
+        SnakePos src = new SnakePos(new Cell(0, 0), new Cell(0, 1));
+        SnakePos dst = new SnakePos(new Cell(n - 1, n - 2), new Cell(n - 1, n - 1));
+
+        HashSet<String> visited = new HashSet<>();
+        Queue<SnakePos> queue = new LinkedList<>();
+        queue.add(src);
+        visited.add(src.getKey());
+
+        ArrayList<SnakePos> nextMoves = new ArrayList<>(4);
+        int steps = 0;
+        while (!queue.isEmpty()) {
+            int size = queue.size();
+            for (int i = 0; i < size; i++) {
+                SnakePos top = queue.remove();
+                if (top.equals(dst))
+                    return steps;
+
+                nextMoves.clear();
+                nextMoves.add(tryMoveRight(top, grid));
+                nextMoves.add(tryMoveDown(top, grid));
+                nextMoves.add(tryMoveClockwise(top, grid));
+                nextMoves.add(tryMoveCounterClockwise(top, grid));
+
+                for (SnakePos next : nextMoves) {
+                    if (next != null && !visited.contains(next.getKey())) {
+                        visited.add(next.getKey());
+                        queue.add(next);
+                    }
+                }
+            }
+            steps++;
+        }
+
+        return -1;
+    }
+
+    SnakePos tryMoveRight(SnakePos curr, int[][] grid) {
+        SnakePos next = new SnakePos(
+                new Cell(curr.cell1.r, curr.cell1.c + 1),
+                new Cell(curr.cell2.r, curr.cell2.c + 1)
+        );
+        if (valid(next, grid))
+            return next;
+        return null;
+    }
+
+    SnakePos tryMoveDown(SnakePos curr, int[][] grid) {
+        SnakePos next = new SnakePos(
+                new Cell(curr.cell1.r + 1, curr.cell1.c),
+                new Cell(curr.cell2.r + 1, curr.cell2.c)
+        );
+        if (valid(next, grid))
+            return next;
+        return null;
+    }
+
+    SnakePos tryMoveClockwise(SnakePos curr, int[][] grid) {
+        if (curr.cell1.r == curr.cell2.r) {
+            SnakePos next = new SnakePos(
+                    new Cell(curr.cell1.r, curr.cell1.c),
+                    new Cell(curr.cell2.r + 1, curr.cell2.c - 1)
+            );
+            if (valid(next.cell2, grid)
+                    && valid(new Cell(curr.cell1.r + 1, curr.cell1.c + 1), grid)) {
+                return next;
+            }
+        }
+        return null;
+    }
+
+    SnakePos tryMoveCounterClockwise(SnakePos curr, int[][] grid) {
+        if (curr.cell1.c == curr.cell2.c) {
+            SnakePos next = new SnakePos(
+                    new Cell(curr.cell1.r, curr.cell1.c),
+                    new Cell(curr.cell2.r - 1, curr.cell2.c + 1)
+            );
+            if (valid(next.cell2, grid)
+                    && valid(new Cell(curr.cell1.r + 1, curr.cell1.c + 1), grid)) {
+                return next;
+            }
+        }
+        return null;
+    }
+
+    boolean valid(int r, int c, int[][] grid) {
+        int n = grid.length;
+        return r >= 0 && r < n && c >= 0 && c < n && grid[r][c] == 0;
+    }
+
+    boolean valid(Cell cell, int[][] grid) {
+        return valid(cell.r, cell.c, grid);
+    }
+
+    boolean valid(SnakePos snakePos, int[][] grid) {
+        return valid(snakePos.cell1, grid) && valid(snakePos.cell2, grid);
+    }
+
+    // For testing and debug on IDE purpose
+    public static void main(String[] args) {
+        int[][] grid = {
+                {0, 0, 0, 0, 0, 1},
+                {1, 1, 0, 0, 1, 0},
+                {0, 0, 0, 0, 1, 1},
+                {0, 0, 1, 0, 1, 0},
+                {0, 1, 1, 0, 0, 0},
+                {0, 1, 1, 0, 0, 0}
+        };
+
+        Solution sol = new Solution();
+        System.out.println(sol.minimumMoves(grid));
+    }
+}
+
+class Cell {
+    int r, c;
+
+    public Cell(int r, int c) {
+        this.r = r;
+        this.c = c;
+    }
+
+    public String getKey() {
+        return r + "," + c;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        Cell cell = (Cell) obj;
+        return r == cell.r && c == cell.c;
+    }
+}
+
+class SnakePos {
+    Cell cell1, cell2;
+
+    public SnakePos(Cell cell1, Cell cell2) {
+        this.cell1 = cell1;
+        this.cell2 = cell2;
+    }
+
+    public String getKey() {
+        return cell1.getKey() + ":" + cell2.getKey();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        SnakePos snakePos = (SnakePos) obj;
+        return snakePos.cell1.equals(cell1) && snakePos.cell2.equals(cell2);
+    }
+}
+
+
+or
+
+
+class State {
+    int x;
+    int y;
+    int other_x;
+    int other_y;
+    boolean isHorizontal;
+
+    public State(int x, int y, boolean isHorizontal) {
+        this.x = x;
+        this.y = y;
+        this.isHorizontal = isHorizontal;
+        int[] otherCell = getOtherCell();
+        other_x = otherCell[0];
+        other_y = otherCell[1];
+    }
+
+    public int[] getOtherCell() {
+        if (isHorizontal) return new int[] {x, y + 1};
+        else return new int[] {x + 1, y};
+    }
+
+    public State rotate() {
+        return new State(x, y, !isHorizontal);
+    }
+}
+
+class Solution {
+    private final List<Integer[]> directions = List.of(
+            new Integer[]{0, 1},
+            new Integer[]{1, 0}
+    );
+    private final Queue<State> queue = new ArrayDeque<>();
+    private boolean[][][] visited;
+
+    public int minimumMoves(int[][] grid) {
+        queue.add(new State(0, 0, true));
+        visited = new boolean[grid.length][grid[0].length][2];
+        int steps = 0;
+        while (!queue.isEmpty()) {
+            int size = queue.size();
+            for (int count = 0; count < size; count++) {
+                State curr = queue.remove();
+                if (isTarget(curr, grid)) return steps;
+                int i = curr.x, j = curr.y, k = curr.isHorizontal ? 0 : 1;
+                if (visited[i][j][k]) continue;
+                visited[i][j][k] = true;
+                for (Integer[] direction: directions) {
+                    State newState = new State(i + direction[0], j + direction[1], curr.isHorizontal);
+                    addCell(newState, grid);
+                }
+                State rotated = curr.rotate();
+                if (isValidPivot(rotated, grid))
+                    addCell(rotated, grid);
+            }
+            steps++;
+        }
+        return -1;
+    }
+
+    private boolean isTarget(State curr, int[][] grid) {
+        return curr.x == grid.length - 1 && curr.y == grid[0].length - 2 && curr.isHorizontal;
+    }
+
+    private void addCell(State state, int[][] grid) {
+        int k = state.isHorizontal ? 0 : 1;
+        if (isValidCell(state.x, state.y, grid) && isValidCell(state.other_x, state.other_y, grid) &&
+                !visited[state.x][state.y][k]) {
+            queue.add(state);
+        }
+    }
+
+    private boolean isValidCell(int x, int y, int[][] grid) {
+        return isValidCoordinates(x, y, grid) && grid[x][y] != 1;
+    }
+
+    private boolean isValidCoordinates(int i, int j, int[][] grid) {
+        return i >= 0 && i < grid.length && j >= 0 && j < grid[0].length;
+    }
+
+    private boolean isValidPivot(State state, int[][] grid) {
+        int x = state.x + 1, y = state.y + 1;
+        return isValidCoordinates(x, y, grid) && grid[x][y] != 1;
+    }
+}
+
+
+or
+
+
+
+class State {
+    int x;
+    int y;
+    int other_x;
+    int other_y;
+    boolean isHorizontal;
+
+    public State(int x, int y, boolean isHorizontal) {
+        this.x = x;
+        this.y = y;
+        this.isHorizontal = isHorizontal;
+        int[] otherCell = getOtherCell();
+        other_x = otherCell[0];
+        other_y = otherCell[1];
+    }
+
+    public int[] getOtherCell() {
+        if (isHorizontal) return new int[] {x, y + 1};
+        else return new int[] {x + 1, y};
+    }
+
+    public State rotate() {
+        return new State(x, y, !isHorizontal);
+    }
+}
+
+class Solution {
+    private final List<Integer[]> directions = List.of(
+            new Integer[]{0, 1},
+            new Integer[]{1, 0}
+    );
+    private final Queue<State> queue = new ArrayDeque<>();
+    private boolean[][][] visited;
+
+    public int minimumMoves(int[][] grid) {
+        queue.add(new State(0, 0, true));
+        visited = new boolean[grid.length][grid[0].length][2];
+        int steps = 0;
+        while (!queue.isEmpty()) {
+            int size = queue.size();
+            for (int count = 0; count < size; count++) {
+                State curr = queue.remove();
+                if (isTarget(curr, grid)) return steps;
+                int i = curr.x, j = curr.y, k = curr.isHorizontal ? 0 : 1;
+                if (visited[i][j][k]) continue;
+                visited[i][j][k] = true;
+                for (Integer[] direction: directions) {
+                    State newState = new State(i + direction[0], j + direction[1], curr.isHorizontal);
+                    addCell(newState, grid);
+                }
+                State rotated = curr.rotate();
+                if (isValidPivot(rotated, grid))
+                    addCell(rotated, grid);
+            }
+            steps++;
+        }
+        return -1;
+    }
+
+    private boolean isTarget(State curr, int[][] grid) {
+        return curr.x == grid.length - 1 && curr.y == grid[0].length - 2 && curr.isHorizontal;
+    }
+
+    private void addCell(State state, int[][] grid) {
+        int k = state.isHorizontal ? 0 : 1;
+        if (isValidCell(state.x, state.y, grid) && isValidCell(state.other_x, state.other_y, grid) &&
+                !visited[state.x][state.y][k]) {
+            queue.add(state);
+        }
+    }
+
+    private boolean isValidCell(int x, int y, int[][] grid) {
+        return isValidCoordinates(x, y, grid) && grid[x][y] != 1;
+    }
+
+    private boolean isValidCoordinates(int i, int j, int[][] grid) {
+        return i >= 0 && i < grid.length && j >= 0 && j < grid[0].length;
+    }
+
+    private boolean isValidPivot(State state, int[][] grid) {
+        int x = state.x + 1, y = state.y + 1;
+        return isValidCoordinates(x, y, grid) && grid[x][y] != 1;
+    }
+}
