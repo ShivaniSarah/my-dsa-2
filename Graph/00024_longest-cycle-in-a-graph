@@ -1,0 +1,195 @@
+https://leetcode.com/problems/longest-cycle-in-a-graph/description/
+
+
+2360. Longest Cycle in a Graph
+Hard
+Topics
+Companies
+Hint
+You are given a directed graph of n nodes numbered from 0 to n - 1, where each node has at most one outgoing edge.
+
+The graph is represented with a given 0-indexed array edges of size n, indicating that there is a directed edge from node i to node edges[i]. If there is no outgoing edge from node i, then edges[i] == -1.
+
+Return the length of the longest cycle in the graph. If no cycle exists, return -1.
+
+A cycle is a path that starts and ends at the same node.
+
+ 
+
+Example 1:
+
+
+Input: edges = [3,3,4,2,3]
+Output: 3
+Explanation: The longest cycle in the graph is the cycle: 2 -> 4 -> 3 -> 2.
+The length of this cycle is 3, so 3 is returned.
+Example 2:
+
+
+Input: edges = [2,-1,3,1]
+Output: -1
+Explanation: There are no cycles in this graph.
+ 
+
+Constraints:
+
+n == edges.length
+2 <= n <= 105
+-1 <= edges[i] < n
+edges[i] != i
+
+
+
+# java
+
+
+class Solution {
+  public int longestCycle(int[] edges) {
+    int ans = -1;
+    int time = 1;
+    int[] timeVisited = new int[edges.length];
+
+    for (int i = 0; i < edges.length; ++i) {
+      if (timeVisited[i] > 0)
+        continue;
+      final int startTime = time;
+      int u = i;
+      while (u != -1 && timeVisited[u] == 0) {
+        timeVisited[u] = time++;
+        u = edges[u]; // Move to the next node.
+      }
+      if (u != -1 && timeVisited[u] >= startTime)
+        ans = Math.max(ans, time - timeVisited[u]);
+    }
+
+    return ans;
+  }
+}
+
+
+or
+
+
+class Solution {
+    public int longestCycle(int[] edges) {
+        int n = edges.length;
+        boolean[] vis = new boolean[n];
+        int ans = -1;
+        for (int i = 0; i < n; ++i) {
+            if (vis[i]) {
+                continue;
+            }
+            int j = i;
+            List<Integer> cycle = new ArrayList<>();
+            for (; j != -1 && !vis[j]; j = edges[j]) {
+                vis[j] = true;
+                cycle.add(j);
+            }
+            if (j == -1) {
+                continue;
+            }
+            for (int k = 0; k < cycle.size(); ++k) {
+                if (cycle.get(k) == j) {
+                    ans = Math.max(ans, cycle.size() - k);
+                    break;
+                }
+            }
+        }
+        return ans;
+    }
+}
+
+
+
+or
+
+
+
+import java.util.*;
+
+public class Solution {
+    public int longestCycle(int[] edges) {
+        int n = edges.length;
+        int[] inDegree = new int[n];
+
+        for (int i = 0; i < n; i++) {
+            if (edges[i] != -1) {
+                inDegree[edges[i]]++;
+            }
+        }
+
+        Queue<Integer> queue = new LinkedList<>();
+        boolean[] visited = new boolean[n];
+
+        for (int i = 0; i < n; i++) {
+            if (inDegree[i] == 0) {
+                queue.offer(i);
+            }
+        }
+
+        while (!queue.isEmpty()) {
+            int node = queue.poll();
+            visited[node] = true;
+
+            int next = edges[node];
+            if (next != -1) {
+                inDegree[next]--;
+                if (inDegree[next] == 0) {
+                    queue.offer(next);
+                }
+            }
+        }
+
+        int longest = -1;
+        for (int i = 0; i < n; i++) {
+            if (!visited[i]) {
+                int current = i;
+                int count = 0;
+
+                while (!visited[current]) {
+                    visited[current] = true;
+                    current = edges[current];
+                    count++;
+                }
+
+                longest = Math.max(longest, count);
+            }
+        }
+
+        return longest;
+    }
+}
+
+
+or
+
+
+class Solution {
+    int answer = -1;
+
+    public void dfs(int node, int[] edges, Map<Integer, Integer> dist, boolean[] visit) {
+        visit[node] = true;
+        int neighbor = edges[node];
+
+        if (neighbor != -1 && !visit[neighbor]) {
+            dist.put(neighbor, dist.get(node) + 1);
+            dfs(neighbor, edges, dist, visit);
+        } else if (neighbor != -1 && dist.containsKey(neighbor)) {
+            answer = Math.max(answer, dist.get(node) - dist.get(neighbor) + 1);
+        }
+    }
+
+    public int longestCycle(int[] edges) {
+        int n = edges.length;
+        boolean[] visit = new boolean[n];
+
+        for (int i = 0; i < n; i++) {
+            if (!visit[i]) {
+                Map<Integer, Integer> dist = new HashMap<>();
+                dist.put(i, 1);
+                dfs(i, edges, dist, visit);
+            }
+        }
+        return answer;
+    }
+}
