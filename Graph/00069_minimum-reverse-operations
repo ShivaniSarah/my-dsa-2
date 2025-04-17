@@ -1,0 +1,263 @@
+https://leetcode.com/problems/minimum-reverse-operations/description/
+
+2612. Minimum Reverse Operations
+Hard
+Topics
+Companies
+Hint
+You are given an integer n and an integer p representing an array arr of length n where all elements are set to 0's, except position p which is set to 1. You are also given an integer array banned containing restricted positions. Perform the following operation on arr:
+
+Reverse a subarray with size k if the single 1 is not set to a position in banned.
+Return an integer array answer with n results where the ith result is the minimum number of operations needed to bring the single 1 to position i in arr, or -1 if it is impossible.
+
+ 
+
+Example 1:
+
+Input: n = 4, p = 0, banned = [1,2], k = 4
+
+Output: [0,-1,-1,1]
+
+Explanation:
+
+Initially 1 is placed at position 0 so the number of operations we need for position 0 is 0.
+We can never place 1 on the banned positions, so the answer for positions 1 and 2 is -1.
+Perform the operation of size 4 to reverse the whole array.
+After a single operation 1 is at position 3 so the answer for position 3 is 1.
+Example 2:
+
+Input: n = 5, p = 0, banned = [2,4], k = 3
+
+Output: [0,-1,-1,-1,-1]
+
+Explanation:
+
+Initially 1 is placed at position 0 so the number of operations we need for position 0 is 0.
+We cannot perform the operation on the subarray positions [0, 2] because position 2 is in banned.
+Because 1 cannot be set at position 2, it is impossible to set 1 at other positions in more operations.
+Example 3:
+
+Input: n = 4, p = 2, banned = [0,1,3], k = 1
+
+Output: [-1,-1,0,-1]
+
+Explanation:
+
+Perform operations of size 1 and 1 never changes its position.
+
+ 
+
+Constraints:
+
+1 <= n <= 105
+0 <= p <= n - 1
+0 <= banned.length <= n - 1
+0 <= banned[i] <= n - 1
+1 <= k <= n 
+banned[i] != p
+all values in banned are unique 
+
+
+# java
+
+
+
+class Solution {
+    public int[] minReverseOperations(int n, int p, int[] banned, int k) {
+        int[] ans = new int[n];
+        TreeSet<Integer>[] ts = new TreeSet[] {new TreeSet<>(), new TreeSet<>()};
+        for (int i = 0; i < n; ++i) {
+            ts[i % 2].add(i);
+            ans[i] = i == p ? 0 : -1;
+        }
+        ts[p % 2].remove(p);
+        for (int i : banned) {
+            ts[i % 2].remove(i);
+        }
+        ts[0].add(n);
+        ts[1].add(n);
+        Deque<Integer> q = new ArrayDeque<>();
+        q.offer(p);
+        while (!q.isEmpty()) {
+            int i = q.poll();
+            int mi = Math.max(i - k + 1, k - i - 1);
+            int mx = Math.min(i + k - 1, n * 2 - k - i - 1);
+            var s = ts[mi % 2];
+            for (int j = s.ceiling(mi); j <= mx; j = s.ceiling(mi)) {
+                q.offer(j);
+                ans[j] = ans[i] + 1;
+                s.remove(j);
+            }
+        }
+        return ans;
+    }
+}
+
+
+or
+
+
+class Solution {
+  public int[] minReverseOperations(int n, int p, int[] banned, int k) {
+    Set<Integer> bannedSet = Arrays.stream(banned).boxed().collect(Collectors.toSet());
+    int[] ans = new int[n];
+    Arrays.fill(ans, -1);
+    // unseen[i] := the unseen numbers that % 2 == i
+    TreeSet<Integer>[] unseen = new TreeSet[2];
+    unseen[0] = new TreeSet<>();
+    unseen[1] = new TreeSet<>();
+
+    for (int num = 0; num < n; ++num)
+      if (num != p && !bannedSet.contains(num))
+        unseen[num % 2].add(num);
+
+    // Perform BFS from `p`.
+    Queue<Integer> q = new ArrayDeque<>(List.of(p));
+    ans[p] = 0;
+
+    while (!q.isEmpty()) {
+      final int u = q.poll();
+      final int lo = Math.max(u - k + 1, k - 1 - u);
+      final int hi = Math.min(u + k - 1, n - 1 - (u - (n - k)));
+      // Choose the correct set of numbers.
+      TreeSet<Integer> nums = unseen[lo % 2];
+      for (Integer num = nums.ceiling(lo); num != null && num <= hi;) {
+        ans[num] = ans[u] + 1;
+        q.offer(num);
+        nums.remove(num);
+        num = nums.higher(num);
+      }
+    }
+
+    return ans;
+  }
+}
+
+or
+
+
+class Solution {
+    public int[] minReverseOperations(int n, int p, int[] banned, int k) {
+    TreeSet<Integer> even = new TreeSet(); 
+    TreeSet<Integer> odd = new TreeSet();
+    int ans[] = new int[n];
+    Arrays.fill(ans, -1);
+    boolean vis[] = new boolean[n];
+    for(int x : banned)
+    vis[x] = true; 
+    for(int i=0; i<n; i++)
+    {
+     if(vis[i] || i==p)
+     continue; 
+     if(i%2==0)
+     even.add(i);
+     else
+     odd.add(i);   
+    }
+    Queue<Integer> q = new LinkedList<Integer>();
+    int min = -1; 
+    int max = -1; 
+    Integer Key = 0; 
+    int current = -1; 
+    int distBack = -1; 
+    q.add(p);
+    ans[p] = 0; 
+    while(!q.isEmpty())
+    {
+     current = q.remove();
+     if(current<k-1)
+     {
+       min = k-1-current ;   
+     } 
+     else
+     min = current-k+1;
+     distBack = n - current ;
+     if(distBack<k)
+     {
+       max = k - distBack;
+       max = n-max;    
+     }
+     else
+     max = current+k-1; 
+     TreeSet<Integer> ts = min%2==0 ? even : odd; 
+     Integer key = ts.ceiling(min);
+
+     while(key!=null && key<=max)
+     {
+       ans[key] = ans[current] + 1;
+       q.add(key); 
+       ts.remove(key);
+       key = ts.ceiling(min);  
+     } 
+    }
+
+   return ans; 
+
+    }
+}
+
+
+or
+
+// b est
+
+
+class Solution {
+    public int[] minReverseOperations(int n, int p, int[] banned, int k) {
+        int[] out = new int[n];
+        Arrays.fill(out, -1);
+        
+        for (int node : banned) {
+            out[node] = -2;
+        }
+        
+        List<Integer> nodes = new ArrayList<>();
+        nodes.add(p);
+        
+        int depth = 0;
+        out[p] = depth;
+        int step = k - 1;
+        
+        int[] nextNode2s = new int[n + 1];
+        for (int i = 0; i < n + 1; i++) {
+            nextNode2s[i] = i + 2;
+        }
+        
+        while (!nodes.isEmpty()) {
+            depth++;
+            List<Integer> newNodes = new ArrayList<>();
+            
+            for (int node1 : nodes) {
+                int loReverseStart = Math.max(node1 - step, 0);
+                int hiReverseStart = Math.min(node1, n - k);
+                int loNode2 = 2 * loReverseStart + k - 1 - node1;
+                int hiNode2 = 2 * hiReverseStart + k - 1 - node1;
+                int postHiNode2 = hiNode2 + 2;
+                int node2 = loNode2;
+                while (node2 <= hiNode2) {
+                    int nextNode2 = nextNode2s[node2];
+                    nextNode2s[node2] = postHiNode2;
+                    if (node2 >= 0 && node2 < n && out[node2] == -1) {
+                        newNodes.add(node2);
+                        out[node2] = depth;
+                    }       
+                    node2 = nextNode2;
+                }
+            }   
+            nodes = newNodes;
+        }
+        for (int i = 0; i < n; i++) {
+            if (out[i] == -2) {
+                out[i] = -1;
+            }
+        }
+        return out;
+    }
+}
+
+or
+
+
+
+
+
