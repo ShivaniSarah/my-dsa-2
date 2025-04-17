@@ -1,0 +1,396 @@
+https://leetcode.com/problems/frog-position-after-t-seconds/description/
+
+
+1377. Frog Position After T Seconds
+Hard
+Topics
+Companies
+Hint
+Given an undirected tree consisting of n vertices numbered from 1 to n. A frog starts jumping from vertex 1. In one second, the frog jumps from its current vertex to another unvisited vertex if they are directly connected. The frog can not jump back to a visited vertex. In case the frog can jump to several vertices, it jumps randomly to one of them with the same probability. Otherwise, when the frog can not jump to any unvisited vertex, it jumps forever on the same vertex.
+
+The edges of the undirected tree are given in the array edges, where edges[i] = [ai, bi] means that exists an edge connecting the vertices ai and bi.
+
+Return the probability that after t seconds the frog is on the vertex target. Answers within 10-5 of the actual answer will be accepted.
+
+ 
+
+Example 1:
+
+
+Input: n = 7, edges = [[1,2],[1,3],[1,7],[2,4],[2,6],[3,5]], t = 2, target = 4
+Output: 0.16666666666666666 
+Explanation: The figure above shows the given graph. The frog starts at vertex 1, jumping with 1/3 probability to the vertex 2 after second 1 and then jumping with 1/2 probability to vertex 4 after second 2. Thus the probability for the frog is on the vertex 4 after 2 seconds is 1/3 * 1/2 = 1/6 = 0.16666666666666666. 
+Example 2:
+
+
+Input: n = 7, edges = [[1,2],[1,3],[1,7],[2,4],[2,6],[3,5]], t = 1, target = 7
+Output: 0.3333333333333333
+Explanation: The figure above shows the given graph. The frog starts at vertex 1, jumping with 1/3 = 0.3333333333333333 probability to the vertex 7 after second 1. 
+ 
+
+Constraints:
+
+1 <= n <= 100
+edges.length == n - 1
+edges[i].length == 2
+1 <= ai, bi <= n
+1 <= t <= 50
+1 <= target <= n
+
+
+# java
+
+
+class Solution {
+    public double frogPosition(int n, int[][] edges, int t, int target) {
+        List<Integer>[] g = new List[n + 1];
+        Arrays.setAll(g, k -> new ArrayList<>());
+        for (var e : edges) {
+            int u = e[0], v = e[1];
+            g[u].add(v);
+            g[v].add(u);
+        }
+        Deque<Pair<Integer, Double>> q = new ArrayDeque<>();
+        q.offer(new Pair<>(1, 1.0));
+        boolean[] vis = new boolean[n + 1];
+        vis[1] = true;
+        for (; !q.isEmpty() && t >= 0; --t) {
+            for (int k = q.size(); k > 0; --k) {
+                var x = q.poll();
+                int u = x.getKey();
+                double p = x.getValue();
+                int cnt = g[u].size() - (u == 1 ? 0 : 1);
+                if (u == target) {
+                    return cnt * t == 0 ? p : 0;
+                }
+                for (int v : g[u]) {
+                    if (!vis[v]) {
+                        vis[v] = true;
+                        q.offer(new Pair<>(v, p / cnt));
+                    }
+                }
+            }
+        }
+        return 0;
+    }
+}
+
+
+or
+
+
+class Solution {
+  public double frogPosition(int n, int[][] edges, int t, int target) {
+    List<Integer>[] tree = new List[n + 1];
+    Queue<Integer> q = new ArrayDeque<>(List.of(1));
+    boolean[] seen = new boolean[n + 1];
+    double[] prob = new double[n + 1];
+
+    seen[1] = true;
+    prob[1] = 1.0;
+
+    for (int i = 1; i <= n; ++i)
+      tree[i] = new ArrayList<>();
+
+    for (int[] edge : edges) {
+      final int u = edge[0];
+      final int v = edge[1];
+      tree[u].add(v);
+      tree[v].add(u);
+    }
+
+    while (!q.isEmpty() && t-- > 0)
+      for (int sz = q.size(); sz > 0; --sz) {
+        final int a = q.poll();
+        int nChildren = 0;
+        for (final int b : tree[a])
+          if (!seen[b])
+            ++nChildren;
+        for (final int b : tree[a]) {
+          if (seen[b])
+            continue;
+          seen[b] = true;
+          prob[b] = prob[a] / nChildren;
+          q.add(b);
+        }
+        if (nChildren > 0)
+          prob[a] = 0.0;
+      }
+
+    return prob[target];
+  }
+}
+
+or
+
+//best
+
+class Solution {
+    public double frogPosition(int n, int[][] edges, int t, int target) {
+       
+        ArrayList<ArrayList<Integer>> graph=new ArrayList<>();
+        for(int i=0;i<=n;i++)
+            graph.add(new ArrayList<>());
+        
+        for(int ar[]:edges){
+          int u=ar[0];
+          int v=ar[1];
+            graph.get(u).add(v);
+            graph.get(v).add(u);
+        }
+        ans=0;
+        dfs(1,t,target,graph,1,new boolean[n+1]);
+        return ans;
+    }
+    double ans;
+    
+    public void dfs(int i,int t,int tar,ArrayList<ArrayList<Integer>> graph,double prob,boolean vis[]){
+	// size for node 1 will be no of children but for other it will be 1 less bcz we have visisted its parent(only one)
+        int size=graph.get(i).size()-(i==1?0:1);
+        vis[i]=true;
+        if(i==tar){
+            if(t==0)ans=prob;               //  on target on given time
+            else if(t>0 && size==0)ans=prob;  // on target not on given time but its leaf(we can't can't go anywhere now )
+          return;
+        }
+        if(t>0)
+        for(int x:graph.get(i)){
+            if(!vis[x])
+            dfs(x,t-1,tar,graph,prob/size,vis); // prob will be divided by no of its children
+        }
+    }
+}
+
+or
+
+
+class Solution {
+    private class Node {
+        int dest;
+        double probability;
+
+        public Node(int dest, double probability) {
+            this.dest = dest;
+            this.probability = probability;
+        }
+    }
+
+    public double frogPosition(int n, int[][] edges, int t, int target) {
+        List<List<Integer>> tree = buildTree(n, edges);
+
+        Set<Integer> visited = new HashSet<>();
+        Queue<Node> queue = new LinkedList<>();
+        queue.offer(new Node(1, 1.0));
+        visited.add(1);
+
+        while (!queue.isEmpty() && t >= 0) {
+            int size = queue.size();
+            for (int i = 0; i < size; i++) {
+                Node curr = queue.poll();
+
+                int numNeighbors = getUnvisitedNeighbors(tree.get(curr.dest), visited);
+
+                if (curr.dest == target) {
+                    if (numNeighbors == 0 || t == 0) {
+                        return curr.probability;
+                    }
+
+                    return 0.0;
+                }
+
+                for (int next : tree.get(curr.dest)) {
+                    if (!visited.contains(next)) {
+                        double currProbability =  1.0 / ((double)numNeighbors);
+                        queue.offer(new Node(next, curr.probability / numNeighbors));
+                        visited.add(next);
+                    }
+                }
+            }
+            t--;
+        }    
+
+        return 0.0;
+    }
+
+    private int getUnvisitedNeighbors(List<Integer> neighbors, Set<Integer> visited) {
+        int count = 0;
+        for (int n : neighbors) {
+            if (!visited.contains(n)) {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    private List<List<Integer>> buildTree(int n, int[][] edges) {
+        List<List<Integer>> tree = new ArrayList<>();
+        for (int i = 0; i <= n; i++) {
+            tree.add(new ArrayList<>());
+        }
+
+        for (int[] edge : edges) {
+            tree.get(edge[0]).add(edge[1]);
+            tree.get(edge[1]).add(edge[0]);
+        }
+
+        return tree;
+    }
+}
+
+
+or
+
+
+// best
+
+
+class Solution {
+    List<Integer>[] adj;
+    int time;
+    public double frogPosition(int n, int[][] edges, int t, int target) {
+        time=t;
+        adj = new List[n+1];
+        for(int i=0; i<=n; i++)adj[i]=new ArrayList<>();
+        for(int i=0; i<edges.length; i++){
+            adj[edges[i][0]].add(edges[i][1]);
+            adj[edges[i][1]].add(edges[i][0]);
+        }
+        adj[1].add(-1);
+        return probability(1,target,0,-1);
+    }
+    private double probability(int node,int target,int t,int parent){
+        List<Integer> adjList=adj[node];
+        int childCount=adjList.size()-1;
+        if(t==time||childCount==0) return node==target?1.0:0.0;
+        double prob=0.0;
+        for(int child : adjList){
+            if(child==parent) continue;
+            prob+=probability(child,target,t+1,node);
+        }
+        return prob/childCount;
+    }
+}
+
+or
+
+
+
+class Solution {
+    public double frogPosition(int n1, int[][] edges, int t, int target) {
+        HashMap<Integer, List<Integer>> adj= new HashMap<>();
+        for(int[] edge:edges){
+            int src=edge[0];
+            int dest=edge[1];
+            adj.putIfAbsent(src, new ArrayList<Integer>());
+            adj.putIfAbsent(dest, new ArrayList<Integer>());
+            adj.get(src).add(dest);
+            adj.get(dest).add(src);
+        }
+        Queue<Node> q= new LinkedList<>();
+        Node root= new Node(1,1.0);
+        boolean[] vis= new boolean[n1+1];
+        vis[1]=true;
+        q.offer(root);
+        while(!q.isEmpty()){
+            boolean found=false;
+            if(t<0)return 0.0;
+            int n=q.size();
+            for(int i=0;i<n;i++){
+                Node node=q.poll();
+                int child=0;
+                if(adj.containsKey(node.val)){
+                    for(int ch:adj.get(node.val)){
+                        if(!vis[ch]){
+                            child++;
+                        }
+                    }
+                    double proToReachChild=node.pro/child;
+                    for(int ch:adj.get(node.val)){
+                        if(!vis[ch]){
+                            q.offer(new Node(ch,proToReachChild ));
+                            vis[ch]=true;
+                        }
+                    }
+                }
+                if(node.val==target){
+                        if(t==0 || child==0)
+                            return node.pro;
+                    else return 0.0;
+                }
+            }
+            t--;
+        }
+        return 0.0;
+    }
+    
+    class Node{
+        int val;
+        double pro;
+        Node(int val, double pro){
+            this.val=val;
+            this.pro=pro;
+        }
+    }
+}
+
+
+or
+
+
+
+import java.util.*;
+
+class Solution {
+    public double frogPosition(int n, int[][] edges, int t, int target) {
+        
+        List<Integer>[] graph = new ArrayList[n + 1];
+        for (int i = 1; i <= n; i++) {
+            graph[i] = new ArrayList<>();
+        }
+        
+        for (int[] edge : edges) {
+            graph[edge[0]].add(edge[1]);
+            graph[edge[1]].add(edge[0]);
+        }
+        
+        
+        double[] prob = new double[n + 1];
+        prob[1] = 1.0;
+        
+        
+        boolean[] visited = new boolean[n + 1];
+        
+        
+        return dfs(graph, prob, visited, 1, t, target);
+    }
+    
+    private double dfs(List<Integer>[] graph, double[] prob, boolean[] visited, int vertex, int t, int target) {
+        if (t == 0) {
+            return vertex == target ? prob[vertex] : 0.0;
+        }
+        
+        visited[vertex] = true;
+        int unvisitedChildren = 0;
+        for (int neighbor : graph[vertex]) {
+            if (!visited[neighbor]) {
+                unvisitedChildren++;
+            }
+        }
+        
+        if (unvisitedChildren == 0) {
+            return vertex == target ? prob[vertex] : 0.0;
+        }
+        
+        double result = 0.0;
+        for (int neighbor : graph[vertex]) {
+            if (!visited[neighbor]) {
+                prob[neighbor] = prob[vertex] / unvisitedChildren;
+                result += dfs(graph, prob, visited, neighbor, t - 1, target);
+            }
+        }
+        
+        visited[vertex] = false;
+        return result;
+    }
+}
