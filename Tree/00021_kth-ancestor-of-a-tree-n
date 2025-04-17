@@ -1,0 +1,364 @@
+https://leetcode.com/problems/kth-ancestor-of-a-tree-node/description/
+
+
+1483. Kth Ancestor of a Tree Node
+Hard
+Topics
+Companies
+Hint
+You are given a tree with n nodes numbered from 0 to n - 1 in the form of a parent array parent where parent[i] is the parent of ith node. The root of the tree is node 0. Find the kth ancestor of a given node.
+
+The kth ancestor of a tree node is the kth node in the path from that node to the root node.
+
+Implement the TreeAncestor class:
+
+TreeAncestor(int n, int[] parent) Initializes the object with the number of nodes in the tree and the parent array.
+int getKthAncestor(int node, int k) return the kth ancestor of the given node node. If there is no such ancestor, return -1.
+ 
+
+Example 1:
+
+
+Input
+["TreeAncestor", "getKthAncestor", "getKthAncestor", "getKthAncestor"]
+[[7, [-1, 0, 0, 1, 1, 2, 2]], [3, 1], [5, 2], [6, 3]]
+Output
+[null, 1, 0, -1]
+
+Explanation
+TreeAncestor treeAncestor = new TreeAncestor(7, [-1, 0, 0, 1, 1, 2, 2]);
+treeAncestor.getKthAncestor(3, 1); // returns 1 which is the parent of 3
+treeAncestor.getKthAncestor(5, 2); // returns 0 which is the grandparent of 5
+treeAncestor.getKthAncestor(6, 3); // returns -1 because there is no such ancestor
+ 
+
+Constraints:
+
+1 <= k <= n <= 5 * 104
+parent.length == n
+parent[0] == -1
+0 <= parent[i] < n for all 0 < i < n
+0 <= node < n
+There will be at most 5 * 104 queries.
+
+
+ # java
+
+class TreeAncestor {
+  public TreeAncestor(int n, int[] parent) {
+    this.maxLevel = 32 - Integer.numberOfLeadingZeros(n);
+    this.dp = new int[n][maxLevel];
+
+    // Node i's 2^0 ancestor is its direct parent.
+    for (int i = 0; i < n; ++i)
+      dp[i][0] = parent[i];
+
+    for (int j = 1; j < maxLevel; ++j)
+      for (int i = 0; i < n; ++i)
+        if (dp[i][j - 1] == -1) // There's no such ancestor.
+          dp[i][j] = -1;
+        else // A(i, 2^j) = A(A(i, 2^{j - 1}), 2^{j - 1})
+          dp[i][j] = dp[dp[i][j - 1]][j - 1];
+  }
+
+  public int getKthAncestor(int node, int k) {
+    for (int j = 0; j < maxLevel && node != -1; ++j)
+      if ((k >> j & 1) == 1)
+        node = dp[node][j];
+    return node;
+  }
+
+  private final int maxLevel;
+  private int[][] dp; // dp[i][j] := node i's 2^j-th ancestor
+}
+
+/**
+ * Your TreeAncestor object will be instantiated and called as such:
+ * TreeAncestor obj = new TreeAncestor(n, parent);
+ * int param_1 = obj.getKthAncestor(node,k);
+ */
+
+
+or
+
+
+class TreeAncestor {
+    private int[][] p;
+
+    public TreeAncestor(int n, int[] parent) {
+        p = new int[n][18];
+        for (var e : p) {
+            Arrays.fill(e, -1);
+        }
+        for (int i = 0; i < n; ++i) {
+            p[i][0] = parent[i];
+        }
+        for (int j = 1; j < 18; ++j) {
+            for (int i = 0; i < n; ++i) {
+                if (p[i][j - 1] == -1) {
+                    continue;
+                }
+                p[i][j] = p[p[i][j - 1]][j - 1];
+            }
+        }
+    }
+
+    public int getKthAncestor(int node, int k) {
+        for (int i = 17; i >= 0; --i) {
+            if (((k >> i) & 1) == 1) {
+                node = p[node][i];
+                if (node == -1) {
+                    break;
+                }
+            }
+        }
+        return node;
+    }
+}
+
+
+or
+
+
+class TreeAncestor {
+    
+    int dp[][];
+    int m;
+    int n;
+    
+    public TreeAncestor(int n, int[] parent) {
+        this.n = n;
+        this.m = (int) (Math.log(n) / Math.log(2)) + 1;
+        dp = new int[m][n];
+        for(int i[] : dp) {
+            Arrays.fill(i, -1);
+        }
+        
+        for(int i = 0; i < m; i++) {
+            for(int j = 0; j < n; j++) {
+                if(i == 0) {
+                    dp[i][j] = parent[j];
+                }
+                else {
+                    if(dp[i - 1][j] == -1) dp[i][j] = -1;
+                    else dp[i][j] = dp[i - 1][dp[i - 1][j]];
+                }
+            }
+        }
+    }
+    
+    public int getKthAncestor(int node, int k) {
+        int row = 0;
+        while(k > 0) {
+            if((k & 1) == 1) {
+                if(node == -1) return -1;
+                node = dp[row][node];
+            }
+            k >>= 1;
+            row++;
+        }
+        return node;
+    }
+}
+
+
+or
+
+
+class TreeAncestor {
+    // ancestor[r][i] : 2^r-th ancestor or node i;
+    int[][] ancestors;
+    int rows;
+    
+    // initialization: Time: n * log(n)   Space: n * log(n) 
+    public TreeAncestor(int n, int[] parent) {
+        this.rows = (int)(Math.log(n) / Math.log(2)) + 1;
+        this.ancestors = new int[rows][n];
+
+        
+        ancestors[0] = parent;
+        for (int r = 1; r < rows; r++) {
+            for (int i = 0; i < n; i++) {
+                int temp = ancestors[r-1][i];
+                ancestors[r][i] = (temp == -1) ? -1 : ancestors[r-1][temp];
+            }
+        } 
+    }
+    
+    public int getKthAncestor(int node, int k) {
+        int r = 0;
+        while (k > 0) {
+            if ((k & 1) == 1) node = ancestors[r][node];
+            if (node == -1) break;
+            
+            r++;
+            k >>= 1;
+        }
+        
+        return node;
+    }
+}
+
+
+or
+
+// LevelOrder + InOrder + Binary Search
+
+class TreeAncestor {
+    private ArrayList<Integer>[] levelGraph; //Tracks nodes at all levels; nodes in a level are 'inOrder' (left->right) 
+    private int[] levels, ranks; //levels is 'levelOrder' position of node(multiple nodes can have same level); ranks is 'inOrder' position of node(unique for every node)
+
+    public TreeAncestor(int n, int[] parent) {
+        //Make a graph of node and its children
+        ArrayList<Integer>[] graph = new ArrayList[n];
+        for(int i=0;i<n;i++) graph[i] = new ArrayList<>();
+        for(int i=1;i<n;i++) graph[parent[i]].add(i);
+
+        //Level-order traversal
+        Queue<Integer> q = new LinkedList<>();
+        q.add(0);
+        levels = new int[n];
+        int level = 0;
+        while(!q.isEmpty()){
+            int size = q.size();
+            while(size-->0){
+                int node = q.poll();
+                levels[node] = level;
+                for(int next: graph[node]) q.add(next);
+            }
+            level++;
+        }
+
+        //In-Order traversal
+        ranks = new int[n];
+        levelGraph = new ArrayList[level];
+        for(int i=0;i<level;i++) levelGraph[i] = new ArrayList<>();
+        inOrder(graph, 0, 0);
+    }
+
+    private int inOrder(ArrayList<Integer>[] graph, int node, int rank){
+        levelGraph[levels[node]].add(node); //add node to levelGraph; note that all existing nodes in levelGraph[levels[node]] will have smaller rank than current node
+        ranks[node] = rank; //Assign 'inOrder' position
+        for(int next: graph[node]) rank = inOrder(graph, next, ++rank); //For each child from left->right, get the maxRank used by the child subtree, add 1 and assign to next child
+        return rank; //max rank used up by subtree rooted at node
+    }
+    
+    public int getKthAncestor(int node, int k) {
+        if(node==0) return -1; //0 doesn't have an ancestor
+        int level = levels[node];
+        if(level<k) return -1; //less than k levels before node's level, i.e., less than k ancestors
+        return binarySearch(level-k, ranks[node]); //in the kth ancestor level, search for the highest rank <= rank of node
+    }
+
+    private int binarySearch(int level, int target){
+        //Basic Binary search
+        List<Integer> list = levelGraph[level];
+        int lo = 0, hi = list.size()-1, res = lo;
+        while(lo<=hi){
+            int mid = (lo+hi)/2, node = list.get(mid);
+            if(ranks[node]<=target){
+                res = node;
+                lo = mid+1;
+            }
+            else
+                hi = mid-1;
+        }
+
+        return res;
+    }
+}
+
+/**
+ * Your TreeAncestor object will be instantiated and called as such:
+ * TreeAncestor obj = new TreeAncestor(n, parent);
+ * int param_1 = obj.getKthAncestor(node,k);
+ */
+
+or
+
+
+
+class TreeAncestor {
+    List <List <Integer>> adj; // adjacency list
+    Map <Integer, List <Integer>> levelMap; // list of nodes at each level
+    Map <Integer, Integer> reverseLevelMap; // ndoe to level map
+    int nodeCountMap[]; // max value of node lying in current nodes's subtree
+    int counter; // global counter
+    public TreeAncestor(int n, int[] parent) {
+        adj = new ArrayList <>();
+        levelMap = new HashMap <>();
+        nodeCountMap = new int[n];
+        reverseLevelMap = new HashMap <>();
+        counter = 0;
+        for (int i = 0; i < n; i++) {
+            adj.add(new ArrayList <>());
+        }
+        // creating the adjacency list
+        for (int i = 1; i < n; i++) {
+            int node = parent[i];
+            adj.get(node).add(i);
+        }
+        // bfs for creating the levelMap and reverseLevelMap
+        Queue <Integer> q = new LinkedList <>();
+        q.add(0);
+        int level = 0;
+        while (!q.isEmpty()) {
+            int size = q.size();
+            levelMap.put(level, new ArrayList <>());
+            for (int i = 0; i < size; i++) {
+                int node = q.poll();
+                levelMap.get(level).add(node);
+                reverseLevelMap.put(node, level);
+                adj.get(node).forEach(child -> q.add(child));
+            }
+            level ++;
+        }
+        // dfs for creating the nodeCounterMap
+        dfs(0);
+    }
+
+    private int dfs(int node) {
+        counter ++;
+        int max[] = new int[]{counter};
+        adj.get(node).forEach(child -> max[0] = Math.max(max[0], dfs(child)));
+        nodeCountMap[node] = max[0];
+        return max[0];
+    }
+    
+    public int getKthAncestor(int node, int k) {
+        // current level of the node
+        int currentLevel = reverseLevelMap.get(node);
+        if (k > currentLevel) {
+            return -1;
+        }
+        // ancestors's level
+        int levelToReach = currentLevel - k;
+        // list of ancestors in the requried level
+        List <Integer> levelNodes = levelMap.get(levelToReach);
+        int numberOfNodeUnderCurrentNode = nodeCountMap[node];
+        // binary search to find the correct ancestor
+        return bs(levelNodes, numberOfNodeUnderCurrentNode);
+    }
+
+    private int bs(List <Integer> list, int x) {
+        int start = 0, end = list.size() - 1;
+        int result = -1;
+        while (start <= end) {
+            int mid = (start + end) / 2;
+            int node = list.get(mid);
+            if (nodeCountMap[node] < x) {
+                start = mid + 1;
+            } else {
+                result = node;
+                end = mid - 1;
+            }
+        }
+        return result;
+    }
+}
+
+/**
+ * Your TreeAncestor object will be instantiated and called as such:
+ * TreeAncestor obj = new TreeAncestor(n, parent);
+ * int param_1 = obj.getKthAncestor(node,k);
+ */
