@@ -1,0 +1,254 @@
+https://leetcode.com/problems/total-characters-in-string-after-transformations-ii/description/
+
+3337. Total Characters in String After Transformations II
+Hard
+Topics
+Companies
+Hint
+You are given a string s consisting of lowercase English letters, an integer t representing the number of transformations to perform, and an array nums of size 26. In one transformation, every character in s is replaced according to the following rules:
+
+Replace s[i] with the next nums[s[i] - 'a'] consecutive characters in the alphabet. For example, if s[i] = 'a' and nums[0] = 3, the character 'a' transforms into the next 3 consecutive characters ahead of it, which results in "bcd".
+The transformation wraps around the alphabet if it exceeds 'z'. For example, if s[i] = 'y' and nums[24] = 3, the character 'y' transforms into the next 3 consecutive characters ahead of it, which results in "zab".
+Return the length of the resulting string after exactly t transformations.
+
+Since the answer may be very large, return it modulo 109 + 7.
+
+ 
+
+Example 1:
+
+Input: s = "abcyy", t = 2, nums = [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2]
+
+Output: 7
+
+Explanation:
+
+First Transformation (t = 1):
+
+'a' becomes 'b' as nums[0] == 1
+'b' becomes 'c' as nums[1] == 1
+'c' becomes 'd' as nums[2] == 1
+'y' becomes 'z' as nums[24] == 1
+'y' becomes 'z' as nums[24] == 1
+String after the first transformation: "bcdzz"
+Second Transformation (t = 2):
+
+'b' becomes 'c' as nums[1] == 1
+'c' becomes 'd' as nums[2] == 1
+'d' becomes 'e' as nums[3] == 1
+'z' becomes 'ab' as nums[25] == 2
+'z' becomes 'ab' as nums[25] == 2
+String after the second transformation: "cdeabab"
+Final Length of the string: The string is "cdeabab", which has 7 characters.
+
+Example 2:
+
+Input: s = "azbk", t = 1, nums = [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2]
+
+Output: 8
+
+Explanation:
+
+First Transformation (t = 1):
+
+'a' becomes 'bc' as nums[0] == 2
+'z' becomes 'ab' as nums[25] == 2
+'b' becomes 'cd' as nums[1] == 2
+'k' becomes 'lm' as nums[10] == 2
+String after the first transformation: "bcabcdlm"
+Final Length of the string: The string is "bcabcdlm", which has 8 characters.
+
+ 
+
+Constraints:
+
+1 <= s.length <= 105
+s consists only of lowercase English letters.
+1 <= t <= 109
+nums.length == 26
+1 <= nums[i] <= 25
+
+
+# java
+
+
+class Solution {
+  // Similar to 3335. Total Characters in String After Transformations I
+  public int lengthAfterTransformations(String s, int t, List<Integer> nums) {
+    // T[i][j] := the number of ways to transform ('a' + i) to ('a' + j)
+    int[][] T = getTransformationMatrix(nums);
+    int[][] poweredT = matrixPow(T, t);
+    int[] count = new int[26];
+    // lengths[i] := the total length of ('a' + i) after t transformations
+    long[] lengths = new long[26];
+
+    for (final char c : s.toCharArray())
+      ++count[c - 'a'];
+
+    for (int i = 0; i < 26; ++i)
+      for (int j = 0; j < 26; ++j) {
+        lengths[j] += (long) count[i] * poweredT[i][j];
+        lengths[j] %= MOD;
+      }
+
+    return (int) (Arrays.stream(lengths).sum() % MOD);
+  }
+
+  private static final int MOD = 1_000_000_007;
+
+  private int[][] getTransformationMatrix(List<Integer> nums) {
+    int[][] T = new int[26][26];
+    for (int i = 0; i < nums.size(); ++i)
+      for (int step = 1; step <= nums.get(i); ++step)
+        ++T[i][(i + step) % 26];
+    return T;
+  }
+
+  private int[][] getIdentityMatrix(int sz) {
+    int[][] I = new int[sz][sz];
+    for (int i = 0; i < sz; ++i)
+      I[i][i] = 1;
+    return I;
+  }
+
+  // Returns A * B.
+  private int[][] matrixMult(int[][] A, int[][] B) {
+    final int sz = A.length;
+    int[][] C = new int[sz][sz];
+    for (int i = 0; i < sz; ++i)
+      for (int j = 0; j < sz; ++j)
+        for (int k = 0; k < sz; ++k)
+          C[i][j] = (int) ((C[i][j] + (long) A[i][k] * B[k][j]) % MOD);
+    return C;
+  }
+
+  // Returns M^n.
+  private int[][] matrixPow(int[][] M, int n) {
+    if (n == 0)
+      return getIdentityMatrix(M.length);
+    if (n % 2 == 1)
+      return matrixMult(M, matrixPow(M, n - 1));
+    return matrixPow(matrixMult(M, M), n / 2);
+  }
+}
+
+or
+
+
+class Solution {
+    private final int mod = (int) (1e9 + 7);
+    public int lengthAfterTransformations(String s, int t, List<Integer> nums) {
+        if(t == 0) return s.length() % mod;
+        long[] freq = new long[26];
+        for(char ch : s.toCharArray()) {
+            freq[ch - 'a']++;
+        }
+        long[][] m = new long[26][26];
+        for(int i=0; i<26; i++) {
+            int num = nums.get(i);
+            for(int j=1; j<=num; j++) {
+                m[i][(i + j) % 26] = 1;
+            }
+        }
+        long[][] mt = matrixPower(m, t);
+        long[] rowsum = new long[26];
+        for(int i=0; i<26; i++) {
+            for(int j=0; j<26; j++) {
+                rowsum[i] = (rowsum[i] + mt[i][j]) % mod;
+            }
+        }
+        long total = 0;
+        for(int i=0; i<26; i++) {
+            total = (total + (freq[i]*rowsum[i]) % mod) % mod;
+        }
+        return (int) total;
+    }
+    private long[][] matrixPower(long[][] m, int power) {
+        long[][] ans = new long[26][26];
+        for(int i=0; i<26; i++) {
+            ans[i][i] = 1;
+        }
+        long[][] base = new long[26][26];
+        for(int i=0; i<26; i++) {
+            System.arraycopy(m[i], 0, base[i], 0, 26);
+        }
+        while(power > 0) {
+            if((power & 1) == 1) ans = multiply(ans, base);
+            base = multiply(base, base);
+            power >>= 1;
+        }
+        return ans;
+    }
+    private long[][] multiply(long[][] a, long[][] b) {
+        long[][] c = new long[26][26];
+        for(int i=0; i<26; i++) {
+            for(int k=0; k<26; k++) {
+                if(a[i][k] != 0) {
+                    for(int j=0; j<26; j++) {
+                        c[i][j] = (c[i][j] + a[i][k]*b[k][j]) % mod;
+                    }
+                }
+            }
+        }
+        return c;
+    }
+}
+
+or
+
+
+class Solution {
+    private static final int MOD = (int) (1e9 + 7), CHAR_NUMBER = 26;
+
+    public int lengthAfterTransformations(String s, int t, List<Integer> nums) {
+        if (t == 0)
+            return s.length() % MOD;
+
+        var freq = new long[CHAR_NUMBER];
+        for (var ch : s.toCharArray())
+            freq[ch - 97]++;
+
+        var m = new long[CHAR_NUMBER][CHAR_NUMBER];
+        int num, i, j;
+        for (i = 0; i < CHAR_NUMBER; i++) {
+            num = nums.get(i);
+            for (j = 1; j <= num; j++)
+                m[i][(i + j) % CHAR_NUMBER] = 1;
+        }
+
+        var mt = new long[CHAR_NUMBER][CHAR_NUMBER];
+        for (i = 0; i < CHAR_NUMBER; i++)
+            mt[i][i] = 1;
+        var base = new long[CHAR_NUMBER][CHAR_NUMBER];
+        for (i = 0; i < CHAR_NUMBER; i++)
+            System.arraycopy(m[i], 0, base[i], 0, CHAR_NUMBER);
+        while (t > 0) {
+            if ((t & 1) == 1)
+                mt = multiply(mt, base);
+            base = multiply(base, base);
+            t >>= 1;
+        }
+
+        var rowsum = new long[CHAR_NUMBER];
+        for (i = 0; i < CHAR_NUMBER; i++)
+            for (j = 0; j < CHAR_NUMBER; j++)
+                rowsum[i] = (rowsum[i] + mt[i][j]) % MOD;
+
+        long total = 0;
+        for (i = 0; i < CHAR_NUMBER; i++)
+            total = (total + (freq[i] * rowsum[i]) % MOD) % MOD;
+        return (int) total;
+    }
+
+    private long[][] multiply(long[][] a, long[][] b) {
+        var c = new long[CHAR_NUMBER][CHAR_NUMBER];
+        int i, j, k;
+
+        for (i = 0; i < CHAR_NUMBER; i++)
+            for (k = 0; k < CHAR_NUMBER; k++)
+                if (a[i][k] != 0)
+                    for (j = 0; j < CHAR_NUMBER; j++)
+                        c[i][j] = (c[i][j] + a[i][k] * b[k][j]) % MOD;
+        return c;
+    }
+}
