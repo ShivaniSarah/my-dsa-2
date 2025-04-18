@@ -1,0 +1,146 @@
+https://leetcode.com/problems/palindrome-partitioning-iv/description/
+
+1745. Palindrome Partitioning IV
+Hard
+Topics
+Companies
+Hint
+Given a string s, return true if it is possible to split the string s into three non-empty palindromic substrings. Otherwise, return false.​​​​​
+
+A string is said to be palindrome if it the same string when reversed.
+
+ 
+
+Example 1:
+
+Input: s = "abcbdd"
+Output: true
+Explanation: "abcbdd" = "a" + "bcb" + "dd", and all three substrings are palindromes.
+Example 2:
+
+Input: s = "bcbddxy"
+Output: false
+Explanation: s cannot be split into 3 palindromes.
+ 
+
+Constraints:
+
+3 <= s.length <= 2000
+s​​​​​​ consists only of lowercase English letters.
+
+
+# java
+
+
+class Solution {
+  public boolean checkPartitioning(String s) {
+    final int n = s.length();
+    Boolean[][] mem = new Boolean[n][n];
+
+    for (int i = 0; i < n; ++i)
+      for (int j = i + 1; j + 1 < n; ++j)
+        if (isPalindrome(s, 0, i, mem) &&     //
+            isPalindrome(s, i + 1, j, mem) && //
+            isPalindrome(s, j + 1, n - 1, mem))
+          return true;
+
+    return false;
+  }
+
+  // Returns true if s[i..j] is a palindrome.
+  // Returns false if s[i..j] is not a palindrome.
+  private boolean isPalindrome(final String s, int i, int j, Boolean[][] mem) {
+    if (i > j)
+      return true;
+    if (mem[i][j] != null)
+      return mem[i][j];
+    if (s.charAt(i) == s.charAt(j))
+      return mem[i][j] = isPalindrome(s, i + 1, j - 1, mem);
+    return mem[i][j] = false;
+  }
+}
+
+
+or
+
+class Solution {
+  public boolean checkPartitioning(String s) {
+    final int n = s.length();
+    // dp[i][j] := true if s[i..j] is a palindrome
+    boolean[][] dp = new boolean[n + 1][n + 1];
+
+    for (int i = 0; i < n; ++i)
+      dp[i][i] = true;
+
+    for (int d = 1; d < n; ++d)
+      for (int i = 0; i + d < n; ++i) {
+        final int j = i + d;
+        if (s.charAt(i) == s.charAt(j))
+          dp[i][j] = i + 1 > j - 1 || dp[i + 1][j - 1];
+      }
+
+    for (int i = 0; i < n; ++i)
+      for (int j = i + 1; j < n; ++j)
+        if (dp[0][i] && dp[i + 1][j] && dp[j + 1][n - 1])
+          return true;
+
+    return false;
+  }
+}
+
+
+or
+
+
+
+class Solution {
+    public boolean checkPartitioning(String s) {
+        int length = s.length();
+        boolean[][] isPalindrome = new boolean[length][length];
+        for (int i = 0; i < length; i++)
+            isPalindrome[i][i] = true;
+        for (int i = 1; i < length; i++)
+            isPalindrome[i - 1][i] = s.charAt(i - 1) == s.charAt(i);
+        for (int i = length - 3; i >= 0; i--) {
+            for (int j = i + 2; j < length; j++)
+                isPalindrome[i][j] = isPalindrome[i + 1][j - 1] && s.charAt(i) == s.charAt(j);
+        }
+        int maxFirst = length - 3, maxSecond = length - 2;
+        for (int i = 0; i <= maxFirst; i++) {
+            if (isPalindrome[0][i]) {
+                for (int j = i + 1; j <= maxSecond; j++) {
+                    if (isPalindrome[i + 1][j] && isPalindrome[j + 1][length - 1])
+                        return true;
+                }
+            }
+        }
+        return false;
+    }
+}
+
+
+or
+
+
+class Solution {
+    public boolean checkPartitioning(String s) {
+        int n = s.length();
+        boolean[][] g = new boolean[n][n];
+        for (var e : g) {
+            Arrays.fill(e, true);
+        }
+        for (int i = n - 1; i >= 0; --i) {
+            for (int j = i + 1; j < n; ++j) {
+                g[i][j] = s.charAt(i) == s.charAt(j) && (i + 1 == j || g[i + 1][j - 1]);
+            }
+        }
+        for (int i = 0; i < n - 2; ++i) {
+            for (int j = i + 1; j < n - 1; ++j) {
+                if (g[0][i] && g[i + 1][j] && g[j + 1][n - 1]) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+}
