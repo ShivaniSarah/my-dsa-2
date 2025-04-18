@@ -1,0 +1,156 @@
+https://leetcode.com/problems/count-palindromic-subsequences/description/
+
+2484. Count Palindromic Subsequences
+Hard
+Topics
+Companies
+Hint
+Given a string of digits s, return the number of palindromic subsequences of s having length 5. Since the answer may be very large, return it modulo 109 + 7.
+
+Note:
+
+A string is palindromic if it reads the same forward and backward.
+A subsequence is a string that can be derived from another string by deleting some or no characters without changing the order of the remaining characters.
+ 
+
+Example 1:
+
+Input: s = "103301"
+Output: 2
+Explanation: 
+There are 6 possible subsequences of length 5: "10330","10331","10301","10301","13301","03301". 
+Two of them (both equal to "10301") are palindromic.
+Example 2:
+
+Input: s = "0000000"
+Output: 21
+Explanation: All 21 subsequences are "00000", which is palindromic.
+Example 3:
+
+Input: s = "9999900000"
+Output: 2
+Explanation: The only two palindromic subsequences are "99999" and "00000".
+ 
+
+Constraints:
+
+1 <= s.length <= 104
+s consists of digits.
+
+# java
+
+
+class Solution {
+  public int countPalindromes(String s) {
+    final int MOD = 1_000_000_007;
+    final int PATTERN_SIZE = 5;
+    long ans = 0;
+
+    for (char a = '0'; a <= '9'; ++a)
+      for (char b = '0'; b <= '9'; ++b) {
+        char[] pattern = {a, b, '.', b, a};
+        // dp[i] := the number of subsequences of pattern[i..n) in s, where
+        // pattern[2] can be any character
+        long[] dp = new long[PATTERN_SIZE + 1];
+        dp[PATTERN_SIZE] = 1;
+        for (final char c : s.toCharArray())
+          for (int i = 0; i < PATTERN_SIZE; ++i)
+            if (pattern[i] == '.' || pattern[i] == c)
+              dp[i] += dp[i + 1];
+        ans += dp[0];
+        ans %= MOD;
+      }
+
+    return (int) ans;
+  }
+}
+
+
+or
+
+
+class Solution {
+    private static final int MOD = (int) 1e9 + 7;
+
+    public int countPalindromes(String s) {
+        int n = s.length();
+        int[][][] pre = new int[n + 2][10][10];
+        int[][][] suf = new int[n + 2][10][10];
+        int[] t = new int[n];
+        for (int i = 0; i < n; ++i) {
+            t[i] = s.charAt(i) - '0';
+        }
+        int[] c = new int[10];
+        for (int i = 1; i <= n; ++i) {
+            int v = t[i - 1];
+            for (int j = 0; j < 10; ++j) {
+                for (int k = 0; k < 10; ++k) {
+                    pre[i][j][k] = pre[i - 1][j][k];
+                }
+            }
+            for (int j = 0; j < 10; ++j) {
+                pre[i][j][v] += c[j];
+            }
+            c[v]++;
+        }
+        c = new int[10];
+        for (int i = n; i > 0; --i) {
+            int v = t[i - 1];
+            for (int j = 0; j < 10; ++j) {
+                for (int k = 0; k < 10; ++k) {
+                    suf[i][j][k] = suf[i + 1][j][k];
+                }
+            }
+            for (int j = 0; j < 10; ++j) {
+                suf[i][j][v] += c[j];
+            }
+            c[v]++;
+        }
+        long ans = 0;
+        for (int i = 1; i <= n; ++i) {
+            for (int j = 0; j < 10; ++j) {
+                for (int k = 0; k < 10; ++k) {
+                    ans += (long) pre[i - 1][j][k] * suf[i + 1][j][k];
+                    ans %= MOD;
+                }
+            }
+        }
+        return (int) ans;
+    }
+}
+
+or
+
+
+class Solution {
+    public int countPalindromes(String s) {
+    int mod = 1000_000_007, n = s.length(), ans = 0, cnts[] = new int[10],
+    pre[][][] = new int[n][10][10], suf[][][] = new int[n][10][10];
+    for (int i = 0; i < n; i++) {
+        int c = s.charAt(i) - '0';
+        if (i > 0)
+            for (int j = 0; j < 10; j++)
+                for (int k = 0; k < 10; k++) {
+                    pre[i][j][k] = pre[i - 1][j][k];
+                    if (k == c) pre[i][j][k] += cnts[j];
+                }
+        cnts[c]++;
+    }
+    Arrays.fill(cnts, 0);
+    for (int i = n - 1; i >= 0; i--) {
+        int c = s.charAt(i) - '0';
+        if (i < n - 1)
+            for (int j = 0; j < 10; j++)
+                for (int k = 0; k < 10; k++) {
+                    suf[i][j][k] = suf[i + 1][j][k];
+                    if (k == c) suf[i][j][k] += cnts[j];
+                }
+        cnts[c]++;
+    }
+    for (int i = 2; i < n - 2; i++)
+        for (int j = 0; j < 10; j++)
+            for (int k = 0; k < 10; k++)
+                ans = (int)((ans + 1L * pre[i - 1][j][k] * suf[i + 1][j][k]) % mod);
+    return ans;
+}
+}
