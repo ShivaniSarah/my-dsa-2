@@ -1,0 +1,182 @@
+https://leetcode.com/problems/find-the-sum-of-the-power-of-all-subsequences/
+
+
+3082. Find the Sum of the Power of All Subsequences
+Hard
+Topics
+Companies
+Hint
+You are given an integer array nums of length n and a positive integer k.
+
+The power of an array of integers is defined as the number of subsequences with their sum equal to k.
+
+Return the sum of power of all subsequences of nums.
+
+Since the answer may be very large, return it modulo 109 + 7.
+
+ 
+
+Example 1:
+
+Input: nums = [1,2,3], k = 3
+
+Output: 6
+
+Explanation:
+
+There are 5 subsequences of nums with non-zero power:
+
+The subsequence [1,2,3] has 2 subsequences with sum == 3: [1,2,3] and [1,2,3].
+The subsequence [1,2,3] has 1 subsequence with sum == 3: [1,2,3].
+The subsequence [1,2,3] has 1 subsequence with sum == 3: [1,2,3].
+The subsequence [1,2,3] has 1 subsequence with sum == 3: [1,2,3].
+The subsequence [1,2,3] has 1 subsequence with sum == 3: [1,2,3].
+Hence the answer is 2 + 1 + 1 + 1 + 1 = 6.
+
+Example 2:
+
+Input: nums = [2,3,3], k = 5
+
+Output: 4
+
+Explanation:
+
+There are 3 subsequences of nums with non-zero power:
+
+The subsequence [2,3,3] has 2 subsequences with sum == 5: [2,3,3] and [2,3,3].
+The subsequence [2,3,3] has 1 subsequence with sum == 5: [2,3,3].
+The subsequence [2,3,3] has 1 subsequence with sum == 5: [2,3,3].
+Hence the answer is 2 + 1 + 1 = 4.
+
+Example 3:
+
+Input: nums = [1,2,3], k = 7
+
+Output: 0
+
+Explanation: There exists no subsequence with sum 7. Hence all subsequences of nums have power = 0.
+
+ 
+
+Constraints:
+
+1 <= n <= 100
+1 <= nums[i] <= 104
+1 <= k <= 100
+
+
+# java
+
+
+class Solution {
+  public int sumOfPower(int[] nums, int k) {
+    Integer[][] mem = new Integer[nums.length][k + 1];
+    return sumOfPower(nums, 0, k, mem);
+  }
+
+  private static final int MOD = 1_000_000_007;
+
+  // Returns the number of subsequences in nums[i..n) that sums to j.
+  private int sumOfPower(int[] nums, int i, int j, Integer[][] mem) {
+    if (j == 0)
+      // For each of the remaining number, we can either pick it or skip it.
+      return (int) modPow(2, nums.length - i);
+    if (i == nums.length || j < 0)
+      return 0;
+    if (mem[i][j] != null)
+      return mem[i][j];
+    // 1. Include nums[i] in the subsequence and pick it.
+    // 2. Include nums[i] in the subsequence and skip it.
+    // 3. Exclude nums[i] in the subsequence.
+    return mem[i][j] = (int) ((sumOfPower(nums, i + 1, j - nums[i], mem) + //
+                               2L * sumOfPower(nums, i + 1, j, mem)) %
+                              MOD);
+  }
+
+  private long modPow(long x, long n) {
+    if (n == 0)
+      return 1;
+    if (n % 2 == 1)
+      return x * modPow(x % MOD, (n - 1)) % MOD;
+    return modPow(x * x % MOD, (n / 2)) % MOD;
+  }
+}
+
+
+or
+
+
+class Solution {
+  public int sumOfPower(int[] nums, int k) {
+    final int MOD = 1_000_000_007;
+    final int n = nums.length;
+    // dp[i][j] := the number of subsequences in nums[0..i) that sums to k
+    int[][] dp = new int[n + 1][k + 1];
+    dp[0][0] = 1;
+
+    for (int i = 1; i <= n; ++i) {
+      final int num = nums[i - 1];
+      for (int j = 0; j <= k; ++j)
+        if (j < num)
+          // 1. Exclude nums[i] in the subsequence.
+          // 2. Include nums[i] in the subsequence and skip it.
+          dp[i][j] = (int) ((dp[i - 1][j] * 2L) % MOD);
+        else
+          // 1. Exclude nums[i] in the subsequence.
+          // 2. Include nums[i] in the subsequence and skip it.
+          // 3. Include nums[i] in the subsequence and pick it.
+          dp[i][j] = (int) ((dp[i - 1][j] * 2L + dp[i - 1][j - num]) % MOD);
+    }
+
+    return dp[n][k];
+  }
+}
+
+
+or
+
+
+class Solution {
+  public int sumOfPower(int[] nums, int k) {
+    final int MOD = 1_000_000_007;
+    // dp[i] := the number of subsequences in nums so far that sums to k
+    int[] dp = new int[k + 1];
+    dp[0] = 1;
+
+    for (final int num : nums)
+      for (int i = k; i >= 0; --i)
+        if (i < num)
+          // 1. Exclude nums[i] in the subsequence.
+          // 2. Include nums[i] in the subsequence and skip it.
+          dp[i] = (int) ((dp[i] * 2L) % MOD);
+        else
+          // 1. Exclude nums[i] in the subsequence.
+          // 2. Include nums[i] in the subsequence and skip it.
+          // 3. Include nums[i] in the subsequence and pick it.
+          dp[i] = (int) ((dp[i] * 2L + dp[i - num]) % MOD);
+
+    return dp[k];
+  }
+}
+
+
+or
+
+
+class Solution {
+    public int sumOfPower(int[] nums, int k) {
+        final int mod = (int) 1e9 + 7;
+        int n = nums.length;
+        int[][] f = new int[n + 1][k + 1];
+        f[0][0] = 1;
+        for (int i = 1; i <= n; ++i) {
+            for (int j = 0; j <= k; ++j) {
+                f[i][j] = (f[i - 1][j] * 2) % mod;
+                if (j >= nums[i - 1]) {
+                    f[i][j] = (f[i][j] + f[i - 1][j - nums[i - 1]]) % mod;
+                }
+            }
+        }
+        return f[n][k];
+    }
+}
