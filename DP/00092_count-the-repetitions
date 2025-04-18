@@ -1,0 +1,146 @@
+https://leetcode.com/problems/count-the-repetitions/description/
+
+
+466. Count The Repetitions
+Hard
+Topics
+Companies
+We define str = [s, n] as the string str which consists of the string s concatenated n times.
+
+For example, str == ["abc", 3] =="abcabcabc".
+We define that string s1 can be obtained from string s2 if we can remove some characters from s2 such that it becomes s1.
+
+For example, s1 = "abc" can be obtained from s2 = "abdbec" based on our definition by removing the bolded underlined characters.
+You are given two strings s1 and s2 and two integers n1 and n2. You have the two strings str1 = [s1, n1] and str2 = [s2, n2].
+
+Return the maximum integer m such that str = [str2, m] can be obtained from str1.
+
+ 
+
+Example 1:
+
+Input: s1 = "acb", n1 = 4, s2 = "ab", n2 = 2
+Output: 2
+Example 2:
+
+Input: s1 = "acb", n1 = 1, s2 = "acb", n2 = 1
+Output: 1
+ 
+
+Constraints:
+
+1 <= s1.length, s2.length <= 100
+s1 and s2 consist of lowercase English letters.
+1 <= n1, n2 <= 106
+
+
+
+# java
+
+
+class Solution {
+    public int getMaxRepetitions(String s1, int n1, String s2, int n2) {
+        if (n1 == 0) return 0;
+
+        int[] indexr = new int[n1 + 1];
+        int[] countr = new int[n1 + 1];
+        int index = 0, count = 0;
+        int len1 = s1.length(), len2 = s2.length();
+
+        for (int i = 0; i < n1; i++) {
+            for (int j = 0; j < len1; j++) {
+                if (s1.charAt(j) == s2.charAt(index)) {
+                    index++;
+                }
+                if (index == len2) {
+                    index = 0;
+                    count++;
+                }
+            }
+            countr[i] = count;
+            indexr[i] = index;
+
+            for (int k = 0; k < i; k++) {
+                if (indexr[k] == index) {
+                    int preCount = countr[k];
+                    int patternLength = i - k;
+                    int patternCount = (n1 - 1 - k) / patternLength;
+                    int patternReps = (countr[i] - countr[k]) * patternCount;
+                    int remain = (n1 - 1 - k) % patternLength;
+                    int remainReps = countr[k + remain] - countr[k];
+                    return (preCount + patternReps + remainReps) / n2;
+                }
+            }
+        }
+
+        return countr[n1 - 1] / n2;
+    }
+}
+
+
+
+or
+
+
+class Solution {
+  public int getMaxRepetitions(String s1, int n1, String s2, int n2) {
+    record Record(int count, int nextIndex) {}
+    // records[i].count := the number of times that s2 starting from index i has
+    // been fully matched with s1
+    // records[i].nextIndex := the next index in s2 to be matched after
+    // completing a full match starting from index i
+    List<Record> records = new ArrayList<>();
+
+    for (int i = 0; i < s2.length(); ++i) {
+      int count = 0;
+      int nextIndex = i;
+      for (final char c : s1.toCharArray())
+        if (s2.charAt(nextIndex) == c)
+          if (++nextIndex == s2.length()) { // There's a match.
+            ++count;
+            nextIndex = 0;
+          }
+      records.add(new Record(count, nextIndex));
+    }
+
+    int matches = 0; // the number of matches between `s1` x n1 and `s2`
+    int i = 0;       // the index in `s2` to start matching
+
+    while (n1-- > 0) {
+      matches += records.get(i).count;
+      i = records.get(i).nextIndex;
+    }
+
+    return matches / n2;
+  }
+}
+
+
+or
+
+
+class Solution {
+    public int getMaxRepetitions(String s1, int n1, String s2, int n2) {
+        int m = s1.length(), n = s2.length();
+        int[][] d = new int[n][0];
+        for (int i = 0; i < n; ++i) {
+            int j = i;
+            int cnt = 0;
+            for (int k = 0; k < m; ++k) {
+                if (s1.charAt(k) == s2.charAt(j)) {
+                    if (++j == n) {
+                        j = 0;
+                        ++cnt;
+                    }
+                }
+            }
+            d[i] = new int[] {cnt, j};
+        }
+        int ans = 0;
+        for (int j = 0; n1 > 0; --n1) {
+            ans += d[j][0];
+            j = d[j][1];
+        }
+        return ans / n2;
+    }
+}
