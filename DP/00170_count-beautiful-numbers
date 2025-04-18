@@ -1,0 +1,155 @@
+https://leetcode.com/problems/count-beautiful-numbers/description/
+
+
+3490. Count Beautiful Numbers
+Hard
+Topics
+Companies
+Hint
+You are given two positive integers, l and r. A positive integer is called beautiful if the product of its digits is divisible by the sum of its digits.
+
+Return the count of beautiful numbers between l and r, inclusive.
+
+ 
+
+Example 1:
+
+Input: l = 10, r = 20
+
+Output: 2
+
+Explanation:
+
+The beautiful numbers in the range are 10 and 20.
+
+Example 2:
+
+Input: l = 1, r = 15
+
+Output: 10
+
+Explanation:
+
+The beautiful numbers in the range are 1, 2, 3, 4, 5, 6, 7, 8, 9, and 10.
+
+ 
+
+Constraints:
+
+1 <= l <= r < 109
+
+
+# java
+
+
+class Solution {
+  public int beautifulNumbers(int l, int r) {
+    return count(String.valueOf(r), 0, /*tight=*/true, /*isLeadingZero=*/true,
+                 /*hasZero=*/false, /*sum=*/0, /*prod=*/1, new HashMap<>()) -
+        count(String.valueOf(l - 1), 0, /*tight=*/true, /*isLeadingZero=*/true,
+              /*hasZero=*/false, /*sum=*/0, /*prod=*/1, new HashMap<>());
+  }
+
+  private int count(final String s, int i, boolean tight, boolean isLeadingZero, boolean hasZero,
+                    int sum, int prod, Map<String, Integer> mem) {
+    if (i == s.length()) {
+      if (isLeadingZero)
+        return 0;
+      return (hasZero || prod % sum == 0) ? 1 : 0;
+    }
+    final String key = hash(i, tight, isLeadingZero, hasZero, sum, prod);
+    if (!isLeadingZero && hasZero && !tight) {
+      final int val = (int) Math.pow(10, s.length() - i);
+      mem.put(key, val);
+      return val;
+    }
+    if (mem.containsKey(key))
+      return mem.get(key);
+
+    int res = 0;
+    final int maxDigit = tight ? s.charAt(i) - '0' : 9;
+
+    for (int d = 0; d <= maxDigit; ++d) {
+      final boolean nextTight = tight && (d == maxDigit);
+      final boolean nextIsLeadingZero = isLeadingZero && d == 0;
+      final boolean nextHasZero = !nextIsLeadingZero && d == 0;
+      final int nextProd = nextIsLeadingZero ? 1 : prod * d;
+      res += count(s, i + 1, nextTight, nextIsLeadingZero, nextHasZero, sum + d, nextProd, mem);
+    }
+
+    mem.put(key, res);
+    return res;
+  }
+
+  private String hash(int i, boolean tight, boolean isLeadingZero, boolean hasZero, int sum,
+                      int prod) {
+    return i + "_" + (tight ? "1" : "0") + "_" + (isLeadingZero ? "1" : "0") + "_" +
+        (hasZero ? "1" : "0") + "_" + sum + "_" + prod;
+  }
+}
+
+or
+
+public class Solution {
+    public int beautifulNumbers(int l, int r) {
+        long countR = count(r);
+        long countL = count(l - 1);
+        return (int)(countR - countL);
+    }
+    
+    private long count(int x) {
+        if (x < 1) return 0;
+        String s = Integer.toString(x);
+        int n = s.length();
+        int[] digits = new int[n];
+        for (int i = 0; i < n; i++) {
+            digits[i] = s.charAt(i) - '0';
+        }
+        Map<String, Long> memo = new HashMap<>();
+        return dp(0, true, false, false, 0, 1, digits, n, memo);
+    }
+    
+    private long dp(int pos, boolean tight, boolean started, boolean hasZero, int sum, int prod, int[] digits, int n, Map<String, Long> memo) {
+        if (pos == n) {
+            if (!started) return 0;
+            if (hasZero) return 1;
+            return (prod % sum == 0) ? 1 : 0;
+        }
+        
+        String key = pos + "_" + (tight ? 1 : 0) + "_" + (started ? 1 : 0) + "_" + (hasZero ? 1 : 0) + "_" + sum + "_" + prod;
+        if (memo.containsKey(key)) return memo.get(key);
+        
+        long ans = 0;
+        int limit = tight ? digits[pos] : 9;
+        
+        if (started && hasZero && !tight) {
+            long ways = (long) Math.pow(10, n - pos);
+            memo.put(key, ways);
+            return ways;
+        }
+        
+        for (int d = 0; d <= limit; d++) {
+            boolean newTight = tight && (d == limit);
+            if (!started) {
+                if (d == 0) {
+                    ans += dp(pos + 1, newTight, false, false, 0, 1, digits, n, memo);
+                } else {
+                    ans += dp(pos + 1, newTight, true, false, d, d, digits, n, memo);
+                }
+            } else {
+                if (hasZero) {
+                    ans += dp(pos + 1, newTight, true, true, sum + d, 0, digits, n, memo);
+                } else {
+                    if (d == 0) {
+                        ans += dp(pos + 1, newTight, true, true, sum, 0, digits, n, memo);
+                    } else {
+                        ans += dp(pos + 1, newTight, true, false, sum + d, prod * d, digits, n, memo);
+                    }
+                }
+            }
+        }
+        
+        memo.put(key, ans);
+        return ans;
+    }
+}
