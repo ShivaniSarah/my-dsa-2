@@ -1,0 +1,187 @@
+https://leetcode.com/problems/number-of-ways-to-form-a-target-string-given-a-dictionary/
+
+1639. Number of Ways to Form a Target String Given a Dictionary
+Hard
+Topics
+Companies
+Hint
+You are given a list of strings of the same length words and a string target.
+
+Your task is to form target using the given words under the following rules:
+
+target should be formed from left to right.
+To form the ith character (0-indexed) of target, you can choose the kth character of the jth string in words if target[i] = words[j][k].
+Once you use the kth character of the jth string of words, you can no longer use the xth character of any string in words where x <= k. In other words, all characters to the left of or at index k become unusuable for every string.
+Repeat the process until you form the string target.
+Notice that you can use multiple characters from the same string in words provided the conditions above are met.
+
+Return the number of ways to form target from words. Since the answer may be too large, return it modulo 109 + 7.
+
+ 
+
+Example 1:
+
+Input: words = ["acca","bbbb","caca"], target = "aba"
+Output: 6
+Explanation: There are 6 ways to form target.
+"aba" -> index 0 ("acca"), index 1 ("bbbb"), index 3 ("caca")
+"aba" -> index 0 ("acca"), index 2 ("bbbb"), index 3 ("caca")
+"aba" -> index 0 ("acca"), index 1 ("bbbb"), index 3 ("acca")
+"aba" -> index 0 ("acca"), index 2 ("bbbb"), index 3 ("acca")
+"aba" -> index 1 ("caca"), index 2 ("bbbb"), index 3 ("acca")
+"aba" -> index 1 ("caca"), index 2 ("bbbb"), index 3 ("caca")
+Example 2:
+
+Input: words = ["abba","baab"], target = "bab"
+Output: 4
+Explanation: There are 4 ways to form target.
+"bab" -> index 0 ("baab"), index 1 ("baab"), index 2 ("abba")
+"bab" -> index 0 ("baab"), index 1 ("baab"), index 3 ("baab")
+"bab" -> index 0 ("baab"), index 2 ("baab"), index 3 ("baab")
+"bab" -> index 1 ("abba"), index 2 ("baab"), index 3 ("baab")
+ 
+
+Constraints:
+
+1 <= words.length <= 1000
+1 <= words[i].length <= 1000
+All strings in words have the same length.
+1 <= target.length <= 1000
+words[i] and target contain only lowercase English letters.
+
+
+
+# java
+
+
+class Solution {
+  public int numWays(String[] words, String target) {
+    final int wordLength = words[0].length();
+    Integer[][] mem = new Integer[target.length()][wordLength];
+    // counts[j] := the count map of words[i][j], where 0 <= i < |words|
+    int[][] counts = new int[wordLength][26];
+
+    for (int i = 0; i < wordLength; ++i)
+      for (final String word : words)
+        ++counts[i][word.charAt(i) - 'a'];
+
+    return numWays(target, 0, 0, counts, mem);
+  }
+
+  private static final int MOD = 1_000_000_007;
+
+  // Returns the number of ways to form target[i..n) using word[j..n).
+  private int numWays(final String target, int i, int j, int[][] counts, Integer[][] mem) {
+    if (i == target.length())
+      return 1;
+    if (j == counts.length)
+      return 0;
+    if (mem[i][j] != null)
+      return mem[i][j];
+    return mem[i][j] = (int) (((long) numWays(target, i + 1, j + 1, counts, mem) *
+                                   (counts[j][target.charAt(i) - 'a']) +
+                               numWays(target, i, j + 1, counts, mem)) %
+                              MOD);
+  }
+}
+
+
+or
+
+
+class Solution {
+  public int numWays(String[] words, String target) {
+    final int MOD = 1_000_000_007;
+    final int wordLength = words[0].length();
+    // dp[i][j] := the number of ways to form the first i characters of the
+    // `target` using the j first characters in each word
+    int[][] dp = new int[target.length() + 1][wordLength + 1];
+    // counts[j] := the count map of words[i][j], where 0 <= i < |words|
+    int[][] counts = new int[wordLength][26];
+
+    for (int i = 0; i < wordLength; ++i)
+      for (final String word : words)
+        ++counts[i][word.charAt(i) - 'a'];
+
+    dp[0][0] = 1;
+
+    for (int i = 0; i <= target.length(); ++i)
+      for (int j = 0; j < wordLength; ++j) {
+        if (i < target.length())
+          // Pick the character target[i] from word[j].
+          dp[i + 1][j + 1] = (int) ((long) dp[i][j] * counts[j][target.charAt(i) - 'a'] % MOD);
+        // Skip the word[j].
+        dp[i][j + 1] = (dp[i][j + 1] + dp[i][j]) % MOD;
+      }
+
+    return dp[target.length()][wordLength];
+  }
+}
+
+
+or
+
+
+class Solution {
+  public int numWays(String[] words, String target) {
+    final int MOD = 1_000_000_007;
+    final int wordLength = words[0].length();
+    // dp[i] := the number of ways to form the first i characters of `target`
+    long[] dp = new long[target.length() + 1];
+    dp[0] = 1;
+
+    for (int j = 0; j < wordLength; ++j) {
+      int[] count = new int[26];
+      for (final String word : words)
+        ++count[word.charAt(j) - 'a'];
+      for (int i = target.length(); i > 0; --i) {
+        dp[i] += dp[i - 1] * count[target.charAt(i - 1) - 'a'];
+        dp[i] %= MOD;
+      }
+    }
+
+    return (int) dp[target.length()];
+  }
+}
+
+or
+
+
+class Solution {
+    private int m;
+    private int n;
+    private String target;
+    private Integer[][] f;
+    private int[][] cnt;
+    private final int mod = (int) 1e9 + 7;
+
+    public int numWays(String[] words, String target) {
+        m = target.length();
+        n = words[0].length();
+        f = new Integer[m][n];
+        this.target = target;
+        cnt = new int[n][26];
+        for (var w : words) {
+            for (int j = 0; j < n; ++j) {
+                cnt[j][w.charAt(j) - 'a']++;
+            }
+        }
+        return dfs(0, 0);
+    }
+
+    private int dfs(int i, int j) {
+        if (i >= m) {
+            return 1;
+        }
+        if (j >= n) {
+            return 0;
+        }
+        if (f[i][j] != null) {
+            return f[i][j];
+        }
+        long ans = dfs(i, j + 1);
+        ans += 1L * dfs(i + 1, j + 1) * cnt[j][target.charAt(i) - 'a'];
+        ans %= mod;
+        return f[i][j] = (int) ans;
+    }
+}
