@@ -1,0 +1,182 @@
+https://leetcode.com/problems/minimum-cost-to-connect-two-groups-of-points/description/
+
+
+1595. Minimum Cost to Connect Two Groups of Points
+Hard
+Topics
+Companies
+Hint
+You are given two groups of points where the first group has size1 points, the second group has size2 points, and size1 >= size2.
+
+The cost of the connection between any two points are given in an size1 x size2 matrix where cost[i][j] is the cost of connecting point i of the first group and point j of the second group. The groups are connected if each point in both groups is connected to one or more points in the opposite group. In other words, each point in the first group must be connected to at least one point in the second group, and each point in the second group must be connected to at least one point in the first group.
+
+Return the minimum cost it takes to connect the two groups.
+
+ 
+
+Example 1:
+
+
+Input: cost = [[15, 96], [36, 2]]
+Output: 17
+Explanation: The optimal way of connecting the groups is:
+1--A
+2--B
+This results in a total cost of 17.
+Example 2:
+
+
+Input: cost = [[1, 3, 5], [4, 1, 1], [1, 5, 3]]
+Output: 4
+Explanation: The optimal way of connecting the groups is:
+1--A
+2--B
+2--C
+3--A
+This results in a total cost of 4.
+Note that there are multiple points connected to point 2 in the first group and point A in the second group. This does not matter as there is no limit to the number of points that can be connected. We only care about the minimum total cost.
+Example 3:
+
+Input: cost = [[2, 5, 1], [3, 4, 7], [8, 1, 2], [6, 2, 4], [3, 8, 8]]
+Output: 10
+ 
+
+Constraints:
+
+size1 == cost.length
+size2 == cost[i].length
+1 <= size1, size2 <= 12
+size1 >= size2
+0 <= cost[i][j] <= 100
+
+
+
+# java
+
+
+1595. Minimum Cost to Connect Two Groups of Points
+Hard
+Topics
+Companies
+Hint
+You are given two groups of points where the first group has size1 points, the second group has size2 points, and size1 >= size2.
+
+The cost of the connection between any two points are given in an size1 x size2 matrix where cost[i][j] is the cost of connecting point i of the first group and point j of the second group. The groups are connected if each point in both groups is connected to one or more points in the opposite group. In other words, each point in the first group must be connected to at least one point in the second group, and each point in the second group must be connected to at least one point in the first group.
+
+Return the minimum cost it takes to connect the two groups.
+
+ 
+
+Example 1:
+
+
+Input: cost = [[15, 96], [36, 2]]
+Output: 17
+Explanation: The optimal way of connecting the groups is:
+1--A
+2--B
+This results in a total cost of 17.
+Example 2:
+
+
+Input: cost = [[1, 3, 5], [4, 1, 1], [1, 5, 3]]
+Output: 4
+Explanation: The optimal way of connecting the groups is:
+1--A
+2--B
+2--C
+3--A
+This results in a total cost of 4.
+Note that there are multiple points connected to point 2 in the first group and point A in the second group. This does not matter as there is no limit to the number of points that can be connected. We only care about the minimum total cost.
+Example 3:
+
+Input: cost = [[2, 5, 1], [3, 4, 7], [8, 1, 2], [6, 2, 4], [3, 8, 8]]
+Output: 10
+ 
+
+Constraints:
+
+size1 == cost.length
+size2 == cost[i].length
+1 <= size1, size2 <= 12
+size1 >= size2
+0 <= cost[i][j] <= 100
+
+
+# java
+
+
+class Solution {
+  public int connectTwoGroups(List<List<Integer>> cost) {
+    final int m = cost.size();
+    final int n = cost.get(0).size();
+    Integer[][] mem = new Integer[m][1 << n];
+    // minCosts[j] := the minimum cost of connecting group2's point j
+    int[] minCosts = new int[n];
+
+    for (int j = 0; j < n; ++j) {
+      int minCostIndex = 0;
+      for (int i = 1; i < m; ++i)
+        if (cost.get(i).get(j) < cost.get(minCostIndex).get(j))
+          minCostIndex = i;
+      minCosts[j] = cost.get(minCostIndex).get(j);
+    }
+
+    return connectTwoGroups(cost, 0, 0, minCosts, mem);
+  }
+
+  // Returns the minimum cost to connect group1's points[i..n) with group2's
+  // points, where `mask` is the bitmask of the connected points in group2.
+  private int connectTwoGroups(List<List<Integer>> cost, int i, int mask, int[] minCosts,
+                               Integer[][] mem) {
+    if (i == cost.size()) {
+      // All the points in group 1 are connected, so greedily assign the
+      // minimum cost for the unconnected points of group2.
+      int res = 0;
+      for (int j = 0; j < cost.get(0).size(); ++j)
+        if ((mask >> j & 1) == 0)
+          res += minCosts[j];
+      return res;
+    }
+    if (mem[i][mask] != null)
+      return mem[i][mask];
+
+    int res = Integer.MAX_VALUE;
+    for (int j = 0; j < cost.get(0).size(); ++j)
+      res = Math.min(res, cost.get(i).get(j) +
+                              connectTwoGroups(cost, i + 1, mask | 1 << j, minCosts, mem));
+    return mem[i][mask] = res;
+  }
+}
+
+
+or
+
+
+
+class Solution {
+    public int connectTwoGroups(List<List<Integer>> cost) {
+        int m = cost.size(), n = cost.get(0).size();
+        final int inf = 1 << 30;
+        int[][] f = new int[m + 1][1 << n];
+        for (int[] g : f) {
+            Arrays.fill(g, inf);
+        }
+        f[0][0] = 0;
+        for (int i = 1; i <= m; ++i) {
+            for (int j = 0; j < 1 << n; ++j) {
+                for (int k = 0; k < n; ++k) {
+                    if ((j >> k & 1) == 1) {
+                        int c = cost.get(i - 1).get(k);
+                        f[i][j] = Math.min(f[i][j], f[i][j ^ (1 << k)] + c);
+                        f[i][j] = Math.min(f[i][j], f[i - 1][j] + c);
+                        f[i][j] = Math.min(f[i][j], f[i - 1][j ^ (1 << k)] + c);
+                    }
+                }
+            }
+        }
+        return f[m][(1 << n) - 1];
+    }
+}
+
+
