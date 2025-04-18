@@ -1,0 +1,118 @@
+https://leetcode.com/problems/remove-boxes/description/
+
+
+546. Remove Boxes
+Hard
+Topics
+Companies
+You are given several boxes with different colors represented by different positive numbers.
+
+You may experience several rounds to remove boxes until there is no box left. Each time you can choose some continuous boxes with the same color (i.e., composed of k boxes, k >= 1), remove them and get k * k points.
+
+Return the maximum points you can get.
+
+ 
+
+Example 1:
+
+Input: boxes = [1,3,2,2,2,3,4,3,1]
+Output: 23
+Explanation:
+[1, 3, 2, 2, 2, 3, 4, 3, 1] 
+----> [1, 3, 3, 4, 3, 1] (3*3=9 points) 
+----> [1, 3, 3, 3, 1] (1*1=1 points) 
+----> [1, 1] (3*3=9 points) 
+----> [] (2*2=4 points)
+Example 2:
+
+Input: boxes = [1,1,1]
+Output: 9
+Example 3:
+
+Input: boxes = [1]
+Output: 1
+ 
+
+Constraints:
+
+1 <= boxes.length <= 100
+1 <= boxes[i] <= 100
+
+
+
+
+# java
+
+
+
+class Solution {
+  public int removeBoxes(int[] boxes) {
+    final int n = boxes.length;
+    int[][][] mem = new int[n][n][n];
+    return removeBoxes(boxes, 0, n - 1, 0, mem);
+  }
+
+  // Returns the maximum score of boxes[i..j] if k boxes are equal to boxes[j]
+  private int removeBoxes(int[] boxes, int i, int j, int k, int[][][] mem) {
+    if (i > j)
+      return 0;
+    if (mem[i][j][k] > 0)
+      return mem[i][j][k];
+
+    int r = j;
+    int sameBoxes = k + 1;
+    while (r > 0 && boxes[r - 1] == boxes[r]) {
+      --r;
+      ++sameBoxes;
+    }
+    mem[i][j][k] = removeBoxes(boxes, i, r - 1, 0, mem) + sameBoxes * sameBoxes;
+
+    for (int p = i; p < r; ++p)
+      if (boxes[p] == boxes[r])
+        mem[i][j][k] = Math.max(mem[i][j][k], removeBoxes(boxes, i, p, sameBoxes, mem) +
+                                                  removeBoxes(boxes, p + 1, r - 1, 0, mem));
+
+    return mem[i][j][k];
+  }
+}
+
+
+
+or
+
+
+
+class Solution {
+    private int[][][] f;
+    private int[] b;
+
+    public int removeBoxes(int[] boxes) {
+        b = boxes;
+        int n = b.length;
+        f = new int[n][n][n];
+        return dfs(0, n - 1, 0);
+    }
+
+    private int dfs(int i, int j, int k) {
+        if (i > j) {
+            return 0;
+        }
+        while (i < j && b[j] == b[j - 1]) {
+            --j;
+            ++k;
+        }
+        if (f[i][j][k] > 0) {
+            return f[i][j][k];
+        }
+        int ans = dfs(i, j - 1, 0) + (k + 1) * (k + 1);
+        for (int h = i; h < j; ++h) {
+            if (b[h] == b[j]) {
+                ans = Math.max(ans, dfs(h + 1, j - 1, 0) + dfs(i, h, k + 1));
+            }
+        }
+        f[i][j][k] = ans;
+        return ans;
+    }
+}
+
+
