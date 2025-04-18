@@ -1,0 +1,122 @@
+https://leetcode.com/problems/count-special-integers/description/
+
+2376. Count Special Integers
+Hard
+Topics
+Companies
+Hint
+We call a positive integer special if all of its digits are distinct.
+
+Given a positive integer n, return the number of special integers that belong to the interval [1, n].
+
+ 
+
+Example 1:
+
+Input: n = 20
+Output: 19
+Explanation: All the integers from 1 to 20, except 11, are special. Thus, there are 19 special integers.
+Example 2:
+
+Input: n = 5
+Output: 5
+Explanation: All the integers from 1 to 5 are special.
+Example 3:
+
+Input: n = 135
+Output: 110
+Explanation: There are 110 integers from 1 to 135 that are special.
+Some of the integers that are not special are: 22, 114, and 131.
+ 
+
+Constraints:
+
+1 <= n <= 2 * 109
+
+
+
+# java
+
+
+class Solution {
+  // Same as 1012. Numbers With Repeated Digits
+  public int countSpecialNumbers(int n) {
+    final int digitSize = (int) Math.log10(n) + 1;
+    Integer[][][] mem = new Integer[digitSize + 1][1 << 10][2];
+    return count(String.valueOf(n), 0, 0, true, mem) - 1; // - 0;
+  }
+
+  // Returns the number of special integers, considering the i-th digit, where
+  // `used` is the bitmask of the used digits, and `tight` indicates if the
+  // current digit is tightly bound.
+  private int count(final String s, int i, int used, boolean tight, Integer[][][] mem) {
+    if (i == s.length())
+      return 1;
+    if (mem[i][used][tight ? 1 : 0] != null)
+      return mem[i][used][tight ? 1 : 0];
+
+    int res = 0;
+    final int maxDigit = tight ? s.charAt(i) - '0' : 9;
+
+    for (int d = 0; d <= maxDigit; ++d) {
+      // `d` is used.
+      if ((used >> d & 1) == 1)
+        continue;
+      // Use `d` now.
+      final boolean nextTight = tight && (d == maxDigit);
+      if (used == 0 && d == 0) // Don't count leading 0s as used.
+        res += count(s, i + 1, used, nextTight, mem);
+      else
+        res += count(s, i + 1, used | 1 << d, nextTight, mem);
+    }
+
+    return mem[i][used][tight ? 1 : 0] = res;
+  }
+}
+
+
+or
+
+
+
+class Solution {
+    public int countSpecialNumbers(int n) {
+        List<Integer> digits = new ArrayList<>();
+        while (n != 0) {
+            digits.add(n % 10);
+            n /= 10;
+        }
+        int m = digits.size();
+        int ans = 0;
+        for (int i = 1; i < m; ++i) {
+            ans += 9 * A(9, i - 1);
+        }
+        boolean[] vis = new boolean[10];
+        for (int i = m - 1; i >= 0; --i) {
+            int v = digits.get(i);
+            for (int j = i == m - 1 ? 1 : 0; j < v; ++j) {
+                if (vis[j]) {
+                    continue;
+                }
+                ans += A(10 - (m - i), i);
+            }
+            if (vis[v]) {
+                break;
+            }
+            vis[v] = true;
+            if (i == 0) {
+                ++ans;
+            }
+        }
+        return ans;
+    }
+
+    private int A(int m, int n) {
+        return n == 0 ? 1 : A(m, n - 1) * (m - n + 1);
+    }
+}
+
+
+or
+
+
