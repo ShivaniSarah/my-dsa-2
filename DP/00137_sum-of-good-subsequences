@@ -1,0 +1,103 @@
+https://leetcode.com/problems/sum-of-good-subsequences/
+
+3351. Sum of Good Subsequences
+Hard
+Topics
+Companies
+Hint
+You are given an integer array nums. A good subsequence is defined as a subsequence of nums where the absolute difference between any two consecutive elements in the subsequence is exactly 1.
+
+Return the sum of all possible good subsequences of nums.
+
+Since the answer may be very large, return it modulo 109 + 7.
+
+Note that a subsequence of size 1 is considered good by definition.
+
+ 
+
+Example 1:
+
+Input: nums = [1,2,1]
+
+Output: 14
+
+Explanation:
+
+Good subsequences are: [1], [2], [1], [1,2], [2,1], [1,2,1].
+The sum of elements in these subsequences is 14.
+Example 2:
+
+Input: nums = [3,4,5]
+
+Output: 40
+
+Explanation:
+
+Good subsequences are: [3], [4], [5], [3,4], [4,5], [3,4,5].
+The sum of elements in these subsequences is 40.
+ 
+
+Constraints:
+
+1 <= nums.length <= 105
+0 <= nums[i] <= 105
+
+
+# java
+
+
+class Solution {
+  public int sumOfGoodSubsequences(int[] nums) {
+    final int MOD = 1000000007;
+    final int maxNum = Arrays.stream(nums).max().getAsInt();
+    // endsIn[i] := the number of good subsequences ending in i
+    long[] endsIn = new long[maxNum + 3];
+    // dp[i] := the sum of good subsequences ending in i
+    long[] dp = new long[maxNum + 3];
+
+    for (final int num : nums) {
+      final long seqsToAppend = 1 + endsIn[num] + endsIn[num + 2];
+      dp[num + 1] = (seqsToAppend * num + (dp[num + 1] + dp[num] + dp[num + 2])) % MOD;
+      endsIn[num + 1] = (endsIn[num + 1] + seqsToAppend) % MOD;
+    }
+
+    int ans = 0;
+    for (final long d : dp)
+      ans = (int) (ans + d) % MOD;
+    return ans;
+  }
+}
+
+
+or
+
+
+
+class Solution {
+    public int sumOfGoodSubsequences(int[] nums) {
+        final int mod = (int) 1e9 + 7;
+        int mx = 0;
+        for (int x : nums) {
+            mx = Math.max(mx, x);
+        }
+        long[] f = new long[mx + 1];
+        long[] g = new long[mx + 1];
+        for (int x : nums) {
+            f[x] += x;
+            g[x] += 1;
+            if (x > 0) {
+                f[x] = (f[x] + f[x - 1] + g[x - 1] * x % mod) % mod;
+                g[x] = (g[x] + g[x - 1]) % mod;
+            }
+            if (x + 1 <= mx) {
+                f[x] = (f[x] + f[x + 1] + g[x + 1] * x % mod) % mod;
+                g[x] = (g[x] + g[x + 1]) % mod;
+            }
+        }
+        long ans = 0;
+        for (long x : f) {
+            ans = (ans + x) % mod;
+        }
+        return (int) ans;
+    }
+}
