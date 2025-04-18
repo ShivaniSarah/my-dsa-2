@@ -1,0 +1,132 @@
+https://leetcode.com/problems/number-of-ways-to-separate-numbers/description/
+
+
+1977. Number of Ways to Separate Numbers
+Hard
+Topics
+Companies
+Hint
+You wrote down many positive integers in a string called num. However, you realized that you forgot to add commas to seperate the different numbers. You remember that the list of integers was non-decreasing and that no integer had leading zeros.
+
+Return the number of possible lists of integers that you could have written down to get the string num. Since the answer may be large, return it modulo 109 + 7.
+
+ 
+
+Example 1:
+
+Input: num = "327"
+Output: 2
+Explanation: You could have written down the numbers:
+3, 27
+327
+Example 2:
+
+Input: num = "094"
+Output: 0
+Explanation: No numbers can have leading zeros and all numbers must be positive.
+Example 3:
+
+Input: num = "0"
+Output: 0
+Explanation: No numbers can have leading zeros and all numbers must be positive.
+ 
+
+Constraints:
+
+1 <= num.length <= 3500
+num consists of digits '0' through '9'.
+
+
+# java
+
+
+class Solution {
+  public int numberOfCombinations(String num) {
+    if (num.charAt(0) == '0')
+      return 0;
+
+    final int MOD = 1_000_000_007;
+    final int n = num.length();
+    // dp[i][k] := the number of possible lists of integers ending in num[i] with
+    // the length of the last number being 1..k
+    long[][] dp = new long[n][n + 1];
+    // lcs[i][j] := the number of the same digits in num[i..n) and num[j..n)
+    int[][] lcs = new int[n + 1][n + 1];
+
+    for (int i = n - 1; i >= 0; --i)
+      for (int j = i + 1; j < n; ++j)
+        if (num.charAt(i) == num.charAt(j))
+          lcs[i][j] = lcs[i + 1][j + 1] + 1;
+
+    for (int i = 0; i < n; ++i)
+      for (int k = 1; k <= i + 1; ++k) {
+        dp[i][k] += dp[i][k - 1];
+        dp[i][k] %= MOD;
+        // The last number is num[s..i].
+        final int s = i - k + 1;
+        if (num.charAt(s) == '0')
+          // the number of possible lists of integers ending in num[i] with the
+          // length of the last number being k
+          continue;
+        if (s == 0) {
+          // the whole string
+          dp[i][k] += 1;
+          continue;
+        }
+        if (s < k) {
+          // The length k is not enough, so add the number of possible lists of
+          // integers in num[0..s - 1].
+          dp[i][k] += dp[s - 1][s];
+          continue;
+        }
+        final int l = lcs[s - k][s];
+        if (l >= k || num.charAt(s - k + l) <= num.charAt(s + l))
+          // Have enough length k and num[s - k..s - 1] <= num[j..i].
+          dp[i][k] += dp[s - 1][k];
+        else
+          // Have enough length k but num[s - k..s - 1] > num[j..i].
+          dp[i][k] += dp[s - 1][k - 1];
+      }
+
+    return (int) dp[n - 1][n] % MOD;
+  }
+}
+
+
+or
+
+class Solution {
+    private static final int MOD = (int) 1e9 + 7;
+
+    public int numberOfCombinations(String num) {
+        int n = num.length();
+        int[][] lcp = new int[n + 1][n + 1];
+        for (int i = n - 1; i >= 0; --i) {
+            for (int j = n - 1; j >= 0; --j) {
+                if (num.charAt(i) == num.charAt(j)) {
+                    lcp[i][j] = 1 + lcp[i + 1][j + 1];
+                }
+            }
+        }
+        int[][] dp = new int[n + 1][n + 1];
+        dp[0][0] = 1;
+        for (int i = 1; i <= n; ++i) {
+            for (int j = 1; j <= i; ++j) {
+                int v = 0;
+                if (num.charAt(i - j) != '0') {
+                    if (i - j - j >= 0) {
+                        int x = lcp[i - j][i - j - j];
+                        if (x >= j || num.charAt(i - j + x) >= num.charAt(i - j - j + x)) {
+                            v = dp[i - j][j];
+                        }
+                    }
+                    if (v == 0) {
+                        v = dp[i - j][Math.min(j - 1, i - j)];
+                    }
+                }
+                dp[i][j] = (dp[i][j - 1] + v) % MOD;
+            }
+        }
+        return dp[n][n];
+    }
+}
