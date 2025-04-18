@@ -1,0 +1,196 @@
+https://leetcode.com/problems/maximize-grid-happiness/
+
+1659. Maximize Grid Happiness
+Hard
+Topics
+Companies
+Hint
+You are given four integers, m, n, introvertsCount, and extrovertsCount. You have an m x n grid, and there are two types of people: introverts and extroverts. There are introvertsCount introverts and extrovertsCount extroverts.
+
+You should decide how many people you want to live in the grid and assign each of them one grid cell. Note that you do not have to have all the people living in the grid.
+
+The happiness of each person is calculated as follows:
+
+Introverts start with 120 happiness and lose 30 happiness for each neighbor (introvert or extrovert).
+Extroverts start with 40 happiness and gain 20 happiness for each neighbor (introvert or extrovert).
+Neighbors live in the directly adjacent cells north, east, south, and west of a person's cell.
+
+The grid happiness is the sum of each person's happiness. Return the maximum possible grid happiness.
+
+ 
+
+Example 1:
+
+
+Input: m = 2, n = 3, introvertsCount = 1, extrovertsCount = 2
+Output: 240
+Explanation: Assume the grid is 1-indexed with coordinates (row, column).
+We can put the introvert in cell (1,1) and put the extroverts in cells (1,3) and (2,3).
+- Introvert at (1,1) happiness: 120 (starting happiness) - (0 * 30) (0 neighbors) = 120
+- Extrovert at (1,3) happiness: 40 (starting happiness) + (1 * 20) (1 neighbor) = 60
+- Extrovert at (2,3) happiness: 40 (starting happiness) + (1 * 20) (1 neighbor) = 60
+The grid happiness is 120 + 60 + 60 = 240.
+The above figure shows the grid in this example with each person's happiness. The introvert stays in the light green cell while the extroverts live on the light purple cells.
+Example 2:
+
+Input: m = 3, n = 1, introvertsCount = 2, extrovertsCount = 1
+Output: 260
+Explanation: Place the two introverts in (1,1) and (3,1) and the extrovert at (2,1).
+- Introvert at (1,1) happiness: 120 (starting happiness) - (1 * 30) (1 neighbor) = 90
+- Extrovert at (2,1) happiness: 40 (starting happiness) + (2 * 20) (2 neighbors) = 80
+- Introvert at (3,1) happiness: 120 (starting happiness) - (1 * 30) (1 neighbor) = 90
+The grid happiness is 90 + 80 + 90 = 260.
+Example 3:
+
+Input: m = 2, n = 2, introvertsCount = 4, extrovertsCount = 0
+Output: 240
+ 
+
+Constraints:
+
+1 <= m, n <= 5
+0 <= introvertsCount, extrovertsCount <= min(m * n, 6)
+
+
+# java
+
+
+class Solution {
+  public int getMaxGridHappiness(int m, int n, int introvertsCount, int extrovertsCount) {
+    final int twoToThePowerOfN = (int) Math.pow(2, n);
+    int[][][][][] mem = new int[m * n][twoToThePowerOfN][twoToThePowerOfN][introvertsCount + 1]
+                               [extrovertsCount + 1];
+    return getMaxGridHappiness(m, n, 0, 0, 0, introvertsCount, extrovertsCount, mem);
+  }
+
+  // Calculates the cost based on left and up neighbors.
+  //
+  // The `diff` parameter represents the happiness change due to the current
+  // placed person in (i, j). We add `diff` each time we encounter a neighbor
+  // (left or up) who is already placed.
+  //
+  // 1. If the neighbor is an introvert, we subtract 30 from cost.
+  // 2. If the neighbor is an extrovert, we add 20 to from cost.
+  private int getPlacementCost(int n, int i, int j, int inMask, int exMask, int diff) {
+    int cost = 0;
+    if (i > 0) {
+      if (((1 << (n - 1)) & inMask) > 0)
+        cost += diff - 30;
+      if (((1 << (n - 1)) & exMask) > 0)
+        cost += diff + 20;
+    }
+    if (j > 0) {
+      if ((1 & inMask) > 0)
+        cost += diff - 30;
+      if ((1 & exMask) > 0)
+        cost += diff + 20;
+    }
+    return cost;
+  }
+
+  private int getMaxGridHappiness(int m, int n, int pos, int inMask, int exMask, int inCount,
+                                  int exCount, int[][][][][] mem) {
+    // `inMask` is the placement of introvert people in the last n cells.
+    // e.g. if we have m = 2, n = 3, i = 1, j = 1, then inMask = 0b101 means
+    //
+    // ? 1 0
+    // 1 x ? (x := current position)
+    final int i = pos / n;
+    final int j = pos % n;
+    if (i == m)
+      return 0;
+    if (mem[pos][inMask][exMask][inCount][exCount] > 0)
+      return mem[pos][inMask][exMask][inCount][exCount];
+
+    final int shiftedInMask = (inMask << 1) & ((1 << n) - 1);
+    final int shiftedExMask = (exMask << 1) & ((1 << n) - 1);
+
+    final int skip =
+        getMaxGridHappiness(m, n, pos + 1, shiftedInMask, shiftedExMask, inCount, exCount, mem);
+    final int placeIntrovert =
+        inCount > 0 ? 120 + getPlacementCost(n, i, j, inMask, exMask, -30) +
+                          getMaxGridHappiness(m, n, pos + 1, shiftedInMask | 1, shiftedExMask,
+                                              inCount - 1, exCount, mem)
+                    : Integer.MIN_VALUE;
+    final int placeExtrovert =
+        exCount > 0 ? 40 + getPlacementCost(n, i, j, inMask, exMask, 20) +
+                          getMaxGridHappiness(m, n, pos + 1, shiftedInMask, shiftedExMask | 1,
+                                              inCount, exCount - 1, mem)
+                    : Integer.MIN_VALUE;
+    return mem[pos][inMask][exMask][inCount][exCount] =
+               Math.max(skip, Math.max(placeIntrovert, placeExtrovert));
+  }
+}
+
+
+
+or
+
+
+
+class Solution {
+    private int m;
+    private int mx;
+    private int[] f;
+    private int[][] g;
+    private int[][] bits;
+    private int[] ix;
+    private int[] ex;
+    private Integer[][][][] memo;
+    private final int[][] h = { {0, 0, 0}, {0, -60, -10}, {0, -10, 40} };
+
+    public int getMaxGridHappiness(int m, int n, int introvertsCount, int extrovertsCount) {
+        this.m = m;
+        mx = (int) Math.pow(3, n);
+        f = new int[mx];
+        g = new int[mx][mx];
+        bits = new int[mx][n];
+        ix = new int[mx];
+        ex = new int[mx];
+        memo = new Integer[m][mx][introvertsCount + 1][extrovertsCount + 1];
+        for (int i = 0; i < mx; ++i) {
+            int mask = i;
+            for (int j = 0; j < n; ++j) {
+                int x = mask % 3;
+                mask /= 3;
+                bits[i][j] = x;
+                if (x == 1) {
+                    ix[i]++;
+                    f[i] += 120;
+                } else if (x == 2) {
+                    ex[i]++;
+                    f[i] += 40;
+                }
+                if (j > 0) {
+                    f[i] += h[x][bits[i][j - 1]];
+                }
+            }
+        }
+        for (int i = 0; i < mx; ++i) {
+            for (int j = 0; j < mx; ++j) {
+                for (int k = 0; k < n; ++k) {
+                    g[i][j] += h[bits[i][k]][bits[j][k]];
+                }
+            }
+        }
+        return dfs(0, 0, introvertsCount, extrovertsCount);
+    }
+
+    private int dfs(int i, int pre, int ic, int ec) {
+        if (i == m || (ic == 0 && ec == 0)) {
+            return 0;
+        }
+        if (memo[i][pre][ic][ec] != null) {
+            return memo[i][pre][ic][ec];
+        }
+        int ans = 0;
+        for (int cur = 0; cur < mx; ++cur) {
+            if (ix[cur] <= ic && ex[cur] <= ec) {
+                ans = Math.max(
+                    ans, f[cur] + g[pre][cur] + dfs(i + 1, cur, ic - ix[cur], ec - ex[cur]));
+            }
+        }
+        return memo[i][pre][ic][ec] = ans;
+    }
+}
+
