@@ -1,0 +1,128 @@
+https://leetcode.com/problems/count-visited-nodes-in-a-directed-graph/description/
+
+2876. Count Visited Nodes in a Directed Graph
+Hard
+Topics
+Companies
+Hint
+There is a directed graph consisting of n nodes numbered from 0 to n - 1 and n directed edges.
+
+You are given a 0-indexed array edges where edges[i] indicates that there is an edge from node i to node edges[i].
+
+Consider the following process on the graph:
+
+You start from a node x and keep visiting other nodes through edges until you reach a node that you have already visited before on this same process.
+Return an array answer where answer[i] is the number of different nodes that you will visit if you perform the process starting from node i.
+
+ 
+
+Example 1:
+
+
+Input: edges = [1,2,0,0]
+Output: [3,3,3,4]
+Explanation: We perform the process starting from each node in the following way:
+- Starting from node 0, we visit the nodes 0 -> 1 -> 2 -> 0. The number of different nodes we visit is 3.
+- Starting from node 1, we visit the nodes 1 -> 2 -> 0 -> 1. The number of different nodes we visit is 3.
+- Starting from node 2, we visit the nodes 2 -> 0 -> 1 -> 2. The number of different nodes we visit is 3.
+- Starting from node 3, we visit the nodes 3 -> 0 -> 1 -> 2 -> 0. The number of different nodes we visit is 4.
+Example 2:
+
+
+Input: edges = [1,2,3,4,0]
+Output: [5,5,5,5,5]
+Explanation: Starting from any node we can visit every node in the graph in the process.
+ 
+
+Constraints:
+
+n == edges.length
+2 <= n <= 105
+0 <= edges[i] <= n - 1
+edges[i] != i
+
+
+# java
+
+class Solution {
+  public int[] countVisitedNodes(List<Integer> edges) {
+    final int n = edges.size();
+    int[] ans = new int[n];
+    int[] inDegrees = new int[n];
+    boolean[] seen = new boolean[n];
+    Queue<Integer> q = new ArrayDeque<>();
+    Stack<Integer> stack = new Stack<>();
+
+    for (int v : edges)
+      ++inDegrees[v];
+
+    // Perform topological sorting.
+    for (int i = 0; i < n; ++i)
+      if (inDegrees[i] == 0)
+        q.add(i);
+
+    // Push non-cyclic nodes to stack.
+    while (!q.isEmpty()) {
+      final int u = q.poll();
+      if (--inDegrees[edges.get(u)] == 0)
+        q.add(edges.get(u));
+      stack.push(u);
+      seen[u] = true;
+    }
+
+    // Fill the length of cyclic nodes.
+    for (int i = 0; i < n; ++i)
+      if (!seen[i])
+        fillCycle(edges, i, seen, ans);
+
+    // Fill the length of non-cyclic nodes.
+    while (!stack.isEmpty()) {
+      final int u = stack.pop();
+      ans[u] = ans[edges.get(u)] + 1;
+    }
+
+    return ans;
+  }
+
+  private void fillCycle(List<Integer> edges, int start, boolean[] seen, int[] ans) {
+    int cycleLength = 0;
+    for (int u = start; !seen[u]; u = edges.get(u)) {
+      ++cycleLength;
+      seen[u] = true;
+    }
+    ans[start] = cycleLength;
+    for (int u = edges.get(start); u != start; u = edges.get(u))
+      ans[u] = cycleLength;
+  }
+}
+
+
+or
+
+
+class Solution {
+    public int[] countVisitedNodes(List<Integer> edges) {
+        int n = edges.size();
+        int[] ans = new int[n];
+        int[] vis = new int[n];
+        for (int i = 0; i < n; ++i) {
+            if (ans[i] == 0) {
+                int cnt = 0, j = i;
+                while (vis[j] == 0) {
+                    vis[j] = ++cnt;
+                    j = edges.get(j);
+                }
+                int cycle = 0, total = cnt + ans[j];
+                if (ans[j] == 0) {
+                    cycle = cnt - vis[j] + 1;
+                }
+                j = i;
+                while (ans[j] == 0) {
+                    ans[j] = Math.max(total--, cycle);
+                    j = edges.get(j);
+                }
+            }
+        }
+        return ans;
+    }
+}
