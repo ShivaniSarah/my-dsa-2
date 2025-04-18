@@ -1,0 +1,305 @@
+https://leetcode.com/problems/count-of-integers/description/
+
+2719. Count of Integers
+Hard
+Topics
+Companies
+Hint
+You are given two numeric strings num1 and num2 and two integers max_sum and min_sum. We denote an integer x to be good if:
+
+num1 <= x <= num2
+min_sum <= digit_sum(x) <= max_sum.
+Return the number of good integers. Since the answer may be large, return it modulo 109 + 7.
+
+Note that digit_sum(x) denotes the sum of the digits of x.
+
+ 
+
+Example 1:
+
+Input: num1 = "1", num2 = "12", min_sum = 1, max_sum = 8
+Output: 11
+Explanation: There are 11 integers whose sum of digits lies between 1 and 8 are 1,2,3,4,5,6,7,8,10,11, and 12. Thus, we return 11.
+Example 2:
+
+Input: num1 = "1", num2 = "5", min_sum = 1, max_sum = 5
+Output: 5
+Explanation: The 5 integers whose sum of digits lies between 1 and 5 are 1,2,3,4, and 5. Thus, we return 5.
+ 
+
+Constraints:
+
+1 <= num1 <= num2 <= 1022
+1 <= min_sum <= max_sum <= 400
+
+
+# java
+
+import java.math.BigInteger;
+
+class Solution {
+    private final int mod = (int) 1e9 + 7;
+    private Integer[][] f;
+    private String num;
+    private int min;
+    private int max;
+
+    public int count(String num1, String num2, int min_sum, int max_sum) {
+        min = min_sum;
+        max = max_sum;
+        num = num2;
+        f = new Integer[23][220];
+        int a = dfs(0, 0, true);
+        num = new BigInteger(num1).subtract(BigInteger.ONE).toString();
+        f = new Integer[23][220];
+        int b = dfs(0, 0, true);
+        return (a - b + mod) % mod;
+    }
+
+    private int dfs(int pos, int s, boolean limit) {
+        if (pos >= num.length()) {
+            return s >= min && s <= max ? 1 : 0;
+        }
+        if (!limit && f[pos][s] != null) {
+            return f[pos][s];
+        }
+        int ans = 0;
+        int up = limit ? num.charAt(pos) - '0' : 9;
+        for (int i = 0; i <= up; ++i) {
+            ans = (ans + dfs(pos + 1, s + i, limit && i == up)) % mod;
+        }
+        if (!limit) {
+            f[pos][s] = ans;
+        }
+        return ans;
+    }
+}
+
+
+or
+
+
+
+class Solution {
+    private static final int M = 1000000007;
+
+
+    private int add(int x, int y) {
+        int sum = x + y;
+        if (sum >= M) {
+            sum -= M;
+        }
+        return sum;
+    }
+
+
+    private int sub(int x, int y) {
+        int diff = x - y;
+        if (diff < 0) {
+            diff += M;
+        }
+        return diff;
+    }
+
+
+    private int count(String s, int min_sum, int max_sum) {
+        final int n = s.length(), m = Math.min(max_sum, 9 * n);
+        int[][][] dp = new int[2][2][m + 1];
+        dp[0][0][0] = 1;
+        int last = 0;
+        for (int i = 0, p = 0; i < n; ++i, p += 9) {
+            final int now = last ^ 1;
+            dp[now] = new int[2][m + 1];
+            for (int j = 0; j < 2; ++j) {
+                for (int k = 0; k <= m && k <= p; ++k) {
+                    if (dp[last][j][k] == 0) {
+                        continue;
+                    }
+                    for (char c = j != 0 ? '9' : s.charAt(i); c >= '0'; --c) {
+                        final int q = k + c - '0';
+                        if (q <= m) {
+                            dp[now][j != 0 || c < s.charAt(i) ? 1 : 0][q] = add(dp[now][j != 0 || c < s.charAt(i) ? 1 : 0][q], dp[last][j][k]);
+                        }
+                    }
+                }
+            }
+            last ^= 1;
+        }
+        int r = 0;
+        for (int i = 0; i < 2; ++i) {
+            for (int j = min_sum; j <= m; ++j) {
+                r = add(r, dp[last][i][j]);
+            }
+        }
+        return r;
+    }
+
+
+    public int count(String num1, String num2, int min_sum, int max_sum) {
+        int s = 0;
+        for (char c : num1.toCharArray()) {
+            s += c - '0';
+        }
+        int r = count(num2, min_sum, max_sum);
+        r = sub(r, count(num1, min_sum, max_sum));
+        if (s >= min_sum && s <= max_sum) {
+            r = add(r, 1);
+        }
+        return r;
+    }
+}
+
+
+or
+
+
+// tle
+
+
+class Solution {
+    String s;
+    int min;
+    int max;
+    int mod = 1000000007;
+    public int count(String num1, String num2, int min_sum, int max_sum) {
+        min = min_sum;
+        max = max_sum;
+        int sum = 0;
+        for(char ch : num1.toCharArray()) sum += ch-'0';
+
+        s = num1;
+        int ans1= f(0,true, 0);
+        s = num2;
+        int ans2= f(0,true, 0);
+        if(sum >= min_sum && sum <= max_sum){
+            return (ans2- ans1+mod)%mod +1;
+        }
+
+        return (ans2- ans1+mod)%mod;
+    }
+
+    public int f(int idx, boolean bound, int cnt){
+        // Base case
+        if(cnt > max) return 0;
+        if(idx == s.length()){
+            // Valid number only if count is between the given range
+            if(cnt <= max && cnt >= min) {
+                return 1;
+            }
+            return 0;
+        }   
+
+        // If the bound variable is true then it means that we cannot take the entire values from 0 -> 9 at the current index
+        int maxno = -1;
+        if(bound){
+            maxno = s.charAt(idx) - '0';
+        }else{
+            maxno = 9;
+        }
+        int ans = 0;
+        for(int i = 0; i<=maxno; i++){
+            int updcnt = cnt + i;
+            // If the number at next index in our string becomes equal to that of string s && we already had a bound on the current index then we will be having the bound on the next number as well
+
+            //Once the bound becomes false it means that we are already having a number greater than s
+            ans = (ans +  f(idx+1, bound && (i == s.charAt(idx) - '0'), updcnt))%mod;
+        }
+        return ans;
+    }
+}
+
+
+
+or
+
+
+class Solution {
+    String s;
+    int min;
+    int max;
+    Integer[][][] dp;
+    int mod = 1000000007;
+    public int count(String num1, String num2, int min_sum, int max_sum) {
+        min = min_sum;
+        max = max_sum;
+        int sum = 0;
+        for(char ch : num1.toCharArray()) sum += ch-'0';
+
+        s = num1;
+        dp = new Integer[23][2][max+1];
+        int ans1= f(0,true, 0);
+        s = num2;
+        dp = new Integer[23][2][max+1];
+        int ans2= f(0,true, 0);
+
+        if(sum >= min_sum && sum <= max_sum){
+            return (ans2- ans1+mod)%mod +1;
+        }
+
+        return (ans2- ans1+mod)%mod;
+    }
+
+    public int f(int idx, boolean bound, int cnt){
+
+        if(cnt > max) return 0;
+
+        if(idx == s.length()){
+            if(cnt <= max && cnt >= min) {
+                return 1;
+            }
+            return 0;
+        }   
+        if(dp[idx][bound ? 1:0][cnt] != null) return dp[idx][bound ? 1:0][cnt];
+
+        int maxno = -1;
+        if(bound){
+            maxno = s.charAt(idx) - '0';
+        }else{
+            maxno = 9;
+        }
+        int ans = 0;
+        for(int i = 0; i<=maxno; i++){
+            int updcnt = cnt + i;
+
+            ans = (ans +  f(idx+1, bound && (i == s.charAt(idx) - '0'), updcnt))%mod;
+        }
+        return dp[idx][bound ? 1:0][cnt]= ans;
+    }
+}
+
+or
+
+// digit dp
+
+
+class Solution {
+    Integer dp[][][];
+    int mod=1000000007;
+    public int count(String num1, String num2, int min_sum, int max_sum) {
+        dp=new Integer[num1.length()][max_sum+1][2];
+        int v1=f(0, num1, false, 0, max_sum, min_sum);
+        dp=new Integer[num2.length()][max_sum+1][2];
+        int v2=f(0, num2, false, 0, max_sum, min_sum);
+
+        int sum=0; 
+        for(char ch: num1.toCharArray()) sum+=ch-'0';
+        if(sum>=min_sum && sum<=max_sum) v1--;
+
+        return (int)(((long)v2+mod-v1)%mod);
+    }
+    private int f(int ind, String num, boolean isAnynum, int currSum, int max, int min) {
+        int k=isAnynum? 0: 1, maxd=9;
+        long v=0;
+        
+        if(ind==num.length()) return currSum>=min && currSum<=max? 1: 0;
+        if(currSum>max) return 0;
+        if(dp[ind][currSum][k]!=null) return dp[ind][currSum][k];
+
+        if(!isAnynum) maxd=num.charAt(ind)-'0';
+        for(int i=0;i<maxd;i++)
+            v=(v+f(ind+1, num, true, currSum+i, max, min))%mod;
+        v=(v+f(ind+1, num, isAnynum, currSum+maxd, max, min))%mod;
+        return dp[ind][currSum][k]=(int)v;
+    }
+}
+
