@@ -1,0 +1,243 @@
+https://leetcode.com/problems/count-k-reducible-numbers-less-than-n/description/
+
+
+3352. Count K-Reducible Numbers Less Than N
+Hard
+Topics
+Companies
+Hint
+You are given a binary string s representing a number n in its binary form.
+
+You are also given an integer k.
+
+An integer x is called k-reducible if performing the following operation at most k times reduces it to 1:
+
+Replace x with the count of set bits in its binary representation.
+For example, the binary representation of 6 is "110". Applying the operation once reduces it to 2 (since "110" has two set bits). Applying the operation again to 2 (binary "10") reduces it to 1 (since "10" has one set bit).
+
+Return an integer denoting the number of positive integers less than n that are k-reducible.
+
+Since the answer may be too large, return it modulo 109 + 7.
+
+ 
+
+Example 1:
+
+Input: s = "111", k = 1
+
+Output: 3
+
+Explanation:
+
+n = 7. The 1-reducible integers less than 7 are 1, 2, and 4.
+
+Example 2:
+
+Input: s = "1000", k = 2
+
+Output: 6
+
+Explanation:
+
+n = 8. The 2-reducible integers less than 8 are 1, 2, 3, 4, 5, and 6.
+
+Example 3:
+
+Input: s = "1", k = 3
+
+Output: 0
+
+Explanation:
+
+There are no positive integers less than n = 1, so the answer is 0.
+
+ 
+
+Constraints:
+
+1 <= s.length <= 800
+s has no leading zeros.
+s consists only of the characters '0' and '1'.
+1 <= k <= 5
+
+# java
+
+
+class Solution {
+  public int countKReducibleNumbers(String s, int k) {
+    Integer[][][] mem = new Integer[s.length()][s.length() + 1][2];
+    return count(s, 0, 0, true, k, getOps(s), mem) - 1; // - 0
+  }
+
+  private static final int MOD = 1_000_000_007;
+
+  // Returns the number of positive integers less than n that are k-reducible,
+  // considering the i-th digit, where `setBits` is the number of set bits in
+  // the current number, and `tight` indicates if the current digit is
+  // tightly bound.
+  private int count(String s, int i, int setBits, boolean tight, int k, int[] ops,
+                    Integer[][][] mem) {
+    if (i == s.length())
+      return (ops[setBits] < k && !tight) ? 1 : 0;
+    if (mem[i][setBits][tight ? 1 : 0] != null)
+      return mem[i][setBits][tight ? 1 : 0];
+
+    int res = 0;
+    final int maxDigit = tight ? s.charAt(i) - '0' : 1;
+
+    for (int d = 0; d <= maxDigit; ++d) {
+      final boolean nextTight = tight && (d == maxDigit);
+      res += count(s, i + 1, setBits + d, nextTight, k, ops, mem);
+      res %= MOD;
+    }
+
+    return mem[i][setBits][tight ? 1 : 0] = res;
+  }
+
+  // Returns the number of operations to reduce a number to 0.
+  private int[] getOps(String s) {
+    int[] ops = new int[s.length() + 1];
+    for (int num = 2; num <= s.length(); ++num)
+      ops[num] = 1 + ops[Integer.bitCount(num)];
+    return ops;
+  }
+}
+
+or
+
+
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+
+class Solution {
+    long [][][] dp;
+    int mod = (int)1e9+7;
+    int k;
+    public int countKReducibleNumbers(String s, int k) {
+        this.k = k;
+        char [] a = s.toCharArray();
+        int n= a.length;
+        dp = new long[2][n+1][n+1];
+        for (int i = 0; i <=n; i++) {
+            Arrays.fill(dp[0][i], -1);
+            Arrays.fill(dp[1][i], -1);
+
+        }
+        int cntOfOne=0;
+        for(char c : a){
+            if(c=='1')cntOfOne++;
+        }
+        return (int)((solve(a,0,0,0)-isReducible(cntOfOne)+mod)%mod);
+    }
+    
+    // to check if the number n can be reduced within k steps.
+    int isReducible(int n){
+        if(n==0)return 0;
+        int cnt =1; //cnt =1, because n is the number of bit of the number that will be formed from the string.
+                    // e.g 10011 count will be three but original number is 19. so one operation is already performed. that's why cnt = 1;
+        while (n>1){
+            cnt++;
+            n = Integer.bitCount(n);
+        }
+        return cnt<=k?1:0;
+    }
+
+    
+    long solve(char [] a ,int i,int cnt,int taken){
+        if(i==a.length){
+            return isReducible(cnt);
+        }
+        if(dp[taken][i][cnt]!=-1) return dp[taken][i][cnt];
+        long ans=0;
+        
+        // taken = 1 represent that one of the bit is flipped from one to zero.
+        // taken = 0 represent that no change has been done yet.
+        if(taken==0){
+            if(a[i]=='1'){
+                ans+=solve(a,i+1,cnt+1,0); // take the bit as it is
+                ans+=solve(a,i+1,cnt,1); // change it to zero. and mark the one bit has been flipped by setting taken =1.
+            }else{
+                ans+=solve(a,i+1,cnt,0); // you can't change.
+            }
+        }else{
+            if(a[i]=='1') {
+                ans += solve(a, i + 1, cnt + 1, 1); // take it as it is
+            }else{
+                ans+=solve(a,i+1,cnt+1,taken); // change 0 to 1.
+            }
+            ans+=solve(a,i+1,cnt,taken); // change it 0
+        }
+        return dp[taken][i][cnt] = ans%mod;
+    }
+}
+
+
+or
+
+
+
+// digit dp
+
+
+
+ 
+import java.math.BigInteger; 
+class Solution {
+    static int[][] dp;
+    final int MOD=(int)(1e9)+7;
+    int k;
+    private int getNum(int n){
+        int c=0;
+        while(n>0){
+            c++;
+            n= n &(n-1);
+        }
+        return c;
+    }
+    private boolean check(int n){
+        int steps=1;
+        while(n>1){
+            n=getNum(n);
+            steps++;
+        }
+        return n==1 && steps<=k;
+    }
+    int countNumbersAsPowerOf2(String number, int pos, int countOfOnes, boolean isLimit) {
+        if (pos == number.length()) {
+            return check(countOfOnes)?1:0;
+        }
+        
+        if (!isLimit && dp[pos][countOfOnes] != -1) {
+            return dp[pos][countOfOnes];
+        }
+        
+        int limit = isLimit ? number.charAt(pos) - '0' : 1;
+        int result = 0;
+
+        for (int digit = 0; digit <= limit; digit++) {
+            result += countNumbersAsPowerOf2(
+                number,
+                pos + 1,
+                countOfOnes + (digit == 1 ? 1 : 0),
+                isLimit && (digit == limit)
+            );
+        }
+        if (!isLimit) {
+            dp[pos][countOfOnes] = result%MOD;
+        }
+        
+        return result%MOD;
+    }
+    public int countKReducibleNumbers(String number, int k) {
+        this.k=k;
+        number=new BigInteger(number,2).subtract(new BigInteger("1",2)).toString(2);
+        System.out.println(number);
+        dp = new int[number.length()][803];
+        for (int[] row : dp) {
+            Arrays.fill(row, -1);
+        }
+        
+        return countNumbersAsPowerOf2(number, 0, 0, true);
+    }
+}
