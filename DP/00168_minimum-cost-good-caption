@@ -1,0 +1,280 @@
+https://leetcode.com/problems/minimum-cost-good-caption/description/
+
+
+3441. Minimum Cost Good Caption
+Hard
+Topics
+Companies
+Hint
+You are given a string caption of length n. A good caption is a string where every character appears in groups of at least 3 consecutive occurrences.
+
+For example:
+
+"aaabbb" and "aaaaccc" are good captions.
+"aabbb" and "ccccd" are not good captions.
+You can perform the following operation any number of times:
+
+Choose an index i (where 0 <= i < n) and change the character at that index to either:
+
+The character immediately before it in the alphabet (if caption[i] != 'a').
+The character immediately after it in the alphabet (if caption[i] != 'z').
+Your task is to convert the given caption into a good caption using the minimum number of operations, and return it. If there are multiple possible good captions, return the lexicographically smallest one among them. If it is impossible to create a good caption, return an empty string "".
+
+ 
+
+Example 1:
+
+Input: caption = "cdcd"
+
+Output: "cccc"
+
+Explanation:
+
+It can be shown that the given caption cannot be transformed into a good caption with fewer than 2 operations. The possible good captions that can be created using exactly 2 operations are:
+
+"dddd": Change caption[0] and caption[2] to their next character 'd'.
+"cccc": Change caption[1] and caption[3] to their previous character 'c'.
+Since "cccc" is lexicographically smaller than "dddd", return "cccc".
+
+Example 2:
+
+Input: caption = "aca"
+
+Output: "aaa"
+
+Explanation:
+
+It can be proven that the given caption requires at least 2 operations to be transformed into a good caption. The only good caption that can be obtained with exactly 2 operations is as follows:
+
+Operation 1: Change caption[1] to 'b'. caption = "aba".
+Operation 2: Change caption[1] to 'a'. caption = "aaa".
+Thus, return "aaa".
+
+Example 3:
+
+Input: caption = "bc"
+
+Output: ""
+
+Explanation:
+
+It can be shown that the given caption cannot be converted to a good caption by using any number of operations.
+
+ 
+
+Constraints:
+
+1 <= caption.length <= 5 * 104
+caption consists only of lowercase English letters.
+
+
+# java
+
+class Solution {
+  public String minCostGoodCaption(String caption) {
+    final int n = caption.length();
+    if (n < 3)
+      return "";
+
+    final int MAX_COST = 1_000_000_000;
+    int[][][] dp = new int[n][26][3];
+    Arrays.stream(dp).forEach(A -> Arrays.stream(A).forEach(B -> Arrays.fill(B, MAX_COST)));
+    // dp[i][j][k] := the minimum cost of caption[i..n - 1], where j is the last
+    // letter used, and k is the count of consecutive letters
+    for (char c = 'a'; c <= 'z'; ++c)
+      dp[n - 1][c - 'a'][0] = Math.abs(caption.charAt(n - 1) - c);
+
+    int minCost = MAX_COST;
+    for (int i = n - 2; i >= 0; --i) {
+      int newMinCost = MAX_COST;
+      for (char c = 'a'; c <= 'z'; ++c) {
+        final int j = c - 'a';
+        final int changeCost = Math.abs(caption.charAt(i) - c);
+        dp[i][j][0] = changeCost + minCost;
+        dp[i][j][1] = changeCost + dp[i + 1][j][0];
+        dp[i][j][2] = changeCost + Math.min(dp[i + 1][j][1], dp[i + 1][j][2]);
+        newMinCost = Math.min(newMinCost, dp[i][j][2]);
+      }
+      minCost = newMinCost;
+    }
+
+    // Reconstruct the string.
+    StringBuilder sb = new StringBuilder();
+    int cost = MAX_COST;
+    int letter = -1;
+
+    // Find the initial best letter.
+    for (int c = 25; c >= 0; --c)
+      if (dp[0][c][2] <= cost) {
+        letter = c;
+        cost = dp[0][c][2];
+      }
+
+    // Add the initial triplet.
+    cost -= appendLetter(caption, 0, (char) ('a' + letter), sb);
+    cost -= appendLetter(caption, 1, (char) ('a' + letter), sb);
+    cost -= appendLetter(caption, 2, (char) ('a' + letter), sb);
+
+    // Build the rest of the string.
+    for (int i = 3; i < n;) {
+      // Check if we should switch to a new letter.
+      final int nextLetter = getNextLetter(dp, i, cost);
+      if (nextLetter < letter || Arrays.stream(dp[i][letter]).min().getAsInt() > cost) {
+        letter = nextLetter;
+        cost -= appendLetter(caption, i, (char) ('a' + letter), sb);
+        cost -= appendLetter(caption, i + 1, (char) ('a' + letter), sb);
+        cost -= appendLetter(caption, i + 2, (char) ('a' + letter), sb);
+        i += 3;
+      } else {
+        cost -= appendLetter(caption, i, (char) ('a' + letter), sb);
+        i += 1;
+      }
+    }
+
+    return sb.toString();
+  }
+
+  private int getNextLetter(int[][][] dp, int i, int cost) {
+    int nextLetter = 26;
+    for (int c = 25; c >= 0; --c)
+      if (cost == dp[i][c][2])
+        nextLetter = c;
+    return nextLetter;
+  }
+
+  private int appendLetter(String caption, int i, char letter, StringBuilder sb) {
+    sb.append(letter);
+    return Math.abs(caption.charAt(i) - letter);
+  }
+}
+
+
+or
+
+// By @Arnab
+class Solution {
+    private static final int INF = Integer.MAX_VALUE / 2;
+
+    public String minCostGoodCaption(String caption) {
+        int n = caption.length();
+        if (n < 3) return "";
+
+        char[] arr = caption.toCharArray();
+        int[][] prefixCost = new int[n + 1][26];
+
+        for (int i = 0; i < n; i++) {
+            int orig = arr[i] - 'a';
+            for (int c = 0; c < 26; c++) {
+                prefixCost[i + 1][c] = prefixCost[i][c] + Math.abs(orig - c);
+            }
+        }
+
+        int[] dp = new int[n + 1];
+        int[] nextIndex = new int[n + 1];
+        int[] nextChar = new int[n + 1];
+        int[] blockLen = new int[n + 1];
+
+        for (int i = 0; i < n; i++) {
+            dp[i] = INF;
+            nextIndex[i] = -1;
+            nextChar[i] = -1;
+            blockLen[i] = 0;
+        }
+        dp[n] = 0;
+
+        for (int i = n - 1; i >= 0; i--) {
+            for (int l = 3; l <= 5; l++) {
+                if (i + l <= n) {
+                    int bestLetter = 0, bestCost = INF;
+                    for (int c = 0; c < 26; c++) {
+                        int costBlock = prefixCost[i + l][c] - prefixCost[i][c];
+                        if (costBlock < bestCost) {
+                            bestCost = costBlock;
+                            bestLetter = c;
+                        }
+                    }
+
+                    int costCandidate = dp[i + l] + bestCost;
+                    if (costCandidate < dp[i]) {
+                        dp[i] = costCandidate;
+                        nextIndex[i] = i + l;
+                        nextChar[i] = bestLetter;
+                        blockLen[i] = l;
+                    } else if (costCandidate == dp[i]) {
+                        int cmp = compareSolutions(i, i, nextChar[i], blockLen[i], nextIndex[i],
+                                bestLetter, l, (i + l), nextIndex, nextChar, blockLen, n, dp);
+                        if (cmp > 0) {
+                            nextIndex[i] = i + l;
+                            nextChar[i] = bestLetter;
+                            blockLen[i] = l;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (dp[0] >= INF) return "";
+
+        StringBuilder sb = new StringBuilder(n);
+        int idx = 0;
+        while (idx < n) {
+            int len = blockLen[idx];
+            int c = nextChar[idx];
+            for (int k = 0; k < len; k++) {
+                sb.append((char) ('a' + c));
+            }
+            idx = nextIndex[idx];
+        }
+        return sb.toString();
+    }
+
+    private int compareSolutions(int startPos, int oldPos, int oldLetter, int oldLen, int oldNext,
+                                 int newLetter, int newLen, int newNext, int[] nextIndex,
+                                 int[] nextChar, int[] blockLen, int n, int[] dp) {
+        int offsetOld = 0, offsetNew = 0;
+        int curOldPos = oldPos, curNewPos = startPos;
+        int letOld = oldLetter, letNew = newLetter;
+        int lenOld = oldLen, lenNew = newLen;
+        int nxtOld = oldNext, nxtNew = newNext;
+
+        while (true) {
+            if (letOld != letNew) return (letOld < letNew) ? -1 : 1;
+
+            int remainOld = lenOld - offsetOld, remainNew = lenNew - offsetNew;
+            int step = Math.min(remainOld, remainNew);
+            offsetOld += step;
+            offsetNew += step;
+
+            if (offsetOld == lenOld && offsetNew == lenNew) {
+                if (nxtOld == n && nxtNew == n) return 0;
+                if (nxtOld == n) return -1;
+                if (nxtNew == n) return 1;
+                curOldPos = nxtOld;
+                letOld = nextChar[curOldPos];
+                lenOld = blockLen[curOldPos];
+                nxtOld = nextIndex[curOldPos];
+                offsetOld = 0;
+
+                curNewPos = nxtNew;
+                letNew = nextChar[curNewPos];
+                lenNew = blockLen[curNewPos];
+                nxtNew = nextIndex[curNewPos];
+                offsetNew = 0;
+            } else if (offsetOld == lenOld) {
+                if (nxtOld == n) return -1;
+                curOldPos = nxtOld;
+                letOld = nextChar[curOldPos];
+                lenOld = blockLen[curOldPos];
+                nxtOld = nextIndex[curOldPos];
+                offsetOld = 0;
+            } else if (offsetNew == lenNew) {
+                if (nxtNew == n) return 1;
+                curNewPos = nxtNew;
+                letNew = nextChar[curNewPos];
+                lenNew = blockLen[curNewPos];
+                nxtNew = nextIndex[curNewPos];
+                offsetNew = 0;
+            }
+        }
+    }
+}
