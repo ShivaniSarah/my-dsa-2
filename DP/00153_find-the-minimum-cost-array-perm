@@ -1,0 +1,148 @@
+https://leetcode.com/problems/find-the-minimum-cost-array-permutation/description/
+
+3149. Find the Minimum Cost Array Permutation
+Hard
+Topics
+Companies
+Hint
+You are given an array nums which is a permutation of [0, 1, 2, ..., n - 1]. The score of any permutation of [0, 1, 2, ..., n - 1] named perm is defined as:
+
+score(perm) = |perm[0] - nums[perm[1]]| + |perm[1] - nums[perm[2]]| + ... + |perm[n - 1] - nums[perm[0]]|
+
+Return the permutation perm which has the minimum possible score. If multiple permutations exist with this score, return the one that is lexicographically smallest among them.
+
+ 
+
+Example 1:
+
+Input: nums = [1,0,2]
+
+Output: [0,1,2]
+
+Explanation:
+
+
+
+The lexicographically smallest permutation with minimum cost is [0,1,2]. The cost of this permutation is |0 - 0| + |1 - 2| + |2 - 1| = 2.
+
+Example 2:
+
+Input: nums = [0,2,1]
+
+Output: [0,2,1]
+
+Explanation:
+
+
+
+The lexicographically smallest permutation with minimum cost is [0,2,1]. The cost of this permutation is |0 - 1| + |2 - 2| + |1 - 0| = 2.
+
+ 
+
+Constraints:
+
+2 <= n == nums.length <= 14
+nums is a permutation of [0, 1, 2, ..., n - 1].
+
+
+# java
+
+
+class Solution {
+  public int[] findPermutation(int[] nums) {
+    final int n = nums.length;
+    int[][] mem = new int[n][1 << n];
+    // bestPick[last][mask] := the best pick, where `last` is the last chosen
+    // number and `mask` is the bitmask of the chosen numbers
+    int[][] bestPick = new int[n][1 << n];
+
+    // Choose 0 as perm[0] since the score function is cyclic.
+    getScore(nums, /*last=*/0, /*mask=*/1, bestPick, mem);
+    return construct(bestPick);
+  }
+
+  // Returns the minimum score, where `last` is the last chosen number and
+  // `mask` is the bitmask of the chosen numbers.
+  private int getScore(int[] nums, int last, int mask, int[][] bestPick, int[][] mem) {
+    if (Integer.bitCount(mask) == nums.length)
+      return Math.abs(last - nums[0]); // |perm[n - 1] - nums[perm[0]]|
+    if (mem[last][mask] > 0)
+      return mem[last][mask];
+
+    int minScore = Integer.MAX_VALUE;
+    for (int i = 1; i < nums.length; ++i) {
+      if ((mask >> i & 1) == 1)
+        continue;
+      int nextMinScore = Math.abs(last - nums[i]) + getScore(nums, i, mask | 1 << i, bestPick, mem);
+      if (nextMinScore < minScore) {
+        minScore = nextMinScore;
+        bestPick[last][mask] = i;
+      }
+    }
+
+    return mem[last][mask] = minScore;
+  }
+
+  private int[] construct(int[][] bestPick) {
+    int[] ans = new int[bestPick.length];
+    int last = 0;
+    int mask = 1;
+    for (int i = 0; i < bestPick.length; ++i) {
+      ans[i] = last;
+      last = bestPick[last][mask];
+      mask |= 1 << last;
+    }
+    return ans;
+  }
+}
+
+or
+
+
+class Solution {
+    private Integer[][] f;
+    private int[] nums;
+    private int[] ans;
+    private int n;
+
+    public int[] findPermutation(int[] nums) {
+        n = nums.length;
+        ans = new int[n];
+        this.nums = nums;
+        f = new Integer[1 << n][n];
+        g(1, 0, 0);
+        return ans;
+    }
+
+    private int dfs(int mask, int pre) {
+        if (mask == (1 << n) - 1) {
+            return Math.abs(pre - nums[0]);
+        }
+        if (f[mask][pre] != null) {
+            return f[mask][pre];
+        }
+        int res = Integer.MAX_VALUE;
+        for (int cur = 1; cur < n; ++cur) {
+            if ((mask >> cur & 1) == 0) {
+                res = Math.min(res, Math.abs(pre - nums[cur]) + dfs(mask | 1 << cur, cur));
+            }
+        }
+        return f[mask][pre] = res;
+    }
+
+    private void g(int mask, int pre, int k) {
+        ans[k] = pre;
+        if (mask == (1 << n) - 1) {
+            return;
+        }
+        int res = dfs(mask, pre);
+        for (int cur = 1; cur < n; ++cur) {
+            if ((mask >> cur & 1) == 0) {
+                if (Math.abs(pre - nums[cur]) + dfs(mask | 1 << cur, cur) == res) {
+                    g(mask | 1 << cur, cur, k + 1);
+                    break;
+                }
+            }
+        }
+    }
+}
