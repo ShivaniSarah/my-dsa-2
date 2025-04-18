@@ -1,0 +1,214 @@
+https://leetcode.com/problems/length-of-longest-v-shaped-diagonal-segment/description/
+
+
+3459. Length of Longest V-Shaped Diagonal Segment
+Hard
+Topics
+Companies
+Hint
+You are given a 2D integer matrix grid of size n x m, where each element is either 0, 1, or 2.
+
+A V-shaped diagonal segment is defined as:
+
+The segment starts with 1.
+The subsequent elements follow this infinite sequence: 2, 0, 2, 0, ....
+The segment:
+Starts along a diagonal direction (top-left to bottom-right, bottom-right to top-left, top-right to bottom-left, or bottom-left to top-right).
+Continues the sequence in the same diagonal direction.
+Makes at most one clockwise 90-degree turn to another diagonal direction while maintaining the sequence.
+
+
+Return the length of the longest V-shaped diagonal segment. If no valid segment exists, return 0.
+
+ 
+
+Example 1:
+
+Input: grid = [[2,2,1,2,2],[2,0,2,2,0],[2,0,1,1,0],[1,0,2,2,2],[2,0,0,2,2]]
+
+Output: 5
+
+Explanation:
+
+
+
+The longest V-shaped diagonal segment has a length of 5 and follows these coordinates: (0,2) → (1,3) → (2,4), takes a 90-degree clockwise turn at (2,4), and continues as (3,3) → (4,2).
+
+Example 2:
+
+Input: grid = [[2,2,2,2,2],[2,0,2,2,0],[2,0,1,1,0],[1,0,2,2,2],[2,0,0,2,2]]
+
+Output: 4
+
+Explanation:
+
+
+
+The longest V-shaped diagonal segment has a length of 4 and follows these coordinates: (2,3) → (3,2), takes a 90-degree clockwise turn at (3,2), and continues as (2,1) → (1,0).
+
+Example 3:
+
+Input: grid = [[1,2,2,2,2],[2,2,2,2,0],[2,0,0,0,0],[0,0,2,2,2],[2,0,0,2,0]]
+
+Output: 5
+
+Explanation:
+
+
+
+The longest V-shaped diagonal segment has a length of 5 and follows these coordinates: (0,0) → (1,1) → (2,2) → (3,3) → (4,4).
+
+Example 4:
+
+Input: grid = [[1]]
+
+Output: 1
+
+Explanation:
+
+The longest V-shaped diagonal segment has a length of 1 and follows these coordinates: (0,0).
+
+ 
+
+Constraints:
+
+n == grid.length
+m == grid[i].length
+1 <= n, m <= 500
+grid[i][j] is either 0, 1 or 2.
+
+
+# java
+
+
+class Solution {
+  public int lenOfVDiagonal(int[][] grid) {
+    final int m = grid.length;
+    final int n = grid[0].length;
+    Integer[][][][][] mem = new Integer[m][n][2][2][4];
+
+    int ans = 0;
+
+    for (int i = 0; i < m; ++i)
+      for (int j = 0; j < n; ++j)
+        if (grid[i][j] == 1)
+          for (int d = 0; d < 4; ++d) {
+            final int dx = DIRS[d][0];
+            final int dy = DIRS[d][1];
+            ans = Math.max(ans, 1 + dfs(grid, i + dx, j + dy, /*turned=*/false, 2, d, mem));
+          }
+
+    return ans;
+  }
+
+  private static final int[][] DIRS = {{-1, 1}, {1, 1}, {1, -1}, {-1, -1}};
+
+  private int dfs(int[][] grid, int i, int j, boolean turned, int num, int dir,
+                  Integer[][][][][] mem) {
+    if (i < 0 || i == grid.length || j < 0 || j == grid[0].length)
+      return 0;
+    if (grid[i][j] != num)
+      return 0;
+
+    final int hashNum = Math.max(0, num - 1);
+    if (mem[i][j][turned ? 1 : 0][hashNum][dir] != null)
+      return mem[i][j][turned ? 1 : 0][hashNum][dir];
+
+    final int nextNum = num == 2 ? 0 : 2;
+    final int dx = DIRS[dir][0], dy = DIRS[dir][1];
+    int res = 1 + dfs(grid, i + dx, j + dy, turned, nextNum, dir, mem);
+
+    if (!turned) {
+      final int nextDir = (dir + 1) % 4;
+      final int nextDx = DIRS[nextDir][0], nextDy = DIRS[nextDir][1];
+      res = Math.max(res,
+                     1 + dfs(grid, i + nextDx, j + nextDy, /*turned=*/true, nextNum, nextDir, mem));
+    }
+
+    return mem[i][j][turned ? 1 : 0][hashNum][dir] = res;
+  }
+}
+
+
+or
+
+
+class Solution {
+    int[][] dirs = new int[][]{{-1, 1}, {1, 1}, {1, -1}, {-1, -1}};
+    int[][] grid;
+    int m, n;
+    
+    public int lenOfVDiagonal(int[][] grid) {
+        m = grid.length;
+        n = grid[0].length;
+
+        this.grid = grid;
+        int res = 0;
+        for (int i = 0; i < m; i++) {
+            for (int j = 0; j < n; j++) {
+                if (grid[i][j] == 1) {
+                    res = Math.max(res, 1);
+                    res = Math.max(res, dfs(i, j, 0, 2, false));
+                    res = Math.max(res, dfs(i, j, 1, 2, false));
+                    res = Math.max(res, dfs(i, j, 2, 2, false));
+                    res = Math.max(res, dfs(i, j, 3, 2, false));
+                }
+            }
+        }
+        return res;
+    }
+
+    public int dfs(int i, int j, int dir, int target, boolean turned) {
+
+        int x = i + dirs[dir][0], y = j + dirs[dir][1];
+        if (x < 0 || x >= m || y < 0 || y >= n || grid[x][y] != target) {
+            return 1;
+        }
+
+        int straight = 1 + dfs(x, y, dir, target == 2 ? 0 : 2, turned);
+        int turn = 0;
+        if (!turned) {
+            turn = 1 + dfs(x, y, (dir + 1) % 4, target == 2 ? 0 : 2, true);
+        }
+
+
+        return Math.max(straight, turn);
+    }
+}
+
+or
+
+
+
+class Solution {
+    public static int n;
+    public static int m;
+    public static Integer[][][][][] dp;
+    public static int[] x = {1, 1, -1, -1};
+    public static int[] y = {1, -1, -1, 1};
+    public int lenOfVDiagonal(int[][] g) {
+        n = g.length;
+        m = g[0].length;
+        dp = new Integer[n][m][2][3][4];
+        int ans = 0;
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < m; j++) {
+                if (g[i][j] == 1) {
+                    for (int k = 0; k < 4; k++) {
+                        ans = Math.max(ans, 1 + solve(i + x[k], j + y[k], 0, 2, k, g));
+                    }
+                }
+            }
+        }
+        return ans;
+    }
+    public static int solve(int i, int j, int turn, int curr, int dir, int[][] g) {
+        if (i >= n || i < 0 || j >= m || j < 0 || g[i][j] != curr) return 0;
+        if (dp[i][j][turn][curr][dir] != null) return dp[i][j][turn][curr][dir];
+        int ans = 1 + solve(i + x[dir], j + y[dir], turn, 2 - curr, dir, g);
+        if (turn == 0) {
+            ans = Math.max(ans, 1 + solve(i + x[(dir + 1) % 4], j + y[(dir + 1) % 4], 1, 2 - curr, (dir + 1) % 4, g));
+        }
+        return dp[i][j][turn][curr][dir] = ans;
+    }
+}
