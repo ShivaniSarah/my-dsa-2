@@ -1,0 +1,238 @@
+https://leetcode.com/problems/construct-string-with-minimum-cost/description/
+
+
+
+3213. Construct String with Minimum Cost
+Hard
+Topics
+Companies
+Hint
+You are given a string target, an array of strings words, and an integer array costs, both arrays of the same length.
+
+Imagine an empty string s.
+
+You can perform the following operation any number of times (including zero):
+
+Choose an index i in the range [0, words.length - 1].
+Append words[i] to s.
+The cost of operation is costs[i].
+Return the minimum cost to make s equal to target. If it's not possible, return -1.
+
+ 
+
+Example 1:
+
+Input: target = "abcdef", words = ["abdef","abc","d","def","ef"], costs = [100,1,1,10,5]
+
+Output: 7
+
+Explanation:
+
+The minimum cost can be achieved by performing the following operations:
+
+Select index 1 and append "abc" to s at a cost of 1, resulting in s = "abc".
+Select index 2 and append "d" to s at a cost of 1, resulting in s = "abcd".
+Select index 4 and append "ef" to s at a cost of 5, resulting in s = "abcdef".
+Example 2:
+
+Input: target = "aaaa", words = ["z","zz","zzz"], costs = [1,10,100]
+
+Output: -1
+
+Explanation:
+
+It is impossible to make s equal to target, so we return -1.
+
+ 
+
+Constraints:
+
+1 <= target.length <= 5 * 104
+1 <= words.length == costs.length <= 5 * 104
+1 <= words[i].length <= target.length
+The total sum of words[i].length is less than or equal to 5 * 104.
+target and words[i] consist only of lowercase English letters.
+1 <= costs[i] <= 104
+
+# java
+
+// tle
+class Solution {
+  public int minimumCost(String target, String[] words, int[] costs) {
+    final int kMax = 1_000_000_000;
+    final int n = target.length();
+    // dp[i] := the minimum cost to construct target[0..i)
+    int[] dp = new int[n + 1];
+    Arrays.fill(dp, kMax);
+    dp[0] = 0;
+    // minCost[c][word] := the minimum cost to construct word starting with `c`
+    Map<String, Integer>[] minCost = new HashMap[26];
+
+    for (int i = 0; i < 26; ++i)
+      minCost[i] = new HashMap<>();
+
+    for (int i = 0; i < words.length; ++i) {
+      final int index = words[i].charAt(0) - 'a';
+      final String word = words[i];
+      minCost[index].put(word, Math.min(minCost[index].getOrDefault(word, kMax), costs[i]));
+    }
+
+    for (int i = 0; i < n; ++i)
+      for (Map.Entry<String, Integer> entry : minCost[target.charAt(i) - 'a'].entrySet()) {
+        final String word = entry.getKey();
+        final int cost = entry.getValue();
+        final int j = i + word.length();
+        if (j <= n && cost + dp[i] < dp[j] && isMatch(target, i, word))
+          dp[j] = cost + dp[i];
+      }
+
+    return dp[n] == kMax ? -1 : dp[n];
+  }
+
+  private boolean isMatch(final String target, int start, final String word) {
+    for (int i = 0; i < word.length(); ++i)
+      if (target.charAt(start + i) != word.charAt(i))
+        return false;
+    return true;
+  }
+}
+
+
+or
+
+class Hashing {
+    private final long[] p;
+    private final long[] h;
+    private final long mod;
+
+    public Hashing(String word, long base, int mod) {
+        int n = word.length();
+        p = new long[n + 1];
+        h = new long[n + 1];
+        p[0] = 1;
+        this.mod = mod;
+        for (int i = 1; i <= n; i++) {
+            p[i] = p[i - 1] * base % mod;
+            h[i] = (h[i - 1] * base + word.charAt(i - 1)) % mod;
+        }
+    }
+
+    public long query(int l, int r) {
+        return (h[r] - h[l - 1] * p[r - l + 1] % mod + mod) % mod;
+    }
+}
+
+class Solution {
+    public int minimumCost(String target, String[] words, int[] costs) {
+        final int base = 13331;
+        final int mod = 998244353;
+        final int inf = Integer.MAX_VALUE / 2;
+
+        int n = target.length();
+        Hashing hashing = new Hashing(target, base, mod);
+
+        int[] f = new int[n + 1];
+        Arrays.fill(f, inf);
+        f[0] = 0;
+
+        TreeSet<Integer> ss = new TreeSet<>();
+        for (String w : words) {
+            ss.add(w.length());
+        }
+
+        Map<Long, Integer> d = new HashMap<>();
+        for (int i = 0; i < words.length; i++) {
+            long x = 0;
+            for (char c : words[i].toCharArray()) {
+                x = (x * base + c) % mod;
+            }
+            d.merge(x, costs[i], Integer::min);
+        }
+
+        for (int i = 1; i <= n; i++) {
+            for (int j : ss) {
+                if (j > i) {
+                    break;
+                }
+                long x = hashing.query(i - j + 1, i);
+                f[i] = Math.min(f[i], f[i - j] + d.getOrDefault(x, inf));
+            }
+        }
+
+        return f[n] >= inf ? -1 : f[n];
+    }
+}
+
+or
+
+// tle
+class Solution {
+    public int minimumCost(String target, String[] words, int[] costs) {
+        Trie t = new Trie();
+        for (int i = 0; i < words.length; i++) t.insert(words[i], costs[i]);
+
+        int[] dp = new int[target.length()];
+        Arrays.fill(dp, Integer.MAX_VALUE);
+
+        t.search(target, dp, 0);
+
+        return dp[0] == Integer.MAX_VALUE ? -1 : dp[0];
+    }
+}
+
+class Trie {
+    class Node {
+        Node[] children;
+        int cost;
+        boolean eow;
+
+        public Node() {
+            this.children = new Node[26];
+            for (int i = 0; i < 26; i++) children[i] = null;
+            this.cost = Integer.MAX_VALUE;
+            this.eow = false;
+        }
+    }
+
+    Node root = new Node();
+
+    public void insert(String word, int c) {
+        Node treeRoot = root;
+        for (int i = 0; i < word.length(); i++) {
+            int idx = word.charAt(i) - 'a';
+
+            if (treeRoot.children[idx] == null) {
+                treeRoot.children[idx] = new Node();
+            }
+
+            if (i == word.length() - 1) {
+                treeRoot.children[idx].cost = Math.min(c, treeRoot.children[idx].cost); 
+                treeRoot.children[idx].eow = true;
+            }
+            treeRoot = treeRoot.children[idx];
+        }
+    }
+
+    public int search(String word, int[] dp, int index) {
+        if (index == word.length()) return 0;
+        if (dp[index] != Integer.MAX_VALUE) return dp[index];
+
+        Node treeRoot = root;
+
+        for (int i = index; i < word.length(); i++) {
+            char ch = word.charAt(i);
+            int idx = ch - 'a';
+
+            if (treeRoot.children[idx] == null) break;
+
+            treeRoot = treeRoot.children[idx];
+
+            if (treeRoot.eow == true) {
+                int res = search(word, dp, i + 1);
+                if (res == Integer.MAX_VALUE) continue;
+                dp[index] = Math.min(dp[index], treeRoot.cost + res);
+            }
+        }
+        return dp[index];
+    }
+}
