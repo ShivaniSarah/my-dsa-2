@@ -1,0 +1,112 @@
+https://leetcode.com/problems/allocate-mailboxes/description/
+
+
+1478. Allocate Mailboxes
+Hard
+Topics
+Companies
+Hint
+Given the array houses where houses[i] is the location of the ith house along a street and an integer k, allocate k mailboxes in the street.
+
+Return the minimum total distance between each house and its nearest mailbox.
+
+The test cases are generated so that the answer fits in a 32-bit integer.
+
+ 
+
+Example 1:
+
+
+Input: houses = [1,4,8,10,20], k = 3
+Output: 5
+Explanation: Allocate mailboxes in position 3, 9 and 20.
+Minimum total distance from each houses to nearest mailboxes is |3-1| + |4-3| + |9-8| + |10-9| + |20-20| = 5 
+Example 2:
+
+
+Input: houses = [2,3,5,12,18], k = 2
+Output: 9
+Explanation: Allocate mailboxes in position 3 and 14.
+Minimum total distance from each houses to nearest mailboxes is |2-3| + |3-3| + |5-3| + |12-14| + |18-14| = 9.
+ 
+
+Constraints:
+
+1 <= k <= houses.length <= 100
+1 <= houses[i] <= 104
+All the integers of houses are unique.
+Se
+
+
+# java
+
+
+class Solution {
+  public int minDistance(int[] houses, int k) {
+    final int n = houses.length;
+    int[][] mem = new int[n][k + 1];
+    // cost[i][j] := the minimum cost to allocate mailboxes between houses[i]
+    // and houses[j]
+    int[][] cost = new int[n][n];
+
+    Arrays.stream(mem).forEach(A -> Arrays.fill(A, Integer.MAX_VALUE));
+    Arrays.sort(houses);
+
+    for (int i = 0; i < n; ++i)
+      for (int j = i + 1; j < n; ++j) {
+        int median = houses[(i + j) / 2];
+        for (int x = i; x <= j; ++x)
+          cost[i][j] += Math.abs(houses[x] - median);
+      }
+
+    return minDistance(houses, 0, k, cost, mem);
+  }
+
+  private static final int MAX = 1_000_000;
+
+  // Returns the minimum distance to allocate k mailboxes for houses[i..n).
+  private int minDistance(int[] houses, int i, int k, int[][] cost, int[][] mem) {
+    if (i == houses.length && k == 0)
+      return 0;
+    if (i == houses.length || k == 0)
+      return MAX;
+    if (mem[i][k] != Integer.MAX_VALUE)
+      return mem[i][k];
+
+    for (int j = i; j < houses.length; ++j)
+      mem[i][k] = Math.min(mem[i][k], cost[i][j] + minDistance(houses, j + 1, k - 1, cost, mem));
+
+    return mem[i][k];
+  }
+}
+
+
+or
+
+
+class Solution {
+    public int minDistance(int[] houses, int k) {
+        Arrays.sort(houses);
+        int n = houses.length;
+        int[][] g = new int[n][n];
+        for (int i = n - 2; i >= 0; --i) {
+            for (int j = i + 1; j < n; ++j) {
+                g[i][j] = g[i + 1][j - 1] + houses[j] - houses[i];
+            }
+        }
+        int[][] f = new int[n][k + 1];
+        final int inf = 1 << 30;
+        for (int[] e : f) {
+            Arrays.fill(e, inf);
+        }
+        for (int i = 0; i < n; ++i) {
+            f[i][1] = g[0][i];
+            for (int j = 2; j <= k && j <= i + 1; ++j) {
+                for (int p = 0; p < i; ++p) {
+                    f[i][j] = Math.min(f[i][j], f[p][j - 1] + g[p + 1][i]);
+                }
+            }
+        }
+        return f[n - 1][k];
+    }
+}
