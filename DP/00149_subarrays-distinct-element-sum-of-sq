@@ -1,0 +1,331 @@
+https://leetcode.com/problems/subarrays-distinct-element-sum-of-squares-ii/
+
+2916. Subarrays Distinct Element Sum of Squares II
+Hard
+Topics
+Companies
+Hint
+You are given a 0-indexed integer array nums.
+
+The distinct count of a subarray of nums is defined as:
+
+Let nums[i..j] be a subarray of nums consisting of all the indices from i to j such that 0 <= i <= j < nums.length. Then the number of distinct values in nums[i..j] is called the distinct count of nums[i..j].
+Return the sum of the squares of distinct counts of all subarrays of nums.
+
+Since the answer may be very large, return it modulo 109 + 7.
+
+A subarray is a contiguous non-empty sequence of elements within an array.
+
+ 
+
+Example 1:
+
+Input: nums = [1,2,1]
+Output: 15
+Explanation: Six possible subarrays are:
+[1]: 1 distinct value
+[2]: 1 distinct value
+[1]: 1 distinct value
+[1,2]: 2 distinct values
+[2,1]: 2 distinct values
+[1,2,1]: 2 distinct values
+The sum of the squares of the distinct counts in all subarrays is equal to 12 + 12 + 12 + 22 + 22 + 22 = 15.
+Example 2:
+
+Input: nums = [2,2]
+Output: 3
+Explanation: Three possible subarrays are:
+[2]: 1 distinct value
+[2]: 1 distinct value
+[2,2]: 1 distinct value
+The sum of the squares of the distinct counts in all subarrays is equal to 12 + 12 + 12 = 3.
+ 
+
+Constraints:
+
+1 <= nums.length <= 105
+1 <= nums[i] <= 105
+
+
+# java
+
+
+
+public class Solution {
+    private final long N = 100005;
+    private final long hell = 1000000007;
+    private long[] a = new long[(int) N];
+    private long[] seg = new long[4 * (int) N];
+    private long[] segsq = new long[4 * (int) N];
+    private long[] lazy = new long[4 * (int) N];
+
+    // Build the segment tree.
+    private void build(int node, long start, long end) {
+        if (start == end) {
+            seg[node] = a[(int) start];
+            segsq[node] = (a[(int) start] * a[(int) start]) % hell;
+            return;
+        }
+        long mid = (start + end) >> 1;
+        build(node << 1, start, mid);
+        build(node << 1 | 1, mid + 1, end);
+        seg[node] = (seg[node << 1] + seg[node << 1 | 1]) % hell;
+        segsq[node] = (segsq[node << 1] + segsq[node << 1 | 1]) % hell;
+    }
+
+    // Update the segment tree and handle lazy propagation.
+    private void update(int node, long start, long end, int l, int r, int val) {
+        if (lazy[node] != 0) {
+            segsq[node] += ((end - start + 1) * (lazy[node] * lazy[node]) % hell) % hell + (2 * lazy[node] * seg[node]) % hell;
+            segsq[node] %= hell;
+            seg[node] += ((end - start + 1) * lazy[node]) % hell;
+            seg[node] %= hell;
+            if (start != end) {
+                lazy[node << 1] += lazy[node];
+                lazy[node << 1 | 1] += lazy[node];
+            }
+            lazy[node] = 0;
+        }
+        if (start > end || start > r || end < l) return;
+        if (l <= start && end <= r) {
+            segsq[node] += ((end - start + 1) * (val * val) % hell) % hell + (2 * val * seg[node]) % hell;
+            segsq[node] %= hell;
+            seg[node] += ((end - start + 1) * val) % hell;
+            seg[node] %= hell;
+            if (start != end) {
+                lazy[node << 1] += val;
+                lazy[node << 1 | 1] += val;
+            }
+            return;
+        }
+        long mid = (start + end) >> 1;
+        update(node << 1, start, mid, l, r, val);
+        update(node << 1 | 1, mid + 1, end, l, r, val);
+        seg[node] = (seg[node << 1] + seg[node << 1 | 1]) % hell;
+        segsq[node] = (segsq[node << 1] + segsq[node << 1 | 1]) % hell;
+    }
+
+    // Main function to find the sum of counts.
+    public int sumCounts(int[] nums) {
+        int n = nums.length;
+        for (int i = 1; i <= n; i++) {
+            a[i] = 0;
+        }
+
+        // Build the segment tree.
+        build(1, 1, n);
+
+        HashMap<Integer, Integer> prev_seen_at = new HashMap<>();
+
+        long ans = 0;
+
+        for (int i = n - 1; i >= 0; i--) {
+            if (!prev_seen_at.containsKey(nums[i])) {
+                update(1, 1, n, i + 1, n, 1);
+            } else {
+                update(1, 1, n, i + 1, prev_seen_at.get(nums[i]) - 1, 1);
+            }
+
+            prev_seen_at.put(nums[i], i + 1);
+
+            ans = (ans + segsq[1]) % hell;
+        }
+
+        return (int) ans;
+    }
+
+}
+
+or
+
+
+class Solution {
+    public static int MOD = (int)1e9 + 7;
+    long[] bit1, bit2;
+    public int sumCounts(int[] nums) {
+        /*
+      
+        what about having an array A and appeending a distinct val to the end.
+        if sumSqD(A) = s, sumSqD(A append x) = s + 
+
+        if only track suffix sums, addiing a distinnct to the end is +1 to all distinct for suffix subarrays, 
+        if suffix sq sum A^2 + B^2 + C^2 ... becomes (A+1)^2 + (B+1)^2 + (C+1)^2 ... = same + 2*(A+B+C.....) + k (where k is sz of array with new element added)
+
+        newSuffixSq = suffixSq + 2*(suffix) + newSz. 
+        
+        for a non-unique element, it is unique uup to a certain poiint in the suffix, 
+        so if use the last index we've seen said elemetn let this be at B then have A^2 + B^2 + (C+1)^2 + (D+1)^2 .... = same + 2*(C+D+...) + r (r is count of elements in C+D... seq + 1)
+
+        need to be able to update range sums of A, B, C, D... and query said range sums for different intervals.
+        USE BIT
+
+        to update all sums in range can hold a bit where +1 to l, -1 to r+1. 
+        This would have the effect of giving +1 to all elements prefix after l but before r+1, giving +1 to the prefix of all in [l, r]
+        however want a +[r-l] to all in l to r, as  based on updating C+1, D+1, ... etc, need to +1 to all elements not just one.
+        This could be O((r-l)log(n)) but if instead you just do the +1 to l and then multiply the result by (r-l), that +1 contribution becomes a +(r-l), 
+        which is valid for the right value as the right prefix should have (r-l) extra contributed to it. 
+
+        However, r-1 would get 1 additional prefix contribution this way, and r-2 2, etc. 
+        So if did x*query(x) for some x, the prefix would be correct sum for value at x, but off 1 for x-1, 2 for x-2 if there was a range update [1, x]
+
+        if query was [2, x] then (x-1)*query(x) would represent accurate contribution for x, but for [2, x+1], also (x-1)*query(x), so depends on dist from the left.
+        for [a, b] where a < x < b x sum is (x-a+1)*query(x) but since this is still simplifying and looking at a single query where the contribution is 1, can view from base
+        x*query(x) - (a-1)*query(x) = x*query(x) - (a-1).
+
+        Thus the adjustment factor for a given range query from x*query(x) is just - (left-1). This should hold for all interval updates, so can hold these all in a second bit2, 
+        where for a given interval update update the following
+
+        update(bit1, left, +1)
+        update(bit1, right+1, -1)
+        update(bit2, left, left-1) 
+        update(bit2, right+1, -right)
+
+    
+        where bit2 holds the diff between any x*query(x) on bit1 and the real answer through the interval updates diff.
+        it adds left-1 at the start of the update to represent each queries left-1 shift as seen above, then once the update ends it offsets this by adding back -right
+        as including the left-1 from earlier gives -(right-left+1) as the total change of prefix of bit2 from here onward which works
+        as it is the negation of the size of the subarray, and since every value in the subarray is being updated +1 this serves to negate negative size of subarray
+        to all future prefix's or equivalently just add the size of the subarray, which is valid as for queries outside of the rrange, they are only impactedd by
+        the fact that this update added +1 to every element in subarray or a total of (right-left+1). 
+
+        if update this way, can query range up to x with x*query(x, bit1) - query(x, bit2)
+        */
+        int max = 0;
+        for(int num : nums) max = Math.max(max, num);
+        int[] numToIndex = new int[max+1];
+        Arrays.fill(numToIndex, -1);
+        int n = nums.length;
+        int suffixSq = 0, res = 0;
+        bit1 = new long[n+1];
+        bit2 = new long[n+1];
+        for(int i = 0; i < n; i++) {
+            int lastIdx = numToIndex[nums[i]];
+            suffixSq = (int)((suffixSq + 2*(query(lastIdx+1, i-1)) + i-lastIdx) % MOD);
+            update(lastIdx+1, i);
+            res = (res + suffixSq) % MOD;
+            numToIndex[nums[i]] = i;
+        }
+        return res;
+    }
+
+    private long query(int l, int r) {
+        return query(r) - query(l-1);
+    }
+
+    private long query(int x) {
+        return x*query(x, bit1) - query(x, bit2);
+    }
+
+    private void update(int l, int r) {
+        update(l, 1, bit1);
+        update(r+1, -1, bit1);
+        update(l, l-1, bit2);
+        update(r+1, -r, bit2);
+    }
+
+    private void update(int idx, long val, long[] bit) {
+        for(int i = idx+1; i < bit.length; i += (i & -i)) {
+            bit[i] += val;
+        }
+    }
+
+    private long query(int idx, long[] bit) {
+        long res = 0;
+        for(int i = idx+1; i > 0; i -= (i & -i)) {
+            res += bit[i];
+        }
+        return res;
+    }
+}
+
+or
+
+
+// segment treee
+
+
+
+public class Solution {
+    private final long N = 100005;
+    private final long hell = 1000000007;
+    private long[] a = new long[(int) N];
+    private long[] seg = new long[4 * (int) N];
+    private long[] segsq = new long[4 * (int) N];
+    private long[] lazy = new long[4 * (int) N];
+
+    // Build the segment tree.
+    private void build(int node, long start, long end) {
+        if (start == end) {
+            seg[node] = a[(int) start];
+            segsq[node] = (a[(int) start] * a[(int) start]) % hell;
+            return;
+        }
+        long mid = (start + end) >> 1;
+        build(node << 1, start, mid);
+        build(node << 1 | 1, mid + 1, end);
+        seg[node] = (seg[node << 1] + seg[node << 1 | 1]) % hell;
+        segsq[node] = (segsq[node << 1] + segsq[node << 1 | 1]) % hell;
+    }
+
+    // Update the segment tree and handle lazy propagation.
+    private void update(int node, long start, long end, int l, int r, int val) {
+        if (lazy[node] != 0) {
+            segsq[node] += ((end - start + 1) * (lazy[node] * lazy[node]) % hell) % hell + (2 * lazy[node] * seg[node]) % hell;
+            segsq[node] %= hell;
+            seg[node] += ((end - start + 1) * lazy[node]) % hell;
+            seg[node] %= hell;
+            if (start != end) {
+                lazy[node << 1] += lazy[node];
+                lazy[node << 1 | 1] += lazy[node];
+            }
+            lazy[node] = 0;
+        }
+        if (start > end || start > r || end < l) return;
+        if (l <= start && end <= r) {
+            segsq[node] += ((end - start + 1) * (val * val) % hell) % hell + (2 * val * seg[node]) % hell;
+            segsq[node] %= hell;
+            seg[node] += ((end - start + 1) * val) % hell;
+            seg[node] %= hell;
+            if (start != end) {
+                lazy[node << 1] += val;
+                lazy[node << 1 | 1] += val;
+            }
+            return;
+        }
+        long mid = (start + end) >> 1;
+        update(node << 1, start, mid, l, r, val);
+        update(node << 1 | 1, mid + 1, end, l, r, val);
+        seg[node] = (seg[node << 1] + seg[node << 1 | 1]) % hell;
+        segsq[node] = (segsq[node << 1] + segsq[node << 1 | 1]) % hell;
+    }
+
+    // Main function to find the sum of counts.
+    public int sumCounts(int[] nums) {
+        int n = nums.length;
+        for (int i = 1; i <= n; i++) {
+            a[i] = 0;
+        }
+
+        // Build the segment tree.
+        build(1, 1, n);
+
+        HashMap<Integer, Integer> prev_seen_at = new HashMap<>();
+
+        long ans = 0;
+
+        for (int i = n - 1; i >= 0; i--) {
+            if (!prev_seen_at.containsKey(nums[i])) {
+                update(1, 1, n, i + 1, n, 1);
+            } else {
+                update(1, 1, n, i + 1, prev_seen_at.get(nums[i]) - 1, 1);
+            }
+
+            prev_seen_at.put(nums[i], i + 1);
+
+            ans = (ans + segsq[1]) % hell;
+        }
+
+        return (int) ans;
+    }
+
+
