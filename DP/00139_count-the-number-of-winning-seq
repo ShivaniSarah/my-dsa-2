@@ -1,0 +1,164 @@
+https://leetcode.com/problems/count-the-number-of-winning-sequences/description/
+
+
+3320. Count The Number of Winning Sequences
+Hard
+Topics
+Companies
+Hint
+Alice and Bob are playing a fantasy battle game consisting of n rounds where they summon one of three magical creatures each round: a Fire Dragon, a Water Serpent, or an Earth Golem. In each round, players simultaneously summon their creature and are awarded points as follows:
+
+If one player summons a Fire Dragon and the other summons an Earth Golem, the player who summoned the Fire Dragon is awarded a point.
+If one player summons a Water Serpent and the other summons a Fire Dragon, the player who summoned the Water Serpent is awarded a point.
+If one player summons an Earth Golem and the other summons a Water Serpent, the player who summoned the Earth Golem is awarded a point.
+If both players summon the same creature, no player is awarded a point.
+You are given a string s consisting of n characters 'F', 'W', and 'E', representing the sequence of creatures Alice will summon in each round:
+
+If s[i] == 'F', Alice summons a Fire Dragon.
+If s[i] == 'W', Alice summons a Water Serpent.
+If s[i] == 'E', Alice summons an Earth Golem.
+Bob’s sequence of moves is unknown, but it is guaranteed that Bob will never summon the same creature in two consecutive rounds. Bob beats Alice if the total number of points awarded to Bob after n rounds is strictly greater than the points awarded to Alice.
+
+Return the number of distinct sequences Bob can use to beat Alice.
+
+Since the answer may be very large, return it modulo 109 + 7.
+
+ 
+
+Example 1:
+
+Input: s = "FFF"
+
+Output: 3
+
+Explanation:
+
+Bob can beat Alice by making one of the following sequences of moves: "WFW", "FWF", or "WEW". Note that other winning sequences like "WWE" or "EWW" are invalid since Bob cannot make the same move twice in a row.
+
+Example 2:
+
+Input: s = "FWEFW"
+
+Output: 18
+
+Explanation:
+
+Bob can beat Alice by making one of the following sequences of moves: "FWFWF", "FWFWE", "FWEFE", "FWEWE", "FEFWF", "FEFWE", "FEFEW", "FEWFE", "WFEFE", "WFEWE", "WEFWF", "WEFWE", "WEFEF", "WEFEW", "WEWFW", "WEWFE", "EWFWE", or "EWEWE".
+
+ 
+
+Constraints:
+
+1 <= s.length <= 1000
+s[i] is one of 'F', 'W', or 'E'.
+
+
+# java
+
+class Solution {
+  public int countWinningSequences(String s) {
+    Long[][][] mem = new Long[s.length()][3][2 * s.length()];
+    final long ans = count(s, 0, 0, 0, mem) + count(s, 0, 1, 0, mem) + count(s, 0, 2, 0, mem);
+    return (int) ((ans / 2) % MOD);
+  }
+
+  private static final int MOD = 1_000_000_007;
+
+  // Returns the number of distinct sequences Bob can use to beat Alice for
+  // s[i..n), where the previous character is `prev` (0: F, 1: W, 2: E) and the
+  // number of points that Bob is having is `bob`.
+  private long count(final String s, int i, int prev, int bob, Long[][][] mem) {
+    if (i == s.length())
+      return bob > 0 ? 1 : 0;
+    final int bobIdx = bob + s.length();
+    if (mem[i][prev][bobIdx] != null)
+      return mem[i][prev][bobIdx];
+
+    long f = 0; // If Bob summons a Fire Dragon at i.
+    long w = 0; // If Bob summons a Water Serpent at i.
+    long e = 0; // If Bob summons a Earth Golem at i.
+
+    switch (s.charAt(i)) {
+      case 'F':
+        if (prev != 0)
+          f = count(s, i + 1, 0, bob, mem) % MOD;
+        if (prev != 1)
+          w = count(s, i + 1, 1, bob + 1, mem) % MOD;
+        if (prev != 2)
+          e = count(s, i + 1, 2, bob - 1, mem) % MOD;
+        break;
+      case 'W':
+        if (prev != 0)
+          f = count(s, i + 1, 0, bob - 1, mem) % MOD;
+        if (prev != 1)
+          w = count(s, i + 1, 1, bob, mem) % MOD;
+        if (prev != 2)
+          e = count(s, i + 1, 2, bob + 1, mem) % MOD;
+        break;
+      case 'E':
+        if (prev != 0)
+          f = count(s, i + 1, 0, bob + 1, mem) % MOD;
+        if (prev != 1)
+          w = count(s, i + 1, 1, bob - 1, mem) % MOD;
+        if (prev != 2)
+          e = count(s, i + 1, 2, bob, mem) % MOD;
+        break;
+      default:
+        break;
+    }
+
+    return mem[i][prev][bobIdx] = f + w + e;
+  }
+}
+
+
+or
+
+
+class Solution {
+    private int n;
+    private char[] s;
+    private int[] d = new int[26];
+    private Integer[][][] f;
+    private final int mod = (int) 1e9 + 7;
+
+    public int countWinningSequences(String s) {
+        d['W' - 'A'] = 1;
+        d['E' - 'A'] = 2;
+        this.s = s.toCharArray();
+        n = this.s.length;
+        f = new Integer[n][n + n + 1][4];
+        return dfs(0, n, 3);
+    }
+
+    private int dfs(int i, int j, int k) {
+        if (n - i <= j - n) {
+            return 0;
+        }
+        if (i >= n) {
+            return j - n < 0 ? 1 : 0;
+        }
+        if (f[i][j][k] != null) {
+            return f[i][j][k];
+        }
+
+        int ans = 0;
+        for (int l = 0; l < 3; ++l) {
+            if (l == k) {
+                continue;
+            }
+            ans = (ans + dfs(i + 1, j + calc(d[s[i] - 'A'], l), l)) % mod;
+        }
+        return f[i][j][k] = ans;
+    }
+
+    private int calc(int x, int y) {
+        if (x == y) {
+            return 0;
+        }
+        if (x < y) {
+            return x == 0 && y == 2 ? 1 : -1;
+        }
+        return x == 2 && y == 0 ? -1 : 1;
+    }
+}
