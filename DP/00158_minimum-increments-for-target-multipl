@@ -1,0 +1,190 @@
+https://leetcode.com/problems/minimum-increments-for-target-multiples-in-an-array/description/
+
+
+3444. Minimum Increments for Target Multiples in an Array
+Hard
+Topics
+Companies
+Hint
+You are given two arrays, nums and target.
+
+In a single operation, you may increment any element of nums by 1.
+
+Return the minimum number of operations required so that each element in target has at least one multiple in nums.
+
+ 
+
+Example 1:
+
+Input: nums = [1,2,3], target = [4]
+
+Output: 1
+
+Explanation:
+
+The minimum number of operations required to satisfy the condition is 1.
+
+Increment 3 to 4 with just one operation, making 4 a multiple of itself.
+Example 2:
+
+Input: nums = [8,4], target = [10,5]
+
+Output: 2
+
+Explanation:
+
+The minimum number of operations required to satisfy the condition is 2.
+
+Increment 8 to 10 with 2 operations, making 10 a multiple of both 5 and 10.
+Example 3:
+
+Input: nums = [7,9,10], target = [7]
+
+Output: 0
+
+Explanation:
+
+Target 7 already has a multiple in nums, so no additional operations are needed.
+
+ 
+
+Constraints:
+
+1 <= nums.length <= 5 * 104
+1 <= target.length <= 4
+target.length <= nums.length
+1 <= nums[i], target[i] <= 104
+
+
+# java
+
+
+class Solution {
+  public int minimumIncrements(int[] nums, int[] target) {
+    final int maxMask = 1 << target.length;
+    Map<Integer, Long> maskToLcm = new HashMap<>();
+
+    for (int mask = 1; mask < maxMask; ++mask) {
+      List<Integer> subset = getSubset(mask, target);
+      maskToLcm.put(mask, getLcm(subset));
+    }
+
+    // dp[mask] := the minimum number of increments to make each number in the
+    // subset of target have at least one number that is a multiple in `num`,
+    // where `mask` is the bitmask of the subset of target
+    long[] dp = new long[maxMask];
+    Arrays.fill(dp, Long.MAX_VALUE);
+    dp[0] = 0;
+
+    for (final int num : nums) {
+      // maskToCost := (mask, cost), where `mask` is the bitmask of the subset
+      // of target and `cost` is the minimum number of increments to make each
+      // number in the subset of target have at least one number that is a
+      // multiple in `num`
+      List<Pair<Integer, Long>> maskToCost = new ArrayList<>();
+      for (Map.Entry<Integer, Long> entry : maskToLcm.entrySet()) {
+        final int mask = entry.getKey();
+        final long lcm = entry.getValue();
+        final long remainder = num % lcm;
+        maskToCost.add(new Pair<>(mask, remainder == 0 ? 0 : lcm - remainder));
+      }
+      long[] newDp = dp.clone();
+      for (int prevMask = 0; prevMask < maxMask; ++prevMask) {
+        if (dp[prevMask] == Long.MAX_VALUE)
+          continue;
+        for (Pair<Integer, Long> pair : maskToCost) {
+          final int mask = pair.getKey();
+          final long cost = pair.getValue();
+          final int nextMask = prevMask | mask;
+          newDp[nextMask] = Math.min(newDp[nextMask], dp[prevMask] + cost);
+        }
+      }
+      dp = newDp;
+    }
+
+    return dp[maxMask - 1] == Long.MAX_VALUE ? -1 : (int) dp[maxMask - 1];
+  }
+
+  private List<Integer> getSubset(int mask, int[] target) {
+    List<Integer> subset = new ArrayList<>();
+    for (int i = 0; i < target.length; ++i)
+      if ((mask >> i & 1) == 1)
+        subset.add(target[i]);
+    return subset;
+  }
+
+  private long getLcm(List<Integer> nums) {
+    long res = 1;
+    for (final int num : nums)
+      res = lcm(res, num);
+    return res;
+  }
+
+  private long lcm(long a, long b) {
+    return a * b / gcd(a, b);
+  }
+
+  private long gcd(long a, long b) {
+    return b == 0 ? a : gcd(b, a % b);
+  }
+}
+
+or
+
+
+class Solution {
+    static public int minimumIncrements(int[] nums, int[] target) {
+        Long[][] dp = new Long[nums.length + 1][(1 << target.length)];
+        long ans = solve(0, nums, target, 0, dp);
+        return (int) ans;
+    }
+
+    static long solve(int i, int[] arr, int[] target, int mask, Long[][] dp) {
+        int want = (1 << target.length) - 1;
+        if (dp[i][mask] != null) {
+            return dp[i][mask];
+        }
+
+        if (i == arr.length) {
+            if (mask == want) return 0;
+            return 100000;
+        }
+
+        int current = want & ~mask;
+        long ans = 100000, min = 100000;
+
+        for (int j = current; j > 0; j = ((j - 1) & current)) {
+            long lcm = LCM(j, target);
+            long x = (long) (Math.ceil(arr[i] / (lcm * 1.0)));
+            ans = ((lcm * x) - arr[i]) + solve(i + 1, arr, target, mask | j, dp);
+            min = Math.min(min, ans);
+        }
+
+        long notConsider = solve(i + 1, arr, target, mask, dp);
+        long result = Math.min(min, notConsider);
+        dp[i][mask] = result;
+        return result;
+    }
+
+    static long LCM(int mask, int[] target) {
+        ArrayList<Long> l = new ArrayList<>();
+        for (int i = 0; i < target.length; i++) {
+            if ((mask & (1 << i)) != 0) {
+                l.add((long) target[i]);
+            }
+        }
+
+        if (l.size() == 1) return l.get(0);
+
+        long lcm = l.get(0);
+        for (int i = 1; i < l.size(); i++) {
+            lcm = (lcm * l.get(i)) / gcd(lcm, l.get(i));
+        }
+        return lcm;
+    }
+
+    static long gcd(long a, long b) {
+        if (a == 0) return b;
+        return gcd(b % a, a);
+    }
+}
