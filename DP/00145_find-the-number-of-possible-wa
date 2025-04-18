@@ -1,0 +1,155 @@
+https://leetcode.com/problems/find-the-number-of-possible-ways-for-an-event/
+
+3317. Find the Number of Possible Ways for an Event
+Hard
+Topics
+Companies
+Hint
+You are given three integers n, x, and y.
+
+An event is being held for n performers. When a performer arrives, they are assigned to one of the x stages. All performers assigned to the same stage will perform together as a band, though some stages might remain empty.
+
+After all performances are completed, the jury will award each band a score in the range [1, y].
+
+Return the total number of possible ways the event can take place.
+
+Since the answer may be very large, return it modulo 109 + 7.
+
+Note that two events are considered to have been held differently if either of the following conditions is satisfied:
+
+Any performer is assigned a different stage.
+Any band is awarded a different score.
+ 
+
+Example 1:
+
+Input: n = 1, x = 2, y = 3
+
+Output: 6
+
+Explanation:
+
+There are 2 ways to assign a stage to the performer.
+The jury can award a score of either 1, 2, or 3 to the only band.
+Example 2:
+
+Input: n = 5, x = 2, y = 1
+
+Output: 32
+
+Explanation:
+
+Each performer will be assigned either stage 1 or stage 2.
+All bands will be awarded a score of 1.
+Example 3:
+
+Input: n = 3, x = 3, y = 4
+
+Output: 684
+
+ 
+
+Constraints:
+
+1 <= n, x, y <= 1000
+
+
+# java
+
+class Solution {
+  public int numberOfWays(int n, int x, int y) {
+    final int maxStages = Math.min(n, x);
+    long[][] factAndInvFact = getFactAndInvFact(Math.max(n, x));
+    long[] fact = factAndInvFact[0];
+    long[] invFact = factAndInvFact[1];
+    int[][] stirling = getStirling(n, maxStages);
+    int ans = 0;
+
+    for (int k = 1; k <= maxStages; ++k) {
+      // 1. Choose `k` stages from `x` stages.
+      long events = nCk(x, k, fact, invFact);
+      // 2. Partition `n` performers into `k` stages.
+      events = events * stirling[n][k] % MOD;
+      // 3. Permute `k` stages.
+      events = events * fact[k] % MOD;
+      // 4. Score `k` stages with score in the range [1, y], so y^k ways.
+      events = events * modPow(y, k) % MOD;
+      ans = (int) ((ans + events) % MOD);
+    }
+
+    return ans;
+  }
+
+  private static final int MOD = 1_000_000_007;
+
+  private long[][] getFactAndInvFact(int n) {
+    long[] fact = new long[n + 1];
+    long[] invFact = new long[n + 1];
+    long[] inv = new long[n + 1];
+    fact[0] = invFact[0] = 1;
+    inv[0] = inv[1] = 1;
+    for (int i = 1; i <= n; ++i) {
+      if (i >= 2)
+        inv[i] = MOD - MOD / i * inv[MOD % i] % MOD;
+      fact[i] = fact[i - 1] * i % MOD;
+      invFact[i] = invFact[i - 1] * inv[i] % MOD;
+    }
+    return new long[][] {fact, invFact};
+  }
+
+  private int nCk(int n, int k, long[] fact, long[] invFact) {
+    return (int) (fact[n] * invFact[k] % MOD * invFact[n - k] % MOD);
+  }
+
+  // Returns a 2D array stirling, where stirling[i][j] := the number of ways to
+  // partition a set of i objects into j non-empty subsets.
+  //
+  // https://en.wikipedia.org/wiki/Stirling_numbers_of_the_second_kind
+  private int[][] getStirling(int n, int k) {
+    int[][] stirling = new int[n + 1][k + 1];
+    stirling[0][0] = 1;
+    for (int i = 1; i <= n; ++i) {
+      stirling[i][1] = 1;
+      for (int j = 2; j <= Math.min(i, k); ++j)
+        stirling[i][j] = (int) (((long) j * stirling[i - 1][j] + stirling[i - 1][j - 1]) % MOD);
+    }
+    return stirling;
+  }
+
+  private long modPow(long x, long n) {
+    if (n == 0)
+      return 1;
+    if (n % 2 == 1)
+      return x * modPow(x, n - 1) % MOD;
+    return modPow(x * x % MOD, n / 2);
+  }
+}
+
+
+or
+
+
+class Solution {
+    public int numberOfWays(int n, int x, int y) {
+        final int mod = (int) 1e9 + 7;
+        long[][] f = new long[n + 1][x + 1];
+        f[0][0] = 1;
+        for (int i = 1; i <= n; ++i) {
+            for (int j = 1; j <= x; ++j) {
+                f[i][j] = (f[i - 1][j] * j % mod + f[i - 1][j - 1] * (x - (j - 1) % mod)) % mod;
+            }
+        }
+        long ans = 0, p = 1;
+        for (int j = 1; j <= x; ++j) {
+            p = p * y % mod;
+            ans = (ans + f[n][j] * p) % mod;
+        }
+        return (int) ans;
+    }
+}
+
+
+or
+
+
+
