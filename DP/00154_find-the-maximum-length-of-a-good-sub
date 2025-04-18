@@ -1,0 +1,115 @@
+https://leetcode.com/problems/find-the-maximum-length-of-a-good-subsequence-ii/
+
+
+3177. Find the Maximum Length of a Good Subsequence II
+Hard
+Topics
+Companies
+Hint
+You are given an integer array nums and a non-negative integer k. A sequence of integers seq is called good if there are at most k indices i in the range [0, seq.length - 2] such that seq[i] != seq[i + 1].
+
+Return the maximum possible length of a good subsequence of nums.
+
+ 
+
+Example 1:
+
+Input: nums = [1,2,1,1,3], k = 2
+
+Output: 4
+
+Explanation:
+
+The maximum length subsequence is [1,2,1,1,3].
+
+Example 2:
+
+Input: nums = [1,2,3,4,5,1], k = 0
+
+Output: 2
+
+Explanation:
+
+The maximum length subsequence is [1,2,3,4,5,1].
+
+ 
+
+Constraints:
+
+1 <= nums.length <= 5 * 103
+1 <= nums[i] <= 109
+0 <= k <= min(50, nums.length)
+
+
+
+# java
+
+
+class Solution {
+    public int maximumLength(int[] nums, int k) {
+        int n = nums.length;
+        int[][] f = new int[n][k + 1];
+        Map<Integer, Integer>[] mp = new HashMap[k + 1];
+        Arrays.setAll(mp, i -> new HashMap<>());
+        int[][] g = new int[k + 1][3];
+        int ans = 0;
+        for (int i = 0; i < n; ++i) {
+            for (int h = 0; h <= k; ++h) {
+                f[i][h] = mp[h].getOrDefault(nums[i], 0);
+                if (h > 0) {
+                    if (g[h - 1][0] != nums[i]) {
+                        f[i][h] = Math.max(f[i][h], g[h - 1][1]);
+                    } else {
+                        f[i][h] = Math.max(f[i][h], g[h - 1][2]);
+                    }
+                }
+                ++f[i][h];
+                mp[h].merge(nums[i], f[i][h], Integer::max);
+                if (g[h][0] != nums[i]) {
+                    if (f[i][h] >= g[h][1]) {
+                        g[h][2] = g[h][1];
+                        g[h][1] = f[i][h];
+                        g[h][0] = nums[i];
+                    } else {
+                        g[h][2] = Math.max(g[h][2], f[i][h]);
+                    }
+                } else {
+                    g[h][1] = Math.max(g[h][1], f[i][h]);
+                }
+                ans = Math.max(ans, f[i][h]);
+            }
+        }
+        return ans;
+    }
+}
+
+
+
+or
+
+
+class Solution {
+  // Same as 3176. Find the Maximum Length of a Good Subsequence I
+  public int maximumLength(int[] nums, int k) {
+    // dp[count][num] := the maximum length of a good subsequence with at most
+    // `count` indices where seq[i] != seq[i + 1] and it ends in `num`.
+    Map<Integer, Integer>[] dp = new HashMap[k + 1];
+    // maxLen[count] := the maximum length of a good subsequence with `count`
+    // indices where seq[i] != seq[i + 1]
+    int[] maxLen = new int[k + 1];
+
+    for (int i = 0; i <= k; ++i)
+      dp[i] = new HashMap<>();
+
+    for (final int num : nums)
+      for (int count = k; count >= 0; --count) {
+        // Append `num` to the subsequence.
+        dp[count].merge(num, 1, Integer::sum);
+        if (count > 0)
+          dp[count].merge(num, maxLen[count - 1] + 1, Math::max);
+        maxLen[count] = Math.max(maxLen[count], dp[count].get(num));
+      }
+
+    return maxLen[k];
+  }
+}
