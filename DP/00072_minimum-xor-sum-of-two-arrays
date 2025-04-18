@@ -1,0 +1,92 @@
+https://leetcode.com/problems/minimum-xor-sum-of-two-arrays/description/
+
+
+1879. Minimum XOR Sum of Two Arrays
+Hard
+Topics
+Companies
+Hint
+You are given two integer arrays nums1 and nums2 of length n.
+
+The XOR sum of the two integer arrays is (nums1[0] XOR nums2[0]) + (nums1[1] XOR nums2[1]) + ... + (nums1[n - 1] XOR nums2[n - 1]) (0-indexed).
+
+For example, the XOR sum of [1,2,3] and [3,2,1] is equal to (1 XOR 3) + (2 XOR 2) + (3 XOR 1) = 2 + 0 + 2 = 4.
+Rearrange the elements of nums2 such that the resulting XOR sum is minimized.
+
+Return the XOR sum after the rearrangement.
+
+ 
+
+Example 1:
+
+Input: nums1 = [1,2], nums2 = [2,3]
+Output: 2
+Explanation: Rearrange nums2 so that it becomes [3,2].
+The XOR sum is (1 XOR 3) + (2 XOR 2) = 2 + 0 = 2.
+Example 2:
+
+Input: nums1 = [1,0,3], nums2 = [5,3,4]
+Output: 8
+Explanation: Rearrange nums2 so that it becomes [5,4,3]. 
+The XOR sum is (1 XOR 5) + (0 XOR 4) + (3 XOR 3) = 4 + 4 + 0 = 8.
+ 
+
+Constraints:
+
+n == nums1.length
+n == nums2.length
+1 <= n <= 14
+0 <= nums1[i], nums2[i] <= 107
+
+
+# java
+
+
+class Solution {
+  public int minimumXORSum(int[] nums1, int[] nums2) {
+    int[] mem = new int[1 << nums2.length];
+    Arrays.fill(mem, Integer.MAX_VALUE);
+    return minimumXORSum(nums1, nums2, 0, mem);
+  }
+
+  private int minimumXORSum(int[] nums1, int[] nums2, int mask, int[] mem) {
+    final int i = Integer.bitCount(mask);
+    if (i == nums1.length)
+      return 0;
+    if (mem[mask] < Integer.MAX_VALUE)
+      return mem[mask];
+
+    for (int j = 0; j < nums2.length; ++j)
+      if ((mask >> j & 1) == 0)
+        mem[mask] = Math.min(mem[mask], (nums1[i] ^ nums2[j]) +
+                                            minimumXORSum(nums1, nums2, mask | 1 << j, mem));
+
+    return mem[mask];
+  }
+}
+
+
+or
+
+
+class Solution {
+    public int minimumXORSum(int[] nums1, int[] nums2) {
+        int n = nums1.length;
+        int[][] f = new int[n + 1][1 << n];
+        for (var g : f) {
+            Arrays.fill(g, 1 << 30);
+        }
+        f[0][0] = 0;
+        for (int i = 1; i <= n; ++i) {
+            for (int j = 0; j < 1 << n; ++j) {
+                for (int k = 0; k < n; ++k) {
+                    if ((j >> k & 1) == 1) {
+                        f[i][j]
+                            = Math.min(f[i][j], f[i - 1][j ^ (1 << k)] + (nums1[i - 1] ^ nums2[k]));
+                    }
+                }
+            }
+        }
+        return f[n][(1 << n) - 1];
+    }
+}
