@@ -1,0 +1,127 @@
+https://leetcode.com/problems/count-stepping-numbers-in-range/description/
+
+2801. Count Stepping Numbers in Range
+Hard
+Topics
+Companies
+Hint
+Given two positive integers low and high represented as strings, find the count of stepping numbers in the inclusive range [low, high].
+
+A stepping number is an integer such that all of its adjacent digits have an absolute difference of exactly 1.
+
+Return an integer denoting the count of stepping numbers in the inclusive range [low, high].
+
+Since the answer may be very large, return it modulo 109 + 7.
+
+Note: A stepping number should not have a leading zero.
+
+ 
+
+Example 1:
+
+Input: low = "1", high = "11"
+Output: 10
+Explanation: The stepping numbers in the range [1,11] are 1, 2, 3, 4, 5, 6, 7, 8, 9 and 10. There are a total of 10 stepping numbers in the range. Hence, the output is 10.
+Example 2:
+
+Input: low = "90", high = "101"
+Output: 2
+Explanation: The stepping numbers in the range [90,101] are 98 and 101. There are a total of 2 stepping numbers in the range. Hence, the output is 2. 
+ 
+
+Constraints:
+
+1 <= int(low) <= int(high) < 10100
+1 <= low.length, high.length <= 100
+low and high consist of only digits.
+low and high don't have any leading zeros.
+
+# java
+
+
+class Solution {
+  public int countSteppingNumbers(String low, String high) {
+    final String lowWithLeadingZeros =
+        String.valueOf('0').repeat(high.length() - low.length()) + low;
+    Integer[][][][] mem = new Integer[high.length()][11][2][2];
+    return count(lowWithLeadingZeros, high, 0, 10, /*isLeadingZero=*/true, true, true, mem);
+  }
+
+  private static final int MOD = 1_000_000_007;
+
+  // Returns the number of valid integers, considering the i-th digit, where
+  // `prevDigit` is the previous digit, `tight1` indicates if the current
+  // digit is tightly bound for `low`, and `tight2` indicates if the current
+  // digit is tightly bound for `high`.
+  private int count(final String low, final String high, int i, int prevDigit,
+                    boolean isLeadingZero, boolean tight1, boolean tight2, Integer[][][][] mem) {
+    if (i == high.length())
+      return 1;
+    if (mem[i][prevDigit][tight1 ? 1 : 0][tight2 ? 1 : 0] != null)
+      return mem[i][prevDigit][tight1 ? 1 : 0][tight2 ? 1 : 0];
+
+    int res = 0;
+    final int minDigit = tight1 ? low.charAt(i) - '0' : 0;
+    final int maxDigit = tight2 ? high.charAt(i) - '0' : 9;
+
+    for (int d = minDigit; d <= maxDigit; ++d) {
+      final boolean nextTight1 = tight1 && (d == minDigit);
+      final boolean nextTight2 = tight2 && (d == maxDigit);
+      if (isLeadingZero)
+        // Can place any digit in [minDigit, maxDigit].
+        res += count(low, high, i + 1, d, isLeadingZero && d == 0, nextTight1, nextTight2, mem);
+      else if (Math.abs(d - prevDigit) == 1)
+        // Can only place prevDigit - 1 or prevDigit + 1.
+        res += count(low, high, i + 1, d, false, nextTight1, nextTight2, mem);
+      res %= MOD;
+    }
+
+    return mem[i][prevDigit][tight1 ? 1 : 0][tight2 ? 1 : 0] = res;
+  }
+}
+
+or
+
+
+import java.math.BigInteger;
+
+class Solution {
+    private final int mod = (int) 1e9 + 7;
+    private String num;
+    private Integer[][] f;
+
+    public int countSteppingNumbers(String low, String high) {
+        f = new Integer[high.length() + 1][10];
+        num = high;
+        int a = dfs(0, -1, true, true);
+        f = new Integer[high.length() + 1][10];
+        num = new BigInteger(low).subtract(BigInteger.ONE).toString();
+        int b = dfs(0, -1, true, true);
+        return (a - b + mod) % mod;
+    }
+
+    private int dfs(int pos, int pre, boolean lead, boolean limit) {
+        if (pos >= num.length()) {
+            return lead ? 0 : 1;
+        }
+        if (!lead && !limit && f[pos][pre] != null) {
+            return f[pos][pre];
+        }
+        int ans = 0;
+        int up = limit ? num.charAt(pos) - '0' : 9;
+        for (int i = 0; i <= up; ++i) {
+            if (i == 0 && lead) {
+                ans += dfs(pos + 1, pre, true, limit && i == up);
+            } else if (pre == -1 || Math.abs(pre - i) == 1) {
+                ans += dfs(pos + 1, i, false, limit && i == up);
+            }
+            ans %= mod;
+        }
+        if (!lead && !limit) {
+            f[pos][pre] = ans;
+        }
+        return ans;
+    }
+}
+
+
