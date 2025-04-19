@@ -1,0 +1,121 @@
+https://leetcode.com/problems/verbal-arithmetic-puzzle/description/
+
+1307. Verbal Arithmetic Puzzle
+Hard
+Topics
+Companies
+Hint
+Given an equation, represented by words on the left side and the result on the right side.
+
+You need to check if the equation is solvable under the following rules:
+
+Each character is decoded as one digit (0 - 9).
+No two characters can map to the same digit.
+Each words[i] and result are decoded as one number without leading zeros.
+Sum of numbers on the left side (words) will equal to the number on the right side (result).
+Return true if the equation is solvable, otherwise return false.
+
+ 
+
+Example 1:
+
+Input: words = ["SEND","MORE"], result = "MONEY"
+Output: true
+Explanation: Map 'S'-> 9, 'E'->5, 'N'->6, 'D'->7, 'M'->1, 'O'->0, 'R'->8, 'Y'->'2'
+Such that: "SEND" + "MORE" = "MONEY" ,  9567 + 1085 = 10652
+Example 2:
+
+Input: words = ["SIX","SEVEN","SEVEN"], result = "TWENTY"
+Output: true
+Explanation: Map 'S'-> 6, 'I'->5, 'X'->0, 'E'->8, 'V'->7, 'N'->2, 'T'->1, 'W'->'3', 'Y'->4
+Such that: "SIX" + "SEVEN" + "SEVEN" = "TWENTY" ,  650 + 68782 + 68782 = 138214
+Example 3:
+
+Input: words = ["LEET","CODE"], result = "POINT"
+Output: false
+Explanation: There is no possible mapping to satisfy the equation, so we return false.
+Note that two different characters cannot map to the same digit.
+ 
+
+Constraints:
+
+2 <= words.length <= 5
+1 <= words[i].length, result.length <= 7
+words[i], result contain only uppercase English letters.
+The number of different characters used in the expression is at most 10.
+
+
+# java
+
+class Solution {
+    public boolean isSolvable(String[] words, String result) {
+        Map<Character, Integer> letterDigitMap = new HashMap<Character, Integer>();
+        Set<Character> leadingSet = new HashSet<Character>();
+        int resultLength = result.length();
+        for (String word : words) {
+            if (word.length() > resultLength)
+                return false;
+            if (word.length() > 1)
+                leadingSet.add(word.charAt(0));
+        }
+        if (result.length() > 1)
+            leadingSet.add(result.charAt(0));
+        boolean[] used = new boolean[10];
+        int[] carry = new int[resultLength + 1];
+        return depthFirstSearch(words, result, letterDigitMap, leadingSet, used, carry, 0, 0);
+    }
+
+    public boolean depthFirstSearch(String[] words, String result, Map<Character, Integer> letterDigitMap, Set<Character> leadingSet, boolean[] used, int[] carry, int position, int wordIndex) {
+        if (position == result.length())
+            return carry[position] == 0;
+        else if (wordIndex < words.length) {
+            String word = words[wordIndex];
+            int wordLength = word.length();
+            if (wordLength <= position || letterDigitMap.containsKey(word.charAt(wordLength - position - 1)))
+                return depthFirstSearch(words, result, letterDigitMap, leadingSet, used, carry, position, wordIndex + 1);
+            else {
+                char letter = word.charAt(wordLength - position - 1);
+                int start = leadingSet.contains(letter) ? 1 : 0;
+                for (int i = start; i <= 9; i++) {
+                    if (!used[i]) {
+                        used[i] = true;
+                        letterDigitMap.put(letter, i);
+                        boolean next = depthFirstSearch(words, result, letterDigitMap, leadingSet, used, carry, position, wordIndex + 1);
+                        used[i] = false;
+                        letterDigitMap.remove(letter);
+                        if (next)
+                            return true;
+                    }
+                }
+            }
+            return false;
+        } else {
+            int remain = carry[position];
+            for (String word : words) {
+                if (word.length() > position) {
+                    char letter = word.charAt(word.length() - position - 1);
+                    remain += letterDigitMap.get(letter);
+                }
+            }
+            carry[position + 1] = remain / 10;
+            remain %= 10;
+            char letter = result.charAt(result.length() - position - 1);
+            if (letterDigitMap.containsKey(letter) && letterDigitMap.get(letter) == remain)
+                return depthFirstSearch(words, result, letterDigitMap, leadingSet, used, carry, position + 1, 0);
+            else if (!letterDigitMap.containsKey(letter) && !used[remain] && !(leadingSet.contains(letter) && remain == 0)) {
+                used[remain] = true;
+                letterDigitMap.put(letter, remain);
+                boolean next = depthFirstSearch(words, result, letterDigitMap, leadingSet, used, carry, position + 1, 0);
+                used[remain] = false;
+                letterDigitMap.remove(letter);
+                return next;
+            } else
+                return false;
+        }
+    }
+}
+
+
+or
+
+
