@@ -1,0 +1,625 @@
+https://leetcode.com/problems/alternating-groups-iii/description/
+
+
+3245. Alternating Groups III
+Hard
+Topics
+Companies
+Hint
+There are some red and blue tiles arranged circularly. You are given an array of integers colors and a 2D integers array queries.
+
+The color of tile i is represented by colors[i]:
+
+colors[i] == 0 means that tile i is red.
+colors[i] == 1 means that tile i is blue.
+An alternating group is a contiguous subset of tiles in the circle with alternating colors (each tile in the group except the first and last one has a different color from its adjacent tiles in the group).
+
+You have to process queries of two types:
+
+queries[i] = [1, sizei], determine the count of alternating groups with size sizei.
+queries[i] = [2, indexi, colori], change colors[indexi] to colori.
+Return an array answer containing the results of the queries of the first type in order.
+
+Note that since colors represents a circle, the first and the last tiles are considered to be next to each other.
+
+ 
+
+Example 1:
+
+Input: colors = [0,1,1,0,1], queries = [[2,1,0],[1,4]]
+
+Output: [2]
+
+Explanation:
+
+
+
+First query:
+
+Change colors[1] to 0.
+
+
+
+Second query:
+
+Count of the alternating groups with size 4:
+
+
+
+Example 2:
+
+Input: colors = [0,0,1,0,1,1], queries = [[1,3],[2,3,0],[1,5]]
+
+Output: [2,0]
+
+Explanation:
+
+
+
+First query:
+
+Count of the alternating groups with size 3:
+
+
+
+Second query: colors will not change.
+
+Third query: There is no alternating group with size 5.
+
+ 
+
+Constraints:
+
+4 <= colors.length <= 5 * 104
+0 <= colors[i] <= 1
+1 <= queries.length <= 5 * 104
+queries[i][0] == 1 or queries[i][0] == 2
+For all i that:
+queries[i][0] == 1: queries[i].length == 2, 3 <= queries[i][1] <= colors.length - 1
+queries[i][0] == 2: queries[i].length == 3, 0 <= queries[i][1] <= colors.length - 1, 0 <= queries[i][2] <= 1
+
+
+# java
+
+
+import java.util.*;
+
+class Solution {
+
+    public List<Integer> numberOfAlternatingGroups(int[] colors, int[][] queries) {
+        // Initialize Fenwick Trees for count and sum operations
+        NumArray count = new NumArray(new int[colors.length + 1]);
+        NumArray sum = new NumArray(new int[colors.length + 1]);
+
+        // TreeSet to keep track of indices where alternating groups start
+        TreeSet<Integer> set = new TreeSet<>();
+        
+        // Process initial colors to populate the TreeSet and Fenwick Trees
+        for (int i = 0; i < colors.length; i++) {
+            if (colors[i] == colors[(i + 1) % colors.length]) {
+                add(i, colors.length, set, count, sum);
+            }
+        }
+
+        ArrayList<Integer> list = new ArrayList<>();
+        
+        // Process each query
+        for (int[] query : queries) {
+            if (query[0] == 1) {
+                // Query type 1: Count the number of alternating groups of size query[1]
+                list.add(set.isEmpty() ? colors.length : 
+                    sum.sumRange(query[1], colors.length) - 
+                    (query[1] - 1) * count.sumRange(query[1], colors.length));
+            } else if (colors[query[1]] != query[2]) {
+                // Query type 2: Update the color at index query[1]
+                colors[query[1]] = query[2];
+                
+                // Update boundaries based on the change in color
+                if (query[2] == colors[(query[1] - 1 + colors.length) % colors.length]) {
+                    add((query[1] - 1 + colors.length) % colors.length, colors.length, set, count, sum);
+                } else {
+                    remove((query[1] - 1 + colors.length) % colors.length, colors.length, set, count, sum);
+                }
+                if (query[2] == colors[(query[1] + 1) % colors.length]) {
+                    add(query[1], colors.length, set, count, sum);
+                } else {
+                    remove(query[1], colors.length, set, count, sum);
+                }
+            }
+        }
+        return list;
+    }
+
+    private void add(int x, int n, TreeSet<Integer> set, NumArray count, NumArray sum) {
+        // Add a new boundary for an alternating group
+        set.add(x);
+        if (set.size() == 1) {
+            count.update(n, 1);
+            sum.update(n, n);
+        }
+        int prev = set.lower(x) == null ? set.last() : set.lower(x);
+        int next = set.higher(x) == null ? set.first() : set.higher(x);
+        
+        // Update Fenwick Trees
+        count.update(set.size() == 2 ? n : (next - prev + n) % n, -1);
+        sum.update(set.size() == 2 ? n : (next - prev + n) % n, set.size() == 2 ? -n : -(next - prev + n) % n);
+        count.update((x - prev + n) % n, 1);
+        sum.update((x - prev + n) % n, (x - prev + n) % n);
+        count.update((next - x + n) % n, 1);
+        sum.update((next - x + n) % n, (next - x + n) % n);
+    }
+
+    private void remove(int x, int n, TreeSet<Integer> set, NumArray count, NumArray sum) {
+        // Remove an existing boundary for an alternating group
+        if (set.size() == 1) {
+            count.update(n, -1);
+            sum.update(n, -n);
+        }
+        int prev = set.lower(x) == null ? set.last() : set.lower(x);
+        int next = set.higher(x) == null ? set.first() : set.higher(x);
+        
+        // Update Fenwick Trees
+        count.update(set.size() == 2 ? n : (next - prev + n) % n, 1);
+        sum.update(set.size() == 2 ? n : (next - prev + n) % n, set.size() == 2 ? n : (next - prev + n) % n);
+        count.update((x - prev + n) % n, -1);
+        sum.update((x - prev + n) % n, -(x - prev + n) % n);
+        count.update((next - x + n) % n, -1);
+        sum.update((next - x + n) % n, -(next - x + n) % n);
+        set.remove(x);
+    }
+
+    class NumArray {
+        private int[] tree;
+        private int[] nums;
+
+        public NumArray(int[] nums) {
+            this.tree = new int[nums.length + 1];
+            this.nums = nums;
+            for (int i = 0; i < nums.length; i++) {
+                add(i + 1, nums[i]);
+            }
+        }
+
+        public void update(int index, int val) {
+            add(index + 1, val);
+            nums[index] = val;
+        }
+
+        public int sumRange(int left, int right) {
+            return prefixSum(right + 1) - prefixSum(left);
+        }
+
+        private int lowBit(int x) {
+            return x & -x;
+        }
+
+        private void add(int index, int val) {
+            while (index < tree.length) {
+                tree[index] += val;
+                index += lowBit(index);
+            }
+        }
+
+        private int prefixSum(int index) {
+            int sum = 0;
+            while (index > 0) {
+                sum += tree[index];
+                index -= lowBit(index);
+            }
+            return sum;
+        }
+    }
+}
+
+
+or
+
+
+class Solution {
+    TreeMap<Integer, Integer> treeMap = new TreeMap<>(); // map[group_start] = len
+    Map<Integer, Integer> lengthCnt = new HashMap<>(); // map[group_len] = counter
+
+    public List<Integer> numberOfAlternatingGroups(int[] colors, int[][] queries) {
+        int n = colors.length;
+
+        // getting and indexing all alternating group starts
+        int start = 1;
+        while (start < n && colors[start] != colors[start - 1]) {
+            start++; // looking for a good first 'cut'
+        }
+        start = start % n;
+        int lastEnd = start;
+        for (int i = start; i < n;) {
+            int end = i + 1;
+            while (end - i < n && colors[end % n] != colors[(end + n - 1) % n]) {
+                end++; // max possible end-start len is N
+            }
+            addGroup(i, end - i);
+            i += end - i;
+            lastEnd = end % n;
+        }
+        if (lastEnd != start) { // the last group spans over the end of the array
+            addGroup(lastEnd, (start + n - lastEnd) % n);
+        }
+
+        List<Integer> result = new ArrayList<>();
+        for (int[] q : queries) {
+            if (q[0] == 1) { // count query
+                int size = q[1];
+                int cnt = 0;
+                for (int len : lengthCnt.keySet()) {
+                    int subGroups = len == n && isSingleCycle(treeMap.keySet().iterator().next(), len, colors) ?
+                        n /* == len -> any positions is a good group start */ :
+                        Math.max(1 + len - size, 0);
+                    cnt += subGroups * lengthCnt.get(len);
+                }
+                result.add(cnt);
+            } else { // update query
+                int updateIdx = q[1];
+                int newValue = q[2];
+                if (newValue == colors[updateIdx]) {
+                    continue; // nothing changes
+                }
+
+                updateValue(colors, updateIdx, newValue);
+            }
+        }
+        return result;
+    }
+
+    private void updateValue(int[] colors, int updateIdx, int newValue) {
+        int n = colors.length;
+
+        // cases: group split, groups merge
+        int groupStart = Objects.requireNonNullElse(treeMap.floorKey(updateIdx), treeMap.floorKey(updateIdx + n));
+        int groupLen = removeGroup(groupStart);
+        int groupEnd = (groupStart + groupLen) % n;
+
+        // 1) let's detach head & tail groups if any, so updateIdx becomes a 1-len group
+        int headStart = groupStart;
+        int headLen = (updateIdx + n - headStart) % n; // %n is safe here max len is n-1 here
+        int tailStart = (updateIdx + 1) % n;
+        int tailLen = (groupEnd + n - tailStart) % n; // ^ ... b/c updateLen == 1
+        if (isSingleCycle(groupStart, groupLen, colors)) {
+            addGroup(tailStart, n - 1);
+        } else {
+            if (headLen > 0) {
+                addGroup(headStart, headLen);
+            }
+            if (tailLen > 0) {
+                addGroup(tailStart, tailLen);
+            }
+        }
+
+        // 2) now we have a single missing cell - updatedCell, let's merge it with
+        // neighbours if possible
+        int newStart = updateIdx;
+        int newLen = 1;
+        int prevStart = Objects.requireNonNullElse(treeMap.floorKey(newStart), treeMap.floorKey(newStart + n));
+        int nextStart = Objects.requireNonNullElse(treeMap.ceilingKey(newStart), treeMap.ceilingKey(newStart - n));
+        colors[newStart] = newValue;
+        boolean nextJoined = false;
+        if ((newStart + 1) % n == nextStart && colors[newStart] != colors[nextStart]) {
+            // merging with the next group
+            newLen += removeGroup(nextStart);
+            nextJoined = true;
+        }
+        if ((prevStart != nextStart || !nextJoined) && colors[(newStart + n - 1) % n] != colors[newStart]) {
+            // merging with the previous group
+            newLen += removeGroup(prevStart);
+            newStart = prevStart;
+        }
+        addGroup(newStart, newLen);
+    }
+
+    private void addGroup(int start, int len) {
+        treeMap.put(start, len);
+        lengthCnt.compute(len, (k, v) -> (v != null ? v : 0) + 1);
+    }
+
+    private int removeGroup(int start) {
+        int len = treeMap.remove(start);
+        lengthCnt.compute(len, (k, v) -> v == 1 ? null : v - 1);
+        return len;
+    }
+
+    // checking if we have a single cycle of length N without any break point
+    private boolean isSingleCycle(int start, int len, int[] colors) {
+        int n = colors.length;
+        if (len == n) {
+            if (colors[start] != colors[(start + n - 1) % n]) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+
+
+or
+
+
+
+import java.util.AbstractList;
+import java.util.ArrayList;
+import java.util.List;
+
+class Solution {
+
+    public List<Integer> numberOfAlternatingGroups(int[] colors, int[][] queries) {
+        return new AbstractList<Integer>() {
+
+            private List<Integer> resultList;
+
+            private void initialize() {
+                resultList = new ArrayList<>();
+
+                int length = colors.length;
+                int[] adjustedColors = new int[2 * length];
+                for (int i = 0; i < 2 * length; i++) {
+                    adjustedColors[i] = colors[i % length] ^ (i % 2 == 0 ? 0 : 1);
+                }
+
+                BitSet bitSet = new BitSet(2 * length + 3);
+                for (int i = 1; i < 2 * length; i++) {
+                    if (adjustedColors[i] != adjustedColors[i - 1]) {
+                        bitSet.set(i);
+                    }
+                }
+
+                int[] frequency = new int[2 * length + 1];
+                BitSet frequencySet = new BitSet(2 * length + 1);
+                for (int i = 0; i < length; i++) {
+                    if (bitSet.get(i)) {
+                        int nextIndex = bitSet.next(i + 1);
+                        if (nextIndex == -1) {
+                            nextIndex = 2 * length;
+                        }
+                        frequency[nextIndex - i]++;
+                        frequencySet.set(nextIndex - i);
+                    }
+                }
+
+                for (int[] query : queries) {
+                    if (query[0] == 1) {
+                        if (bitSet.next(0) == -1) {
+                            resultList.add(length);
+                        } else {
+                            int count = 0;
+                            for (int i = frequencySet.next(query[1]); i != -1; i = frequencySet.next(i + 1)) {
+                                count += (i - query[1] + 1) * frequency[i];
+                            }
+                            if (adjustedColors[2 * length - 1] != adjustedColors[0]) {
+                                int firstIndex = bitSet.next(0);
+                                if (firstIndex >= query[1]) {
+                                    count += (firstIndex - query[1] + 1);
+                                }
+                            }
+
+                            resultList.add(count);
+                        }
+                    } else {
+                        int index = query[1];
+                        int newValue = query[2];
+                        if (colors[index] == newValue) {
+                            continue;
+                        }
+                        colors[index] ^= 1;
+                        update(index, bitSet, frequency, length, frequencySet, adjustedColors);
+                        update(index + length, bitSet, frequency, length, frequencySet, adjustedColors);
+                    }
+                }
+            }
+
+            private void update(int index, BitSet bitSet, int[] frequency, int length, BitSet frequencySet, int[] adjustedColors) {
+                if (index > 0) {
+                    int previousIndex = bitSet.prev(index - 1);
+                    int nextIndex = bitSet.next(previousIndex + 1);
+                    if (nextIndex == -1) {
+                        nextIndex = 2 * length;
+                    }
+                    if (previousIndex != -1 && previousIndex < length && --frequency[nextIndex - previousIndex] == 0) {
+                        frequencySet.unset(nextIndex - previousIndex);
+                    }
+                }
+                if (bitSet.get(index)) {
+                    int previousIndex = index;
+                    int nextIndex = bitSet.next(index + 1);
+                    if (nextIndex == -1) {
+                        nextIndex = 2 * length;
+                    }
+                    if (previousIndex != -1 && previousIndex < length && --frequency[nextIndex - previousIndex] == 0) {
+                        frequencySet.unset(nextIndex - previousIndex);
+                    }
+                }
+                if (bitSet.get(index + 1)) {
+                    int previousIndex = index + 1;
+                    int nextIndex = bitSet.next(index + 2);
+                    if (nextIndex == -1)
+                        nextIndex = 2 * length;
+                    if (previousIndex != -1 && previousIndex < length && --frequency[nextIndex - previousIndex] == 0) {
+                        frequencySet.unset(nextIndex - previousIndex);
+                    }
+                }
+                bitSet.unset(index);
+                bitSet.unset(index + 1);
+                adjustedColors[index] ^= 1;
+                if (index > 0 && adjustedColors[index] != adjustedColors[index - 1]) {
+                    bitSet.set(index);
+                }
+                if (index + 1 < adjustedColors.length && adjustedColors[index + 1] != adjustedColors[index]) {
+                    bitSet.set(index + 1);
+                }
+
+                if (index > 0) {
+                    int previousIndex = bitSet.prev(index - 1);
+                    int nextIndex = bitSet.next(previousIndex + 1);
+                    if (nextIndex == -1)
+                        nextIndex = 2 * length;
+                    if (previousIndex != -1 && previousIndex < length && ++frequency[nextIndex - previousIndex] == 1) {
+                        frequencySet.set(nextIndex - previousIndex);
+                    }
+                }
+                if (bitSet.get(index)) {
+                    int previousIndex = index;
+                    int nextIndex = bitSet.next(index + 1);
+                    if (nextIndex == -1)
+                        nextIndex = 2 * length;
+                    if (previousIndex != -1 && previousIndex < length && ++frequency[nextIndex - previousIndex] == 1) {
+                        frequencySet.set(nextIndex - previousIndex);
+                    }
+                }
+                if (bitSet.get(index + 1)) {
+                    int previousIndex = index + 1;
+                    int nextIndex = bitSet.next(index + 2);
+                    if (nextIndex == -1)
+                        nextIndex = 2 * length;
+                    if (previousIndex != -1 && previousIndex < length && ++frequency[nextIndex - previousIndex] == 1) {
+                        frequencySet.set(nextIndex - previousIndex);
+                    }
+                }
+            }
+
+            private void init() {
+                if (resultList == null) {
+                    initialize();
+                    System.gc();
+                }
+            }
+
+            @Override
+            public Integer get(int index) {
+                init();
+                return resultList.get(index);
+            }
+
+            @Override
+            public int size() {
+                init();
+                return resultList.size();
+            }
+
+        };
+
+    }
+
+    public static class BitSet {
+        private long[][] set;
+        private int size;
+
+        public BitSet(int size) {
+            this.size = size;
+            int depth = 1;
+            for (int m = size; m > 1; m >>>= 6, depth++)
+                ;
+
+            set = new long[depth][];
+            for (int i = 0, m = size >>> 6; i < depth; i++, m >>>= 6) {
+                set[i] = new long[m + 1];
+            }
+        }
+
+        public BitSet setRange(int range) {
+            for (int i = 0; i < set.length; i++, range = range + 63 >>> 6) {
+                for (int j = 0; j < range >>> 6; j++) {
+                    set[i][j] = -1L;
+                }
+                if ((range & 63) != 0) {
+                    set[i][range >>> 6] |= (1L << range) - 1;
+                }
+            }
+            return this;
+        }
+
+        public BitSet unsetRange(int range) {
+            if (range >= 0) {
+                for (int i = 0; i < set.length; i++, range = range + 63 >>> 6) {
+                    for (int j = 0; j < range + 63 >>> 6; j++) {
+                        set[i][j] = 0;
+                    }
+                    if ((range & 63) != 0) {
+                        set[i][range >>> 6] &= -(1L << range);
+                    }
+                }
+            }
+            return this;
+        }
+
+        public BitSet set(int position) {
+            if (position >= 0 && position < size) {
+                for (int i = 0; i < set.length; i++, position >>>= 6) {
+                    set[i][position >>> 6] |= 1L << position;
+                }
+            }
+            return this;
+        }
+
+        public BitSet unset(int position) {
+            if (position >= 0 && position < size) {
+                for (int i = 0; i < set.length && (i == 0 || set[i - 1][position] == 0L); i++, position >>>= 6) {
+                    set[i][position >>> 6] &= ~(1L << position);
+                }
+            }
+            return this;
+        }
+
+        public boolean get(int position) {
+            return position >= 0 && position < size && set[0][position >>> 6] << ~position < 0;
+        }
+
+        public BitSet toggle(int position) {
+            return get(position) ? unset(position) : set(position);
+        }
+
+        public int prev(int position) {
+            for (int i = 0; i < set.length && position >= 0; i++, position >>>= 6, position--) {
+                int previous = prev(set[i][position >>> 6], position & 63);
+                if (previous != -1) {
+                    position = position >>> 6 << 6 | previous;
+                    while (i > 0)
+                        position = position << 6 | 63 - Long.numberOfLeadingZeros(set[--i][position]);
+                    return position;
+                }
+            }
+            return -1;
+        }
+
+        public int next(int position) {
+            for (int i = 0; i < set.length && position >>> 6 < set[i].length; i++, position >>>= 6, position++) {
+                int next = next(set[i][position >>> 6], position & 63);
+                if (next != -1) {
+                    position = position >>> 6 << 6 | next;
+                    while (i > 0)
+                        position = position << 6 | Long.numberOfTrailingZeros(set[--i][position]);
+                    return position;
+                }
+            }
+            return -1;
+        }
+
+        private static int prev(long set, int n) {
+            long h = set << ~n;
+            if (h == 0L) {
+                return -1;
+            }
+            return -Long.numberOfLeadingZeros(h) + n;
+        }
+
+        private static int next(long set, int n) {
+            long h = set >>> n;
+            if (h == 0L) {
+                return -1;
+            }
+            return Long.numberOfTrailingZeros(h) + n;
+        }
+
+        @Override
+        public String toString() {
+            List<Integer> list = new ArrayList<>();
+            for (int pos = next(0); pos != -1; pos = next(pos + 1)) {
+                list.add(pos);
+            }
+            return list.toString();
+        }
+    }
+}
