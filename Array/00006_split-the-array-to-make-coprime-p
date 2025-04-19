@@ -1,0 +1,135 @@
+https://leetcode.com/problems/split-the-array-to-make-coprime-products/description/
+
+
+2584. Split the Array to Make Coprime Products
+Hard
+Topics
+Companies
+Hint
+You are given a 0-indexed integer array nums of length n.
+
+A split at an index i where 0 <= i <= n - 2 is called valid if the product of the first i + 1 elements and the product of the remaining elements are coprime.
+
+For example, if nums = [2, 3, 3], then a split at the index i = 0 is valid because 2 and 9 are coprime, while a split at the index i = 1 is not valid because 6 and 3 are not coprime. A split at the index i = 2 is not valid because i == n - 1.
+Return the smallest index i at which the array can be split validly or -1 if there is no such split.
+
+Two values val1 and val2 are coprime if gcd(val1, val2) == 1 where gcd(val1, val2) is the greatest common divisor of val1 and val2.
+
+ 
+
+Example 1:
+
+
+Input: nums = [4,7,8,15,3,5]
+Output: 2
+Explanation: The table above shows the values of the product of the first i + 1 elements, the remaining elements, and their gcd at each index i.
+The only valid split is at index 2.
+Example 2:
+
+
+Input: nums = [4,7,15,8,3,5]
+Output: -1
+Explanation: The table above shows the values of the product of the first i + 1 elements, the remaining elements, and their gcd at each index i.
+There is no valid split.
+ 
+
+Constraints:
+
+n == nums.length
+1 <= n <= 104
+1 <= nums[i] <= 106
+
+
+
+# java
+
+
+class Solution {
+    public int findValidSplit(int[] nums) {
+        Map<Integer, Integer> first = new HashMap<>();
+        int n = nums.length;
+        int[] last = new int[n];
+        for (int i = 0; i < n; ++i) {
+            last[i] = i;
+        }
+        for (int i = 0; i < n; ++i) {
+            int x = nums[i];
+            for (int j = 2; j <= x / j; ++j) {
+                if (x % j == 0) {
+                    if (first.containsKey(j)) {
+                        last[first.get(j)] = i;
+                    } else {
+                        first.put(j, i);
+                    }
+                    while (x % j == 0) {
+                        x /= j;
+                    }
+                }
+            }
+            if (x > 1) {
+                if (first.containsKey(x)) {
+                    last[first.get(x)] = i;
+                } else {
+                    first.put(x, i);
+                }
+            }
+        }
+        int mx = last[0];
+        for (int i = 0; i < n; ++i) {
+            if (mx < i) {
+                return mx;
+            }
+            mx = Math.max(mx, last[i]);
+        }
+        return -1;
+    }
+}
+
+
+or
+
+
+class Solution {
+  public int findValidSplit(int[] nums) {
+    Map<Integer, Integer> leftPrimeFactors = new HashMap<>();
+    Map<Integer, Integer> rightPrimeFactors = new HashMap<>();
+
+    for (final int num : nums)
+      for (final int primeFactor : getPrimeFactors(num))
+        rightPrimeFactors.merge(primeFactor, 1, Integer::sum);
+
+    for (int i = 0; i < nums.length - 1; ++i) {
+      for (final int primeFactor : getPrimeFactors(nums[i])) {
+        rightPrimeFactors.merge(primeFactor, -1, Integer::sum);
+        if (rightPrimeFactors.get(primeFactor) == 0) {
+          // rightPrimeFactors[primeFactor] == 0, so no need to track
+          // leftPrimeFactors[primeFactor].
+          rightPrimeFactors.remove(primeFactor);
+          leftPrimeFactors.remove(primeFactor);
+        } else {
+          // Otherwise, need to track leftPrimeFactors[primeFactor].
+          leftPrimeFactors.merge(primeFactor, 1, Integer::sum);
+        }
+      }
+      if (leftPrimeFactors.isEmpty())
+        return i;
+    }
+
+    return -1;
+  }
+
+  // Gets the prime factors under sqrt(10^6).
+  private List<Integer> getPrimeFactors(int num) {
+    List<Integer> primeFactors = new ArrayList<>();
+    for (int divisor = 2; divisor <= Math.min(1000, num); ++divisor)
+      if (num % divisor == 0) {
+        primeFactors.add(divisor);
+        while (num % divisor == 0)
+          num /= divisor;
+      }
+    // Handle the case that `num` contains a prime factor > 1000.
+    if (num > 1)
+      primeFactors.add(num);
+    return primeFactors;
+  }
+}
