@@ -1,0 +1,110 @@
+https://leetcode.com/problems/count-array-pairs-divisible-by-k/description/
+
+2183. Count Array Pairs Divisible by K
+Hard
+Topics
+Companies
+Hint
+Given a 0-indexed integer array nums of length n and an integer k, return the number of pairs (i, j) such that:
+
+0 <= i < j <= n - 1 and
+nums[i] * nums[j] is divisible by k.
+ 
+
+Example 1:
+
+Input: nums = [1,2,3,4,5], k = 2
+Output: 7
+Explanation: 
+The 7 pairs of indices whose corresponding products are divisible by 2 are
+(0, 1), (0, 3), (1, 2), (1, 3), (1, 4), (2, 3), and (3, 4).
+Their products are 2, 4, 6, 8, 10, 12, and 20 respectively.
+Other pairs such as (0, 2) and (2, 4) have products 3 and 15 respectively, which are not divisible by 2.    
+Example 2:
+
+Input: nums = [1,2,3,4], k = 5
+Output: 0
+Explanation: There does not exist any pair of indices whose corresponding product is divisible by 5.
+ 
+
+Constraints:
+
+1 <= nums.length <= 105
+1 <= nums[i], k <= 105
+
+
+# java
+
+class Solution {
+  public long countPairs(int[] nums, int k) {
+    long ans = 0;
+    Map<Integer, Integer> gcds = new HashMap<>();
+
+    for (final int num : nums) {
+      final int gcd_i = gcd(num, k);
+      for (final int gcd_j : gcds.keySet())
+        if ((long) gcd_i * gcd_j % k == 0)
+          ans += gcds.get(gcd_j);
+      gcds.merge(gcd_i, 1, Integer::sum);
+    }
+
+    return ans;
+  }
+
+  private int gcd(int a, int b) {
+    return b == 0 ? a : gcd(b, a % b);
+  }
+}
+
+
+or
+
+
+class Solution {
+    public int gcd(int a,int b){
+        if(b==0)return a;
+        return gcd(b,a%b);
+    }
+    public long countPairs(int[] nums, int k) {
+        long count=0;
+        int n = nums.length;
+        HashMap<Integer,Integer> hm = new HashMap<>();
+        for(int i:nums){
+            int gcdnum= gcd(i,k);
+            for(Map.Entry<Integer,Integer> entry : hm.entrySet()){
+                if(((long)gcdnum*entry.getKey())%k==0){
+                    count+=entry.getValue();
+                }
+            }
+            hm.put(gcdnum,hm.getOrDefault(gcdnum,0)+1);
+        }
+        return count;
+    }
+}
+
+
+or
+
+
+
+class Solution {
+    public long countPairs(int[] nums, int k) {
+       HashMap<Integer,Long> map = new HashMap<>();
+       long ans = 0L;
+       for(int i=0;i<nums.length;i++){
+           int gcd = gcd(nums[i],k);
+           for(Map.Entry<Integer,Long> e : map.entrySet()){
+               long num = (long)e.getKey()*(long)gcd;
+               if(num%(long)k==0L)
+                   ans+=e.getValue();
+           }
+           map.put(gcd,map.getOrDefault(gcd,0L)+1L);
+       }
+        return ans;
+    }
+    public int gcd(int a,int b){
+        if(b==0)
+            return a;
+        return gcd(b,a%b);
+    }
+}
