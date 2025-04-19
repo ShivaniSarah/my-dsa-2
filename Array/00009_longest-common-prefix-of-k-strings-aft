@@ -1,0 +1,434 @@
+https://leetcode.com/problems/longest-common-prefix-of-k-strings-after-removal/description/
+
+
+3485. Longest Common Prefix of K Strings After Removal
+Hard
+Topics
+Companies
+Hint
+You are given an array of strings words and an integer k.
+
+For each index i in the range [0, words.length - 1], find the length of the longest common prefix among any k strings (selected at distinct indices) from the remaining array after removing the ith element.
+
+Return an array answer, where answer[i] is the answer for ith element. If removing the ith element leaves the array with fewer than k strings, answer[i] is 0.
+
+ 
+
+Example 1:
+
+Input: words = ["jump","run","run","jump","run"], k = 2
+
+Output: [3,4,4,3,4]
+
+Explanation:
+
+Removing index 0 ("jump"):
+words becomes: ["run", "run", "jump", "run"]. "run" occurs 3 times. Choosing any two gives the longest common prefix "run" (length 3).
+Removing index 1 ("run"):
+words becomes: ["jump", "run", "jump", "run"]. "jump" occurs twice. Choosing these two gives the longest common prefix "jump" (length 4).
+Removing index 2 ("run"):
+words becomes: ["jump", "run", "jump", "run"]. "jump" occurs twice. Choosing these two gives the longest common prefix "jump" (length 4).
+Removing index 3 ("jump"):
+words becomes: ["jump", "run", "run", "run"]. "run" occurs 3 times. Choosing any two gives the longest common prefix "run" (length 3).
+Removing index 4 ("run"):
+words becomes: ["jump", "run", "run", "jump"]. "jump" occurs twice. Choosing these two gives the longest common prefix "jump" (length 4).
+Example 2:
+
+Input: words = ["dog","racer","car"], k = 2
+
+Output: [0,0,0]
+
+Explanation:
+
+Removing any index results in an answer of 0.
+ 
+
+Constraints:
+
+1 <= k <= words.length <= 105
+1 <= words[i].length <= 104
+words[i] consists of lowercase English letters.
+The sum of words[i].length is smaller than or equal 105.
+
+
+# java
+
+class TrieNode {
+  public TrieNode[] children = new TrieNode[26];
+  public int count = 0;
+}
+
+class Trie {
+  public Trie(int k) {
+    this.k = k;
+  }
+
+  public void insert(final String word) {
+    TrieNode node = root;
+    for (int i = 0; i < word.length(); ++i) {
+      final int sz = i + 1;
+      final int index = word.charAt(i) - 'a';
+      if (node.children[index] == null)
+        node.children[index] = new TrieNode();
+      node = node.children[index];
+      ++node.count;
+      if (node.count >= k && prefixLengthsCount.merge(sz, 1, Integer::sum) == 1)
+        prefixLengths.add(sz);
+    }
+  }
+
+  public void erase(final String word) {
+    TrieNode node = root;
+    for (int i = 0; i < word.length(); ++i) {
+      final int sz = i + 1;
+      final int index = word.charAt(i) - 'a';
+      if (node.children[index] == null)
+        node.children[index] = new TrieNode();
+      node = node.children[index];
+      if (node.count == k && prefixLengthsCount.merge(sz, -1, Integer::sum) == 0)
+        prefixLengths.remove(sz);
+      --node.count;
+    }
+  }
+
+  public int getLongestCommonPrefix() {
+    return prefixLengths.isEmpty() ? 0 : prefixLengths.first();
+  }
+
+  private final int k;
+  private TrieNode root = new TrieNode();
+  private Map<Integer, Integer> prefixLengthsCount = new HashMap<>();
+  private TreeSet<Integer> prefixLengths = new TreeSet<>(Collections.reverseOrder());
+}
+
+class Solution {
+  public int[] longestCommonPrefix(String[] words, int k) {
+    final int[] ans = new int[words.length];
+    Trie trie = new Trie(k);
+
+    for (final String word : words)
+      trie.insert(word);
+
+    for (int i = 0; i < words.length; ++i) {
+      trie.erase(words[i]);
+      ans[i] = trie.getLongestCommonPrefix();
+      trie.insert(words[i]);
+    }
+
+    return ans;
+  }
+}
+
+or
+
+class Solution {
+    static class TrieNode {
+        int count = 0;
+        int depth = 0;
+        int[] children = new int[26];
+
+        TrieNode() {
+            for (int i = 0; i < 26; ++i) children[i] = -1;
+        }
+    }
+
+    static class SegmentTree {
+        int n;
+        int[] tree;
+        int[] globalCount;
+
+        SegmentTree(int n, int[] globalCount) {
+            this.n = n;
+            this.globalCount = globalCount;
+            this.tree = new int[4 * (n + 1)];
+            for (int i = 0; i < tree.length; i++) tree[i] = -1;
+            build(1, 1, n);
+        }
+
+        void build(int idx, int l, int r) {
+            if (l == r) {
+                tree[idx] = globalCount[l] > 0 ? l : -1;
+                return;
+            }
+            int mid = (l + r) / 2;
+            build(idx * 2, l, mid);
+            build(idx * 2 + 1, mid + 1, r);
+            tree[idx] = Math.max(tree[idx * 2], tree[idx * 2 + 1]);
+        }
+
+        void update(int idx, int l, int r, int pos, int newVal) {
+            if (l == r) {
+                tree[idx] = newVal > 0 ? l : -1;
+                return;
+            }
+            int mid = (l + r) / 2;
+            if (pos <= mid) {
+                update(idx * 2, l, mid, pos, newVal);
+            } else {
+                update(idx * 2 + 1, mid + 1, r, pos, newVal);
+            }
+            tree[idx] = Math.max(tree[idx * 2], tree[idx * 2 + 1]);
+        }
+
+        int query() {
+            return tree[1];
+        }
+    }
+
+    public int[] longestCommonPrefix(String[] words, int k) {
+        int n = words.length;
+        int[] ans = new int[n];
+        if (n - 1 < k) return ans;
+
+        ArrayList<TrieNode> trie = new ArrayList<>();
+        trie.add(new TrieNode());
+
+        for (String word : words) {
+            int cur = 0;
+            for (char c : word.toCharArray()) {
+                int idx = c - 'a';
+                if (trie.get(cur).children[idx] == -1) {
+                    trie.get(cur).children[idx] = trie.size();
+                    TrieNode node = new TrieNode();
+                    node.depth = trie.get(cur).depth + 1;
+                    trie.add(node);
+                }
+                cur = trie.get(cur).children[idx];
+                trie.get(cur).count++;
+            }
+        }
+
+        int maxDepth = 0;
+        for (int i = 1; i < trie.size(); ++i) {
+            if (trie.get(i).count >= k) {
+                maxDepth = Math.max(maxDepth, trie.get(i).depth);
+            }
+        }
+
+        int[] globalCount = new int[maxDepth + 1];
+        for (int i = 1; i < trie.size(); ++i) {
+            TrieNode node = trie.get(i);
+            if (node.count >= k && node.depth <= maxDepth) {
+                globalCount[node.depth]++;
+            }
+        }
+
+        List<List<Integer>> fragileList = new ArrayList<>();
+        for (int i = 0; i < n; ++i) {
+            fragileList.add(new ArrayList<>());
+        }
+
+        for (int i = 0; i < n; ++i) {
+            int cur = 0;
+            for (char c : words[i].toCharArray()) {
+                int idx = c - 'a';
+                cur = trie.get(cur).children[idx];
+                if (trie.get(cur).count == k) {
+                    fragileList.get(i).add(trie.get(cur).depth);
+                }
+            }
+        }
+
+        int segSize = maxDepth;
+        if (segSize >= 1) {
+            SegmentTree segTree = new SegmentTree(segSize, globalCount);
+            for (int i = 0; i < n; ++i) {
+                if (n - 1 < k) {
+                    ans[i] = 0;
+                } else {
+                    for (int d : fragileList.get(i)) {
+                        segTree.update(1, 1, segSize, d, globalCount[d] - 1);
+                    }
+                    int res = segTree.query();
+                    ans[i] = res == -1 ? 0 : res;
+                    for (int d : fragileList.get(i)) {
+                        segTree.update(1, 1, segSize, d, globalCount[d]);
+                    }
+                }
+            }
+        }
+
+        return ans;
+    }
+}
+
+or
+
+
+class Solution {
+    static final long BASE = 131L;
+    public int[] longestCommonPrefix(String[] words, int k) {
+        int n = words.length;
+        int[] ans = new int[n];
+        int mxLen = 0;
+        for (String word : words) {
+            mxLen = Math.max(mxLen, word.length());
+        }
+
+        Map<Long, Integer>[] freq = new Map[mxLen+1];
+        for (int i = 0; i <= mxLen; i++) freq[i] = new HashMap<>();
+        for (String word : words) {
+            long hash = 0;
+            for (int i = 0; i < word.length(); i++) {
+                hash = hash * BASE + (word.charAt(i) - 'a' + 1);
+                int d = i+1;
+                freq[d].put(hash, freq[d].getOrDefault(hash, 0) + 1);
+            }
+        }
+        int[] bestFreq = new int[mxLen+1];
+        int[] secFreq = new int[mxLen+1];
+        long[] bestHash = new long[mxLen+1];
+        for (int d = 1; d <= mxLen; d++) {
+            for (Map.Entry<Long, Integer> entry : freq[d].entrySet()) {
+                int f = entry.getValue();
+                long h = entry.getKey();
+                if (f > bestFreq[d]) {
+                    secFreq[d] = bestFreq[d];
+                    bestFreq[d] = f;
+                    bestHash[d] = h;
+                } else if (f > secFreq[d]) {
+                    secFreq[d] = f;
+                }
+            }
+        }
+        long[][] prefixHashes = new long[n][];
+        for (int i = 0; i < n; i++) {
+            String word = words[i];
+            int len = word.length();
+            prefixHashes[i] = new long[len+1];
+            for (int j = 0; j < len; j++) {
+                prefixHashes[i][j+1] = prefixHashes[i][j] * BASE + (word.charAt(j) - 'a' + 1);
+            }
+        }
+        for (int i = 0; i < n; i++) {
+            String word = words[i];
+            int len = word.length();
+            int lo = 0, hi = mxLen+1;
+            while (lo + 1 < hi) {
+                int mid = (lo + hi) / 2;
+                int cur;
+                if (mid <= len && prefixHashes[i][mid] == bestHash[mid])
+                    cur = Math.max(bestFreq[mid] - 1, secFreq[mid]);
+                else
+                    cur = bestFreq[mid];
+                if (cur < k) hi = mid;
+                else lo = mid;
+            }
+            ans[i] = lo;
+        }
+        return ans;
+    }
+}
+
+
+or
+
+
+class Solution {
+    public int[] longestCommonPrefix(String[] words, int k) {
+        int n = words.length;
+        int[] ans = new int[n];
+        Trie t = new Trie();
+        for(int i=1 ; i<n ; i++)
+            t.add(0, t.root, k, words[i]);
+        
+        ans[0] = t.findMax();
+        for(int i=1 ; i<n ; i++) {
+            t.add(0, t.root, k, words[i-1]);
+            t.remove(0, t.root, k, words[i]);
+            ans[i] = t.findMax();
+        }
+        return ans;
+    }
+}
+class Trie {
+    Node root;
+    Trie() {
+        root = new Node();
+    }
+    void add(int i, Node node, int k, String s) {
+        if(i==s.length()) return;
+        int ch = s.charAt(i)-'a';
+        if(node.contains(ch))
+            node.get(ch).increamentHits();
+        else
+            node.put(ch);
+
+        node = node.get(ch);
+        add(i+1, node, k, s);
+        if(node.getHits()>=k) {
+            int max = 0;
+            for(int idx=0 ; idx<26 ; idx++)
+                if(node.contains(idx))
+                    max = Math.max(max, node.get(idx).getPrefixLen());
+            node.setPrefixLen(1+max);
+        }
+    }
+    void remove(int i, Node node, int k, String s) {
+        if(i==s.length()) return;
+        int ch = s.charAt(i)-'a';
+        
+        remove(i+1, node.get(ch), k, s);
+        node.get(ch).decreamentHits();
+
+        Node nxtNode = node.get(ch);
+        if(nxtNode.getHits()>=k) {
+            int max = 0;
+            for(int idx=0 ; idx<26 ; idx++)
+                if(nxtNode.contains(idx))
+                    max = Math.max(max, nxtNode.get(idx).getPrefixLen());
+            nxtNode.setPrefixLen(1+max);
+        }
+        else
+            nxtNode.setPrefixLen(0);
+        
+        if(node.get(ch).getHits()==0)
+            node.remove(ch);
+    }
+    int findMax() {
+        Node node = root;
+        int maxLen = 0;
+        for(int i=0 ; i<26 ; i++)
+            if(node.contains(i))
+                maxLen = Math.max(maxLen, node.get(i).getPrefixLen());
+        return maxLen;
+    }
+}
+
+class Node {
+    Node[] al;
+    int hits;
+    int prefixLen;
+    Node() {
+        al = new Node[26];
+        hits = 1;
+        prefixLen = 0;
+    }
+    boolean contains(int ch) {
+        return al[ch]!=null;
+    }
+    Node get(int ch) {
+        return al[ch];
+    }
+    void put(int ch) {
+        al[ch] = new Node();
+    }
+    int getHits() {
+        return this.hits;
+    }
+    void increamentHits() {
+        this.hits++;
+    }
+    void decreamentHits() {
+        this.hits--;
+    }
+    void remove(int ch) {
+        al[ch] = null;
+    }
+    void setPrefixLen(int len) {
+        this.prefixLen = len;
+    }
+    int getPrefixLen() {
+        return this.prefixLen;
+    }
+}
