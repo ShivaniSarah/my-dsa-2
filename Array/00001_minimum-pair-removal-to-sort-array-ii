@@ -196,3 +196,64 @@ class Solution {
         return count;
     }
 }
+
+
+or
+
+
+
+import java.util.*;
+
+public class Solution {
+    public int minimumPairRemoval(int[] nums) {
+        int n = nums.length;
+        long[] a = new long[n];
+        for (int i = 0; i < n; i++) a[i] = nums[i];
+
+        int[] nxt = new int[n], pre = new int[n];
+        for (int i = 0; i < n; i++) {
+            nxt[i] = i + 1;
+            pre[i] = i - 1;
+        }
+
+        PriorityQueue<long[]> pq = new PriorityQueue<>(Comparator.comparingLong(x -> x[0]));
+        int cnt = 0;
+
+        for (int i = 0; i < n - 1; i++) {
+            if (a[i] > a[i + 1]) cnt++;
+            pq.offer(new long[]{a[i] + a[i + 1], i});
+        }
+
+        int ans = 0;
+
+        while (cnt > 0 && !pq.isEmpty()) {
+            long[] top = pq.poll();
+            int i = (int) top[1], j = nxt[i];
+            if (j >= n || a[i] <= a[j]) continue;
+
+            int p = pre[i], q = nxt[j];
+
+            if (a[i] > a[j]) cnt--;
+
+            if (p >= 0) {
+                if (a[p] > a[i] && a[p] <= a[i] + a[j]) cnt--;
+                else if (a[p] <= a[i] && a[p] > a[i] + a[j]) cnt++;
+            }
+            if (q < n) {
+                if (a[q] >= a[j] && a[q] < a[i] + a[j]) cnt++;
+                else if (a[q] < a[j] && a[q] >= a[i] + a[j]) cnt--;
+            }
+
+            a[i] += a[j];
+            nxt[i] = q;
+            if (q < n) pre[q] = i;
+
+            if (p >= 0) pq.offer(new long[]{a[p] + a[i], p});
+            if (q < n) pq.offer(new long[]{a[i] + a[q], i});
+
+            ans++;
+        }
+
+        return ans;
+    }
+}
