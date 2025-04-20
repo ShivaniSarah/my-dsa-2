@@ -1,0 +1,211 @@
+https://leetcode.com/problems/maximum-product-of-the-length-of-two-palindromic-substrings/description/
+
+
+1960. Maximum Product of the Length of Two Palindromic Substrings
+Hard
+Topics
+Companies
+Hint
+You are given a 0-indexed string s and are tasked with finding two non-intersecting palindromic substrings of odd length such that the product of their lengths is maximized.
+
+More formally, you want to choose four integers i, j, k, l such that 0 <= i <= j < k <= l < s.length and both the substrings s[i...j] and s[k...l] are palindromes and have odd lengths. s[i...j] denotes a substring from index i to index j inclusive.
+
+Return the maximum possible product of the lengths of the two non-intersecting palindromic substrings.
+
+A palindrome is a string that is the same forward and backward. A substring is a contiguous sequence of characters in a string.
+
+ 
+
+Example 1:
+
+Input: s = "ababbb"
+Output: 9
+Explanation: Substrings "aba" and "bbb" are palindromes with odd length. product = 3 * 3 = 9.
+Example 2:
+
+Input: s = "zaaaxbbby"
+Output: 9
+Explanation: Substrings "aaa" and "bbb" are palindromes with odd length. product = 3 * 3 = 9.
+ 
+
+Constraints:
+
+2 <= s.length <= 105
+s consists of lowercase English letters.
+
+
+# java
+
+
+// Manacher
+
+class Solution {
+  public long maxProduct(String s) {
+    final int n = s.length();
+    long ans = 1;
+    // maxLeft[i] := the maximum odd length of palindromes in s[0..i]
+    int[] maxLeft = manacher(s, n);
+    // maxRight[i] := the maximum odd length of palindromes in s[i..n - 1]
+    int[] maxRight = manacher(new StringBuilder(s).reverse().toString(), n);
+
+    reverse(maxRight, 0, n - 1);
+
+    for (int i = 1; i < n; ++i)
+      ans = Math.max(ans, (long) maxLeft[i - 1] * maxRight[i]);
+
+    return ans;
+  }
+
+  private int[] manacher(final String s, int n) {
+    int[] maxExtends = new int[n];
+    int[] leftToRight = new int[n];
+    Arrays.fill(leftToRight, 1);
+    int center = 0;
+
+    for (int i = 0; i < n; ++i) {
+      final int r = center + maxExtends[center] - 1;
+      final int mirrorIndex = center - (i - center);
+      int extend = i > r ? 1 : Math.min(maxExtends[mirrorIndex], r - i + 1);
+      while (i - extend >= 0 && i + extend < n && s.charAt(i - extend) == s.charAt(i + extend)) {
+        leftToRight[i + extend] = 2 * extend + 1;
+        ++extend;
+      }
+      maxExtends[i] = extend;
+      if (i + maxExtends[i] >= r)
+        center = i;
+    }
+
+    for (int i = 1; i < n; ++i)
+      leftToRight[i] = Math.max(leftToRight[i], leftToRight[i - 1]);
+
+    return leftToRight;
+  }
+
+  private void reverse(int[] arr, int l, int r) {
+    while (l < r)
+      swap(arr, l++, r--);
+  }
+
+  private void swap(int[] arr, int i, int j) {
+    final int temp = arr[i];
+    arr[i] = arr[j];
+    arr[j] = temp;
+  }
+}
+
+
+or
+
+
+// rolling hash
+
+
+class Solution {
+  public long maxProduct(String s) {
+    final int n = s.length();
+    long ans = 1;
+    long[] pows = new long[n + 1]; // pows[i] := BASE^i % HASH
+    // hashL[i] = the hash of the first i letters of s, where hashL[i] =
+    // (26^(i - 1) * s[0] + 26^(i - 2) * s[1] + ... + s[i - 1]) % HASH
+    long[] hashL = new long[n + 1];
+    // hashR[i] = the hash of the last i letters of s, where hashR[i] =
+    // (26^(i - 1) * s[-1] + 26^(i - 2) * s[-2] + ... + s[-i]) % HASH
+    long[] hashR = new long[n + 1];
+    // maxLeft[i] := the maximum odd length of palindromes in s[0..i]
+    int[] maxLeft = new int[n];
+    // maxRight[i] := the maximum odd length of palindromes in s[i..n - 1]
+    int[] maxRight = new int[n];
+
+    pows[0] = 1;
+    for (int i = 1; i <= n; ++i)
+      pows[i] = pows[i - 1] * BASE % HASH;
+
+    for (int i = 1; i <= n; ++i)
+      hashL[i] = (hashL[i - 1] * BASE + val(s.charAt(i - 1))) % HASH;
+
+    for (int i = n - 1; i >= 0; --i)
+      hashR[i] = (hashR[i + 1] * BASE + val(s.charAt(i))) % HASH;
+
+    int maxLength = 1;
+    for (int r = 0; r < n; ++r) {
+      final int l = (r - maxLength - 2) + 1;
+      if (l >= 0 && isPalindrome(l, r + 1, hashL, hashR, pows))
+        maxLength += 2;
+      maxLeft[r] = maxLength;
+    }
+
+    maxLength = 1;
+    for (int l = n - 1; l >= 0; --l) {
+      final int r = (l + maxLength + 2) - 1;
+      if (r < n && isPalindrome(l, r + 1, hashL, hashR, pows))
+        maxLength += 2;
+      maxRight[l] = maxLength;
+    }
+
+    for (int i = 1; i < n; ++i)
+      ans = Math.max(ans, (long) maxLeft[i - 1] * maxRight[i]);
+
+    return ans;
+  }
+
+  private static final int BASE = 26;
+  private static final int HASH = 1_000_000_007;
+
+  private static int val(char c) {
+    return c - 'a';
+  }
+
+  // Returns true if s[l..r) is a palindrome.
+  private boolean isPalindrome(int l, int r, long[] hashL, long[] hashR, long[] pows) {
+    return getLeftRollingHash(l, r, hashL, pows) == getRightRollingHash(l, r, hashR, pows);
+  }
+
+  // Returns the left rolling hash of s[l..r).
+  private long getLeftRollingHash(int l, int r, long[] hashL, long[] pows) {
+    final long h = (hashL[r] - hashL[l] * pows[r - l]) % HASH;
+    return h < 0 ? h + HASH : h;
+  }
+
+  // Returns the right rolling hash of s[l..r).
+  private long getRightRollingHash(int l, int r, long[] hashR, long[] pows) {
+    final long h = (hashR[l] - hashR[r] * pows[r - l]) % HASH;
+    return h < 0 ? h + HASH : h;
+  }
+}
+
+
+or
+
+class Solution {
+    public long maxProduct(String s) {
+        int length = s.length();
+        int[] span = new int[length];
+        for (int i = 0, l = 0, r = -1; i < length; i++) {
+            span[i] = i <= r ? Math.min(span[l + r - i], r - i + 1) : 1;
+            while (i - span[i] >= 0 && i + span[i] < length && s.charAt(i - span[i]) == s.charAt(i + span[i]))
+                span[i]++;
+            if (i + span[i] - 1 > r) {
+                l = i - span[i] + 1;
+                r = i + span[i] - 1;
+            }
+        }
+        int[] pre = new int[length];
+        int[] suf = new int[length];
+        for (int i = 0; i < length; i++) {
+            pre[i + span[i] - 1] = Math.max(pre[i + span[i] - 1], span[i] * 2 - 1);
+            suf[i - span[i] + 1] = Math.max(suf[i - span[i] + 1], span[i] * 2 - 1);
+        }
+        for (int i = 1; i < length; i++)
+            pre[i] = Math.max(pre[i], pre[i - 1]);
+        for (int i = length - 2; i >= 0; i--)
+            pre[i] = Math.max(pre[i], pre[i + 1] - 2);
+        for (int i = length - 2; i >= 0; i--)
+            suf[i] = Math.max(suf[i], suf[i + 1]);
+        for (int i = 1; i < length; i++)
+            suf[i] = Math.max(suf[i], suf[i - 1] - 2);
+        long product = 0;
+        for (int i = 0; i < length - 1; i++)
+            product = Math.max(product, (long) pre[i] * suf[i + 1]);
+        return product;
+    }
+}
