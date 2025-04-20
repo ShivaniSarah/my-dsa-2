@@ -1,0 +1,202 @@
+https://leetcode.com/problems/find-array-given-subset-sums/
+
+1982. Find Array Given Subset Sums
+Hard
+Topics
+Companies
+Hint
+You are given an integer n representing the length of an unknown array that you are trying to recover. You are also given an array sums containing the values of all 2n subset sums of the unknown array (in no particular order).
+
+Return the array ans of length n representing the unknown array. If multiple answers exist, return any of them.
+
+An array sub is a subset of an array arr if sub can be obtained from arr by deleting some (possibly zero or all) elements of arr. The sum of the elements in sub is one possible subset sum of arr. The sum of an empty array is considered to be 0.
+
+Note: Test cases are generated such that there will always be at least one correct answer.
+
+ 
+
+Example 1:
+
+Input: n = 3, sums = [-3,-2,-1,0,0,1,2,3]
+Output: [1,2,-3]
+Explanation: [1,2,-3] is able to achieve the given subset sums:
+- []: sum is 0
+- [1]: sum is 1
+- [2]: sum is 2
+- [1,2]: sum is 3
+- [-3]: sum is -3
+- [1,-3]: sum is -2
+- [2,-3]: sum is -1
+- [1,2,-3]: sum is 0
+Note that any permutation of [1,2,-3] and also any permutation of [-1,-2,3] will also be accepted.
+Example 2:
+
+Input: n = 2, sums = [0,0,0,0]
+Output: [0,0]
+Explanation: The only correct answer is [0,0].
+Example 3:
+
+Input: n = 4, sums = [0,0,5,5,4,-1,4,9,9,-1,4,3,4,8,3,8]
+Output: [0,-1,4,5]
+Explanation: [0,-1,4,5] is able to achieve the given subset sums.
+ 
+
+Constraints:
+
+1 <= n <= 15
+sums.length == 2n
+-104 <= sums[i] <= 104
+
+
+
+# java
+
+
+class Solution {
+  public int[] recoverArray(int n, int[] sums) {
+    Arrays.sort(sums);
+    return recover(sums).stream().mapToInt(Integer::intValue).toArray();
+  }
+
+  private List<Integer> recover(int[] sums) {
+    if (sums.length == 1) // sums[0] must be 0.
+      return new ArrayList<>();
+
+    Map<Integer, Long> count = Arrays.stream(sums).boxed().collect(
+        Collectors.groupingBy(Function.identity(), Collectors.counting()));
+
+    // Either num or -num must be in the final array.
+    //  num + sumsExcludingNum = sumsIncludingNum
+    // -num + sumsIncludingNum = sumsExcludingNum
+    final int num = sums[1] - sums[0];
+    int i = 0; // sumsExcludingNum/sumsIncludingNum's index
+    int[] sumsExcludingNum = new int[sums.length / 2];
+    int[] sumsIncludingNum = new int[sums.length / 2];
+    boolean chooseSumsIncludingNum = false;
+
+    for (final int sum : sums) {
+      if (count.get(sum) == 0)
+        continue;
+      count.merge(sum, -1L, Long::sum);
+      count.merge(sum + num, -1L, Long::sum);
+      sumsExcludingNum[i] = sum;
+      sumsIncludingNum[i] = sum + num;
+      ++i;
+      if (sum + num == 0)
+        chooseSumsIncludingNum = true;
+    }
+
+    // Choose `sumsExludingNum` by default since we want to gradually strip
+    // `num` from each sum in `sums` to have the final array. However, we should
+    // always choose the group of sums with 0 since it's a must-have.
+    List<Integer> recovered = recover(chooseSumsIncludingNum ? sumsIncludingNum : sumsExcludingNum);
+    recovered.add(chooseSumsIncludingNum ? -num : num);
+    return recovered;
+  }
+}
+
+
+or
+
+
+
+class Solution {
+    public int[] recoverArray(int n, int[] sums) {
+        int m = 1 << 30;
+        for (int x : sums) {
+            m = Math.min(m, x);
+        }
+        m = -m;
+        TreeMap<Integer, Integer> tm = new TreeMap<>();
+        for (int x : sums) {
+            tm.merge(x + m, 1, Integer::sum);
+        }
+        int[] ans = new int[n];
+        if (tm.merge(0, -1, Integer::sum) == 0) {
+            tm.remove(0);
+        }
+        ans[0] = tm.firstKey();
+        for (int i = 1; i < n; ++i) {
+            for (int j = 0; j < 1 << i; ++j) {
+                if ((j >> (i - 1) & 1) == 1) {
+                    int s = 0;
+                    for (int k = 0; k < i; ++k) {
+                        if (((j >> k) & 1) == 1) {
+                            s += ans[k];
+                        }
+                    }
+                    if (tm.merge(s, -1, Integer::sum) == 0) {
+                        tm.remove(s);
+                    }
+                }
+            }
+            ans[i] = tm.firstKey();
+        }
+        for (int i = 0; i < 1 << n; ++i) {
+            int s = 0;
+            for (int j = 0; j < n; ++j) {
+                if (((i >> j) & 1) == 1) {
+                    s += ans[j];
+                }
+            }
+            if (s == m) {
+                for (int j = 0; j < n; ++j) {
+                    if (((i >> j) & 1) == 1) {
+                        ans[j] *= -1;
+                    }
+                }
+                break;
+            }
+        }
+        return ans;
+    }
+}
+
+
+or
+
+// divide and conquer
+
+class Solution {
+    public int[] recoverArray(int n, int[] sums) {
+        Arrays.sort(sums);
+        List<Integer> result = new ArrayList<>();
+
+        while (n-- > 0) {
+            int diff = sums[1] - sums[0];
+            Map<Integer, Integer> freq = new HashMap<>();
+            List<Integer> s1 = new ArrayList<>();
+            List<Integer> s2 = new ArrayList<>();
+            boolean hasZero = false;
+
+            for (int sum : sums) {
+                if (freq.getOrDefault(sum, 0) == 0) {
+                    s1.add(sum);
+                    freq.put(sum + diff, freq.getOrDefault(sum + diff, 0) + 1);
+                    if (sum == 0) hasZero = true;
+                } else {
+                    s2.add(sum);
+                    freq.put(sum, freq.get(sum) - 1);
+                }
+            }
+
+            if (hasZero) {
+                result.add(diff);
+                sums = listToArray(s1);
+            } else {
+                result.add(-diff);
+                sums = listToArray(s2);
+            }
+        }
+
+        return result.stream().mapToInt(i -> i).toArray();
+    }
+
+    private int[] listToArray(List<Integer> list) {
+        int[] arr = new int[list.size()];
+        for (int i = 0; i < list.size(); ++i) {
+            arr[i] = list.get(i);
+        }
+        return arr;
+    }
+}
