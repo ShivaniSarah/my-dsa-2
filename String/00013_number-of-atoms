@@ -246,3 +246,697 @@ or
 
 
 
+class Solution {
+
+    // Global variable
+    int index = 0;
+
+    public String countOfAtoms(String formula) {
+        // Recursively parse the formula
+        Map<String, Integer> finalMap = parseFormula(formula);
+
+        // Sort the final map
+        TreeMap<String, Integer> sortedMap = new TreeMap<>(finalMap);
+
+        // Generate the answer string
+        StringBuilder ans = new StringBuilder();
+        for (String atom : sortedMap.keySet()) {
+            ans.append(atom);
+            if (sortedMap.get(atom) > 1) {
+                ans.append(sortedMap.get(atom));
+            }
+        }
+
+        return ans.toString();
+    }
+
+    // Recursively parse the formula
+    private Map<String, Integer> parseFormula(String formula) {
+        // Local variable
+        Map<String, Integer> currMap = new HashMap<>();
+        String currAtom = new String();
+        String currCount = new String();
+
+        // Iterate until the end of the formula
+        while (index < formula.length()) {
+            // UPPERCASE LETTER
+            if (Character.isUpperCase(formula.charAt(index))) {
+                if (!currAtom.isEmpty()) {
+                    if (currCount.isEmpty()) {
+                        currMap.put(
+                            currAtom,
+                            currMap.getOrDefault(currAtom, 0) + 1
+                        );
+                    } else {
+                        currMap.put(
+                            currAtom,
+                            currMap.getOrDefault(currAtom, 0) +
+                            Integer.parseInt(currCount)
+                        );
+                    }
+                }
+
+                currAtom = String.valueOf(formula.charAt(index));
+                currCount = "";
+                index++;
+            }
+            // lowercase letter
+            else if (Character.isLowerCase(formula.charAt(index))) {
+                currAtom += formula.charAt(index);
+                index++;
+            }
+            // Digit. Concatenate the count
+            else if (Character.isDigit(formula.charAt(index))) {
+                currCount += formula.charAt(index);
+                index++;
+            }
+            // Left Parenthesis
+            else if (formula.charAt(index) == '(') {
+                index++;
+                Map<String, Integer> nestedMap = parseFormula(formula);
+                for (String atom : nestedMap.keySet()) {
+                    currMap.put(
+                        atom,
+                        currMap.getOrDefault(atom, 0) + nestedMap.get(atom)
+                    );
+                }
+            }
+            // Right Parenthesis
+            else if (formula.charAt(index) == ')') {
+                // Save the last atom and count of nested formula
+                if (!currAtom.isEmpty()) {
+                    if (currCount.isEmpty()) {
+                        currMap.put(
+                            currAtom,
+                            currMap.getOrDefault(currAtom, 0) + 1
+                        );
+                    } else {
+                        currMap.put(
+                            currAtom,
+                            currMap.getOrDefault(currAtom, 0) +
+                            Integer.parseInt(currCount)
+                        );
+                    }
+                }
+
+                index++;
+                StringBuilder multiplier = new StringBuilder();
+                while (
+                    index < formula.length() &&
+                    Character.isDigit(formula.charAt(index))
+                ) {
+                    multiplier.append(formula.charAt(index));
+                    index++;
+                }
+                if (multiplier.length() > 0) {
+                    int mult = Integer.parseInt(multiplier.toString());
+                    for (String atom : currMap.keySet()) {
+                        currMap.put(atom, currMap.get(atom) * mult);
+                    }
+                }
+
+                return currMap;
+            }
+        }
+
+        // Save the last atom and count
+        if (!currAtom.isEmpty()) {
+            if (currCount.isEmpty()) {
+                currMap.put(currAtom, currMap.getOrDefault(currAtom, 0) + 1);
+            } else {
+                currMap.put(
+                    currAtom,
+                    currMap.getOrDefault(currAtom, 0) +
+                    Integer.parseInt(currCount)
+                );
+            }
+        }
+
+        return currMap;
+    }
+}
+
+
+
+or
+
+
+class Solution {
+
+    // Global variable
+    int index = 0;
+
+    public String countOfAtoms(String formula) {
+        // Recursively parse the formula
+        Map<String, Integer> finalMap = parseFormula(formula);
+
+        // Sort the final map
+        TreeMap<String, Integer> sortedMap = new TreeMap<>(finalMap);
+
+        // Generate the answer string
+        StringBuilder ans = new StringBuilder();
+        for (String atom : sortedMap.keySet()) {
+            ans.append(atom);
+            if (sortedMap.get(atom) > 1) {
+                ans.append(sortedMap.get(atom));
+            }
+        }
+
+        return ans.toString();
+    }
+
+    // Recursively parse the formula
+    private Map<String, Integer> parseFormula(String formula) {
+        // Local variable
+        Map<String, Integer> currMap = new HashMap<>();
+
+        // Iterate until right parenthesis or end of the formula
+        while (index < formula.length() && formula.charAt(index) != ')') {
+            // If left parenthesis, do recursion
+            if (formula.charAt(index) == '(') {
+                index++;
+                Map<String, Integer> nestedMap = parseFormula(formula);
+                for (String atom : nestedMap.keySet()) {
+                    currMap.put(
+                        atom,
+                        currMap.getOrDefault(atom, 0) + nestedMap.get(atom)
+                    );
+                }
+            }
+            // Otherwise, it should be UPPERCASE LETTER
+            // Extract the atom and count in one go.
+            else {
+                StringBuilder currAtom = new StringBuilder();
+                currAtom.append(formula.charAt(index));
+                index++;
+                while (
+                    index < formula.length() &&
+                    Character.isLowerCase(formula.charAt(index))
+                ) {
+                    currAtom.append(formula.charAt(index));
+                    index++;
+                }
+
+                StringBuilder currCount = new StringBuilder();
+                while (
+                    index < formula.length() &&
+                    Character.isDigit(formula.charAt(index))
+                ) {
+                    currCount.append(formula.charAt(index));
+                    index++;
+                }
+
+                if (currCount.length() == 0) {
+                    currMap.put(
+                        currAtom.toString(),
+                        currMap.getOrDefault(currAtom.toString(), 0) + 1
+                    );
+                } else {
+                    currMap.put(
+                        currAtom.toString(),
+                        currMap.getOrDefault(currAtom.toString(), 0) +
+                        Integer.parseInt(currCount.toString())
+                    );
+                }
+            }
+        }
+
+        // If the right parenthesis, extract the multiplier
+        // and multiply the count of atoms in the curr_map
+        index++;
+        StringBuilder multiplier = new StringBuilder();
+        while (
+            index < formula.length() && Character.isDigit(formula.charAt(index))
+        ) {
+            multiplier.append(formula.charAt(index));
+            index++;
+        }
+        if (multiplier.length() > 0) {
+            int mult = Integer.parseInt(multiplier.toString());
+            for (String atom : currMap.keySet()) {
+                currMap.put(atom, currMap.get(atom) * mult);
+            }
+        }
+
+        return currMap;
+    }
+}
+
+
+or
+
+
+class Solution {
+
+    public String countOfAtoms(String formula) {
+        // Stack to keep track of the atoms and their counts
+        Stack<Map<String, Integer>> stack = new Stack<>();
+        stack.push(new HashMap<>());
+
+        // Index to keep track of the current character
+        int index = 0;
+
+        // Parse the formula
+        while (index < formula.length()) {
+            // If left parenthesis, insert a new hashmap to the stack. It will
+            // keep track of the atoms and their counts in the nested formula
+            if (formula.charAt(index) == '(') {
+                stack.push(new HashMap<>());
+                index++;
+            }
+            // If right parenthesis, pop the top element from the stack
+            // Multiply the count with the multiplicity of the nested formula
+            else if (formula.charAt(index) == ')') {
+                Map<String, Integer> currMap = stack.pop();
+                index++;
+                StringBuilder multiplier = new StringBuilder();
+                while (
+                    index < formula.length() &&
+                    Character.isDigit(formula.charAt(index))
+                ) {
+                    multiplier.append(formula.charAt(index));
+                    index++;
+                }
+                if (multiplier.length() > 0) {
+                    int mult = Integer.parseInt(multiplier.toString());
+                    for (String atom : currMap.keySet()) {
+                        currMap.put(atom, currMap.get(atom) * mult);
+                    }
+                }
+
+                for (String atom : currMap.keySet()) {
+                    stack
+                        .peek()
+                        .put(
+                            atom,
+                            stack.peek().getOrDefault(atom, 0) +
+                            currMap.get(atom)
+                        );
+                }
+            }
+            // Otherwise, it must be a UPPERCASE LETTER. Extract the complete
+            // atom with frequency, and update the most recent hashmap
+            else {
+                StringBuilder currAtom = new StringBuilder();
+                currAtom.append(formula.charAt(index));
+                index++;
+                while (
+                    index < formula.length() &&
+                    Character.isLowerCase(formula.charAt(index))
+                ) {
+                    currAtom.append(formula.charAt(index));
+                    index++;
+                }
+
+                StringBuilder currCount = new StringBuilder();
+                while (
+                    index < formula.length() &&
+                    Character.isDigit(formula.charAt(index))
+                ) {
+                    currCount.append(formula.charAt(index));
+                    index++;
+                }
+
+                int count = currCount.length() > 0
+                    ? Integer.parseInt(currCount.toString())
+                    : 1;
+                stack
+                    .peek()
+                    .put(
+                        currAtom.toString(),
+                        stack.peek().getOrDefault(currAtom.toString(), 0) +
+                        count
+                    );
+            }
+        }
+
+        // Sort the final map
+        TreeMap<String, Integer> finalMap = new TreeMap<>(stack.peek());
+
+        // Generate the answer string
+        StringBuilder ans = new StringBuilder();
+        for (String atom : finalMap.keySet()) {
+            ans.append(atom);
+            if (finalMap.get(atom) > 1) {
+                ans.append(finalMap.get(atom));
+            }
+        }
+
+        return ans.toString();
+    }
+}
+
+
+or
+
+
+
+import java.util.regex.*;
+
+class Solution {
+
+    public String countOfAtoms(String formula) {
+        // Regular expression to extract atom, count, (, ), multiplier
+        // Every element of parsed will be a quintuple
+        String regex = "([A-Z][a-z]*)(\\d*)|(\\()|(\\))(\\d*)";
+        Pattern pattern = Pattern.compile(regex);
+        Matcher matcher = pattern.matcher(formula);
+
+        // Stack to keep track of the atoms and their counts
+        Stack<Map<String, Integer>> stack = new Stack<>();
+        stack.push(new HashMap<>());
+
+        // Parse the formula
+        while (matcher.find()) {
+            String atom = matcher.group(1);
+            String count = matcher.group(2);
+            String left = matcher.group(3);
+            String right = matcher.group(4);
+            String multiplier = matcher.group(5);
+
+            // If atom, add it to the top hashmap
+            if (atom != null) {
+                stack
+                    .peek()
+                    .put(
+                        atom,
+                        stack.peek().getOrDefault(atom, 0) +
+                        (count.isEmpty() ? 1 : Integer.parseInt(count))
+                    );
+            }
+            // If left parenthesis, insert a new hashmap to the stack
+            else if (left != null) {
+                stack.push(new HashMap<>());
+            }
+            // If right parenthesis, pop the top element from the stack
+            // Multiply the count with the attached multiplicity.
+            // Add the count to the current formula
+            else if (right != null) {
+                Map<String, Integer> currMap = stack.pop();
+                if (!multiplier.isEmpty()) {
+                    int mult = Integer.parseInt(multiplier);
+                    for (String atomName : currMap.keySet()) {
+                        currMap.put(atomName, currMap.get(atomName) * mult);
+                    }
+                }
+
+                for (String atomName : currMap.keySet()) {
+                    stack
+                        .peek()
+                        .put(
+                            atomName,
+                            stack.peek().getOrDefault(atomName, 0) +
+                            currMap.get(atomName)
+                        );
+                }
+            }
+        }
+
+        // Sort the final map
+        TreeMap<String, Integer> finalMap = new TreeMap<>(stack.peek());
+
+        // Generate the answer string
+        StringBuilder ans = new StringBuilder();
+        for (String atom : finalMap.keySet()) {
+            ans.append(atom);
+            if (finalMap.get(atom) > 1) {
+                ans.append(finalMap.get(atom));
+            }
+        }
+
+        return ans.toString();
+    }
+}
+
+
+or
+
+
+class Solution {
+
+    public String countOfAtoms(String formula) {
+        // For multipliers
+        int runningMul = 1;
+        Stack<Integer> stack = new Stack<>();
+        stack.push(1);
+
+        // Map to store the count of atoms
+        Map<String, Integer> finalMap = new HashMap<>();
+
+        // Strings to take care of current atom and count
+        StringBuilder currAtom = new StringBuilder();
+        StringBuilder currCount = new StringBuilder();
+
+        // Index to traverse the formula in reverse
+        int index = formula.length() - 1;
+
+        // Parse the formula
+        while (index >= 0) {
+            // If digit, update the count
+            if (Character.isDigit(formula.charAt(index))) {
+                currCount.insert(0, formula.charAt(index));
+            }
+            // If a lowercase letter, prepend to the currAtom
+            else if (Character.isLowerCase(formula.charAt(index))) {
+                currAtom.insert(0, formula.charAt(index));
+            }
+            // If UPPERCASE LETTER, update the finalMap
+            else if (Character.isUpperCase(formula.charAt(index))) {
+                currAtom.insert(0, formula.charAt(index));
+                int count = currCount.length() > 0
+                    ? Integer.parseInt(currCount.toString())
+                    : 1;
+                finalMap.put(
+                    currAtom.toString(),
+                    finalMap.getOrDefault(currAtom.toString(), 0) +
+                    count * runningMul
+                );
+
+                currAtom = new StringBuilder();
+                currCount = new StringBuilder();
+            }
+            // If the right parenthesis, the currCount if any
+            // will be considered as multiplier
+            else if (formula.charAt(index) == ')') {
+                int currMultiplier = currCount.length() > 0
+                    ? Integer.parseInt(currCount.toString())
+                    : 1;
+                stack.push(currMultiplier);
+                runningMul *= currMultiplier;
+                currCount = new StringBuilder();
+            }
+            // If left parenthesis, update the runningMul
+            else if (formula.charAt(index) == '(') {
+                runningMul /= stack.pop();
+            }
+
+            index--;
+        }
+
+        // Sort the final map
+        TreeMap<String, Integer> sortedMap = new TreeMap<>(finalMap);
+
+        // Generate the answer string
+        StringBuilder ans = new StringBuilder();
+        for (String atom : sortedMap.keySet()) {
+            ans.append(atom);
+            if (sortedMap.get(atom) > 1) {
+                ans.append(sortedMap.get(atom));
+            }
+        }
+
+        return ans.toString();
+    }
+}
+
+
+or
+class Solution {
+
+    public String countOfAtoms(String formula) {
+        // For every index, store the valid multiplier
+        int[] muls = new int[formula.length()];
+        int runningMul = 1;
+
+        // Stack to take care of nested formula
+        Stack<Integer> stack = new Stack<>();
+        stack.push(1);
+
+        // Preprocess the formula and extract all multipliers
+        int index = formula.length() - 1;
+        StringBuilder currNumber = new StringBuilder();
+        while (index >= 0) {
+            if (Character.isDigit(formula.charAt(index))) {
+                currNumber.insert(0, formula.charAt(index));
+            }
+            // If we encountered a letter, then the scanned
+            // number was count and not a multiplier. Discard it.
+            else if (Character.isAlphabetic(formula.charAt(index))) {
+                currNumber = new StringBuilder();
+            }
+            // If we encounter a right parenthesis, then the
+            // scanned number was multiplier. Store it.
+            else if (formula.charAt(index) == ')') {
+                int currMultiplier = currNumber.length() > 0
+                    ? Integer.parseInt(currNumber.toString())
+                    : 1;
+                runningMul *= currMultiplier;
+                stack.push(currMultiplier);
+                currNumber = new StringBuilder();
+            }
+            // If we encounter a left parenthesis, then the
+            // most recent multiplier will cease to exist.
+            else if (formula.charAt(index) == '(') {
+                runningMul /= stack.pop();
+                currNumber = new StringBuilder();
+            }
+
+            // For every index, store the valid multiplier
+            muls[index] = runningMul;
+            index--;
+        }
+
+        // Map to store the count of atoms
+        Map<String, Integer> finalMap = new HashMap<>();
+
+        // Traverse left to right in the formula
+        index = 0;
+        while (index < formula.length()) {
+            // If UPPER CASE LETTER, extract the entire atom
+            if (Character.isUpperCase(formula.charAt(index))) {
+                StringBuilder currAtom = new StringBuilder();
+                currAtom.append(formula.charAt(index));
+                StringBuilder currCount = new StringBuilder();
+                index++;
+                while (
+                    index < formula.length() &&
+                    Character.isLowerCase(formula.charAt(index))
+                ) {
+                    currAtom.append(formula.charAt(index));
+                    index++;
+                }
+
+                // Extract the count
+                while (
+                    index < formula.length() &&
+                    Character.isDigit(formula.charAt(index))
+                ) {
+                    currCount.append(formula.charAt(index));
+                    index++;
+                }
+
+                // Update the final map
+                int count = currCount.length() > 0
+                    ? Integer.parseInt(currCount.toString())
+                    : 1;
+                finalMap.put(
+                    currAtom.toString(),
+                    finalMap.getOrDefault(currAtom.toString(), 0) +
+                    count * muls[index - 1]
+                );
+            } else {
+                index++;
+            }
+        }
+
+        // Sort the final map
+        TreeMap<String, Integer> sortedMap = new TreeMap<>(finalMap);
+
+        // Generate the answer string
+        StringBuilder ans = new StringBuilder();
+        for (String atom : sortedMap.keySet()) {
+            ans.append(atom);
+            if (sortedMap.get(atom) > 1) {
+                ans.append(sortedMap.get(atom));
+            }
+        }
+
+        return ans.toString();
+    }
+}
+
+
+
+or
+
+
+// best
+
+import java.util.regex.*;
+
+class Solution {
+
+    public String countOfAtoms(String formula) {
+        // Every element of matcher will be a quintuple
+        Matcher matcher = Pattern.compile(
+            "([A-Z][a-z]*)(\\d*)|(\\()|(\\))(\\d*)"
+        ).matcher(formula);
+        List<String[]> list = new ArrayList<>();
+        while (matcher.find()) {
+            list.add(
+                new String[] {
+                    matcher.group(1),
+                    matcher.group(2),
+                    matcher.group(3),
+                    matcher.group(4),
+                    matcher.group(5),
+                }
+            );
+        }
+        Collections.reverse(list);
+
+        // Map to store the count of atoms
+        Map<String, Integer> finalMap = new HashMap<>();
+
+        // Stack to keep track of the nested multiplicities
+        Stack<Integer> stack = new Stack<>();
+        stack.push(1);
+
+        // Current Multiplicity
+        int runningMul = 1;
+
+        // Parse the formula
+        for (String[] quintuple : list) {
+            String atom = quintuple[0];
+            String count = quintuple[1];
+            String left = quintuple[2];
+            String right = quintuple[3];
+            String multiplier = quintuple[4];
+
+            // If atom, add it to the final map
+            if (atom != null) {
+                int cnt = count.length() > 0 ? Integer.parseInt(count) : 1;
+                finalMap.put(
+                    atom,
+                    finalMap.getOrDefault(atom, 0) + cnt * runningMul
+                );
+            }
+            // If the right parenthesis, multiply the runningMul
+            else if (right != null) {
+                int currMultiplier = multiplier.length() > 0
+                    ? Integer.parseInt(multiplier)
+                    : 1;
+                runningMul *= currMultiplier;
+                stack.push(currMultiplier);
+            }
+            // If left parenthesis, divide the runningMul
+            else if (left != null) {
+                runningMul /= stack.pop();
+            }
+        }
+
+        // Sort the final map
+        TreeMap<String, Integer> sortedMap = new TreeMap<>(finalMap);
+
+        // Generate the answer string
+        StringBuilder ans = new StringBuilder();
+        for (String atom : sortedMap.keySet()) {
+            ans.append(atom);
+            if (sortedMap.get(atom) > 1) {
+                ans.append(sortedMap.get(atom));
+            }
+        }
+
+        return ans.toString();
+    }
+}
