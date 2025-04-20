@@ -1,0 +1,370 @@
+https://leetcode.com/problems/falling-squares/description/
+
+699. Falling Squares
+Hard
+Topics
+Companies
+Hint
+There are several squares being dropped onto the X-axis of a 2D plane.
+
+You are given a 2D integer array positions where positions[i] = [lefti, sideLengthi] represents the ith square with a side length of sideLengthi that is dropped with its left edge aligned with X-coordinate lefti.
+
+Each square is dropped one at a time from a height above any landed squares. It then falls downward (negative Y direction) until it either lands on the top side of another square or on the X-axis. A square brushing the left/right side of another square does not count as landing on it. Once it lands, it freezes in place and cannot be moved.
+
+After each square is dropped, you must record the height of the current tallest stack of squares.
+
+Return an integer array ans where ans[i] represents the height described above after dropping the ith square.
+
+ 
+
+Example 1:
+
+
+Input: positions = [[1,2],[2,3],[6,1]]
+Output: [2,5,5]
+Explanation:
+After the first drop, the tallest stack is square 1 with a height of 2.
+After the second drop, the tallest stack is squares 1 and 2 with a height of 5.
+After the third drop, the tallest stack is still squares 1 and 2 with a height of 5.
+Thus, we return an answer of [2, 5, 5].
+Example 2:
+
+Input: positions = [[100,100],[200,100]]
+Output: [100,100]
+Explanation:
+After the first drop, the tallest stack is square 1 with a height of 100.
+After the second drop, the tallest stack is either square 1 or square 2, both with heights of 100.
+Thus, we return an answer of [100, 100].
+Note that square 2 only brushes the right side of square 1, which does not count as landing on it.
+ 
+
+Constraints:
+
+1 <= positions.length <= 1000
+1 <= lefti <= 108
+1 <= sideLengthi <= 106
+
+
+
+# java
+
+class Solution {
+    private static final int ORG_POS_SHIFT = 16;
+    private static final int ORG_POS_MASK = 0xFFF_FFFF;
+    private static final int IS_RIGHT_SHIFT = 12;
+    private static final int IS_RIGHT_MASK = 0xF;
+    private static final int IS_RIGHT = 1 << IS_RIGHT_SHIFT;
+    private static final int IDX_SHIFT = 0;
+    private static final int IDX_MASK = 0xFFF;
+    
+    public List<Integer> fallingSquares(int[][] positions) {
+        int n = positions.length;
+
+        // Gather all the edge-points from all of the squares, so we 
+        // can compress the left and right positions of the square 
+        // down into a more manageable range.  The edge points of the 
+        // square are packed into the bits of a long, so the long 
+        // contains: 1) the original position in the most significant 
+        // bits so it will eventually be sorted by the original position, 
+        // 2) a boolean indicating if this position is for the right 
+        // edge of the square, and 3) the original index of the 
+        // square in the positions[] array.
+        final long[] points = new long[n * 2];
+        int pointsIdx = 0;
+        for (int i = 0; i < n; i++) {
+            int[] square = positions[i];
+            points[pointsIdx++] = ((long)square[0] << ORG_POS_SHIFT) | i;
+            points[pointsIdx++] = (((long)square[0] + square[1]) << ORG_POS_SHIFT) | 
+                                    i | IS_RIGHT;
+        }
+        
+        // Sort all the squares' edge points in ascending position 
+        // order.
+        Arrays.sort(points);
+        
+        // Convert the sorted edge points to new compressed position 
+        // values.  If adjacent sorted points have the same original 
+        // position values, then they are at the same new compressed 
+        // positions.  Save the new left and right edge compressed 
+        // positions for each square.
+        int newPos = -1;
+        final int[] lefts = new int[n];        
+        final int[] rights = new int[n];
+        long endNewPos = -1;
+        for (long point : points) {
+            if (point > endNewPos) {
+                newPos++;
+                endNewPos = point | IS_RIGHT | IDX_MASK;
+            }
+            if ((point & IS_RIGHT) != 0)
+                rights[(int)point & IDX_MASK] = newPos;
+            else
+                lefts[(int)point & IDX_MASK] = newPos;
+        }
+
+        // With the new compressed left and right edge positions for the 
+        // squares, loop to drop each square.  For the new compressed 
+        // positions that are within the square, add the height of the square 
+        // to all of those x-axis positions, collecting any new highest values.
+        int maxHeight = 0;
+        final int[] xAxis = new int[newPos];
+        List<Integer> result = new ArrayList(n);
+        for (int i = 0; i < n; i++) {       // Drop the boxes in succession 
+            int height = 0;
+            for (int start = lefts[i], j = rights[i] - start; j > 0; j--)
+                height = Math.max(height, xAxis[start++]);
+            height += positions[i][1];
+            maxHeight = Math.max(maxHeight, height);
+            for (int start = lefts[i], j = rights[i] - start; j > 0; j--)
+                 xAxis[start++] = height;
+            result.add(maxHeight);
+        }
+        
+        return result;
+    }
+}
+
+
+or
+
+
+class Solution {
+    class SortPoint {
+        int origPos;
+        short index;
+        boolean isRight;
+        SortPoint(int origPos, int index, boolean isRight) {
+            this.origPos = origPos;
+            this.index = (short)index;
+            this.isRight = isRight;
+        }
+    }
+    
+    public List<Integer> fallingSquares(int[][] positions) {
+        int n = positions.length;
+
+        // Gather all the edge-points from all of the squares, so we 
+        // can compress the left and right positions of the square 
+        // down into a more manageable range.  
+        final SortPoint[] points = new SortPoint[n * 2];
+        int pointsIdx = 0;
+        for (int i = 0; i < n; i++) {
+            int[] square = positions[i];
+            points[pointsIdx++] = new SortPoint(square[0], i, false);
+            points[pointsIdx++] = new SortPoint(square[0] + square[1], i, true);
+        }
+        
+        // Sort all the squares' edge points in ascending position 
+        // order.
+        Arrays.sort(points, (a, b) -> a.origPos - b.origPos);
+        
+        // Convert the sorted edge points to new compressed position 
+        // values.  If adjacent sorted points have the same original 
+        // position values, then they are at the same new compressed 
+        // positions.  Save the new left and right edge compressed 
+        // positions for each square.
+        int newPos = -1;
+        final int[] lefts = new int[n];        
+        final int[] rights = new int[n];
+        int prevPos = -1;
+        for (SortPoint point : points) {
+            if (point.origPos != prevPos) {
+                newPos++;
+                prevPos = point.origPos;
+            }
+            if (point.isRight)
+                rights[point.index] = newPos;
+            else
+                lefts[point.index] = newPos;
+        }
+
+        // With the new compressed left and right edge positions for the 
+        // squares, loop to drop each square.  For the new compressed 
+        // positions that are within the square, add the height of the square 
+        // to all of those x-axis positions, collecting any new highest values.
+        int maxHeight = 0;
+        final int[] xAxis = new int[newPos];
+        List<Integer> result = new ArrayList(n);
+        for (int i = 0; i < n; i++) {       // Drop the boxes in order.
+            int height = 0;
+            for (int start = lefts[i], j = rights[i] - start; j > 0; j--)
+                height = Math.max(height, xAxis[start++]);
+            height += positions[i][1];
+            maxHeight = Math.max(maxHeight, height);
+            for (int start = lefts[i], j = rights[i] - start; j > 0; j--)
+                 xAxis[start++] = height;
+            result.add(maxHeight);
+        }
+        
+        return result;
+    }
+}
+
+
+
+or
+
+
+
+class Node {
+    Node left;
+    Node right;
+    int l;
+    int r;
+    int mid;
+    int v;
+    int add;
+    public Node(int l, int r) {
+        this.l = l;
+        this.r = r;
+        this.mid = (l + r) >> 1;
+    }
+}
+
+class SegmentTree {
+    private Node root = new Node(1, (int) 1e9);
+
+    public SegmentTree() {
+    }
+
+    public void modify(int l, int r, int v) {
+        modify(l, r, v, root);
+    }
+
+    public void modify(int l, int r, int v, Node node) {
+        if (l > r) {
+            return;
+        }
+        if (node.l >= l && node.r <= r) {
+            node.v = v;
+            node.add = v;
+            return;
+        }
+        pushdown(node);
+        if (l <= node.mid) {
+            modify(l, r, v, node.left);
+        }
+        if (r > node.mid) {
+            modify(l, r, v, node.right);
+        }
+        pushup(node);
+    }
+
+    public int query(int l, int r) {
+        return query(l, r, root);
+    }
+
+    public int query(int l, int r, Node node) {
+        if (l > r) {
+            return 0;
+        }
+        if (node.l >= l && node.r <= r) {
+            return node.v;
+        }
+        pushdown(node);
+        int v = 0;
+        if (l <= node.mid) {
+            v = Math.max(v, query(l, r, node.left));
+        }
+        if (r > node.mid) {
+            v = Math.max(v, query(l, r, node.right));
+        }
+        return v;
+    }
+
+    public void pushup(Node node) {
+        node.v = Math.max(node.left.v, node.right.v);
+    }
+
+    public void pushdown(Node node) {
+        if (node.left == null) {
+            node.left = new Node(node.l, node.mid);
+        }
+        if (node.right == null) {
+            node.right = new Node(node.mid + 1, node.r);
+        }
+        if (node.add != 0) {
+            Node left = node.left, right = node.right;
+            left.add = node.add;
+            right.add = node.add;
+            left.v = node.add;
+            right.v = node.add;
+            node.add = 0;
+        }
+    }
+}
+
+class Solution {
+    public List<Integer> fallingSquares(int[][] positions) {
+        List<Integer> ans = new ArrayList<>();
+        SegmentTree tree = new SegmentTree();
+        int mx = 0;
+        for (int[] p : positions) {
+            int l = p[0], w = p[1], r = l + w - 1;
+            int h = tree.query(l, r) + w;
+            mx = Math.max(mx, h);
+            ans.add(mx);
+            tree.modify(l, r, h);
+        }
+        return ans;
+    }
+}
+
+
+or
+
+
+class Solution {
+    public List<Integer> fallingSquares(int[][] positions) {
+        SegmentNode root = new SegmentNode(0,Integer.MAX_VALUE,0);
+        List<Integer> ans = new ArrayList<>();
+        int max = 0;
+        for(int[] p : positions){
+            int left = p[0], height = p[1], right = left + height;
+            int maxHeight = query(root, left, right) + height;
+            max = Math.max(max,maxHeight);
+            ans.add(max);
+            add(root, left, right, maxHeight);
+        }
+        return ans;
+    }
+    public int query(SegmentNode root, int start, int end){
+        if(start<=root.start && end>=root.end) return root.maxHeight;
+        if(start>=root.end || end<=root.start) return  0;
+        if (root.left==null) return root.maxHeight;
+        int mid = root.start + (root.end - root.start) / 2;
+        if (end <= mid) {
+            return query(root.left, start, end);
+        } else if (start >= mid) {
+            return query(root.right, start, end);
+        }
+        return Math.max(query(root.left,start,mid),query(root.right,mid,end));
+    }
+
+    public void add(SegmentNode root, int start, int end, int maxHeight){
+        if(start<=root.start && end>=root.end){
+            root.maxHeight = maxHeight;
+            root.left = null;
+            root.right = null;
+            return;
+        }
+        if(start>=root.end || root.start>=end) return;
+        if(root.left==null){
+            int mid = root.start + (root.end - root.start) / 2;
+            root.left = new SegmentNode(root.start,mid,0);
+            root.right = new SegmentNode(mid,root.end,0);
+        }
+        add(root.left,start,end,maxHeight);
+        add(root.right,start,end,maxHeight);
+        root.maxHeight = Math.max(root.left.maxHeight,root.right.maxHeight);
+    }
+}
+class SegmentNode{
+    public SegmentNode left , right;
+    public int start, end, maxHeight;
+    public SegmentNode(int start, int end, int maxHeight){
+        this.start = start;
+        this.end = end;
+        this.maxHeight = maxHeight;
+    }
+}
