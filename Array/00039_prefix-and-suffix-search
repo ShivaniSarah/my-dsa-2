@@ -1,0 +1,287 @@
+https://leetcode.com/problems/prefix-and-suffix-search/
+
+
+745. Prefix and Suffix Search
+Hard
+Topics
+Companies
+Hint
+Design a special dictionary that searches the words in it by a prefix and a suffix.
+
+Implement the WordFilter class:
+
+WordFilter(string[] words) Initializes the object with the words in the dictionary.
+f(string pref, string suff) Returns the index of the word in the dictionary, which has the prefix pref and the suffix suff. If there is more than one valid index, return the largest of them. If there is no such word in the dictionary, return -1.
+ 
+
+Example 1:
+
+Input
+["WordFilter", "f"]
+[[["apple"]], ["a", "e"]]
+Output
+[null, 0]
+Explanation
+WordFilter wordFilter = new WordFilter(["apple"]);
+wordFilter.f("a", "e"); // return 0, because the word at index 0 has prefix = "a" and suffix = "e".
+ 
+
+Constraints:
+
+1 <= words.length <= 104
+1 <= words[i].length <= 7
+1 <= pref.length, suff.length <= 7
+words[i], pref and suff consist of lowercase English letters only.
+At most 104 calls will be made to the function f.
+
+
+# java
+
+
+class WordFilter {
+  public WordFilter(String[] words) {
+    for (int i = 0; i < words.length; ++i) {
+      final String word = words[i];
+      List<String> prefixes = new ArrayList<>();
+      List<String> suffixes = new ArrayList<>();
+      for (int j = 0; j <= word.length(); ++j) {
+        final String prefix = word.substring(0, j);
+        final String suffix = word.substring(j);
+        prefixes.add(prefix);
+        suffixes.add(suffix);
+      }
+      for (final String prefix : prefixes)
+        for (final String suffix : suffixes)
+          keyToIndex.put(prefix + '_' + suffix, i);
+    }
+  }
+
+  public int f(String prefix, String suffix) {
+    final String key = prefix + '_' + suffix;
+    if (keyToIndex.containsKey(key))
+      return keyToIndex.get(key);
+    return -1;
+  }
+
+  private Map<String, Integer> keyToIndex = new HashMap<>();
+}
+/**
+ * Your WordFilter object will be instantiated and called as such:
+ * WordFilter obj = new WordFilter(words);
+ * int param_1 = obj.f(pref,suff);
+ */
+
+
+or
+
+
+class Trie {
+    Trie[] children = new Trie[26];
+    List<Integer> indexes = new ArrayList<>();
+
+    void insert(String word, int i) {
+        Trie node = this;
+        for (char c : word.toCharArray()) {
+            c -= 'a';
+            if (node.children[c] == null) {
+                node.children[c] = new Trie();
+            }
+            node = node.children[c];
+            node.indexes.add(i);
+        }
+    }
+
+    List<Integer> search(String pref) {
+        Trie node = this;
+        for (char c : pref.toCharArray()) {
+            c -= 'a';
+            if (node.children[c] == null) {
+                return Collections.emptyList();
+            }
+            node = node.children[c];
+        }
+        return node.indexes;
+    }
+}
+
+class WordFilter {
+    private Trie p = new Trie();
+    private Trie s = new Trie();
+
+    public WordFilter(String[] words) {
+        for (int i = 0; i < words.length; ++i) {
+            String w = words[i];
+            p.insert(w, i);
+            s.insert(new StringBuilder(w).reverse().toString(), i);
+        }
+    }
+
+    public int f(String pref, String suff) {
+        suff = new StringBuilder(suff).reverse().toString();
+        List<Integer> a = p.search(pref);
+        List<Integer> b = s.search(suff);
+        if (a.isEmpty() || b.isEmpty()) {
+            return -1;
+        }
+        int i = a.size() - 1, j = b.size() - 1;
+        while (i >= 0 && j >= 0) {
+            int c = a.get(i), d = b.get(j);
+            if (c == d) {
+                return c;
+            }
+            if (c > d) {
+                --i;
+            } else {
+                --j;
+            }
+        }
+        return -1;
+    }
+}
+
+/**
+ * Your WordFilter object will be instantiated and called as such:
+ * WordFilter obj = new WordFilter(words);
+ * int param_1 = obj.f(pref,suff);
+ */
+
+
+or
+
+
+
+class WordFilter {
+    // Trie Node with HashMap for memory-efficient storage
+    class Node {
+        Map<Character, Node> children = new HashMap<>();
+        int indices; // Store all word indices
+    }
+
+    private Node root = new Node(); // Root node for the Trie
+
+    /**
+     * Constructor: Inserts words in a special format "suffix#word" into the trie.
+     * @param words - Array of words
+     */
+    public WordFilter(String[] words) {
+        for (int i = 0; i < words.length; i++) {
+            String word = words[i];
+            int n = word.length();
+
+            // Insert all possible suffix-prefix combinations into the trie
+            for (int j = 0; j <= n; j++) {
+                String newWord = word.substring(j) + "#" + word;
+                insert(newWord, i);
+            }
+        }
+    }
+
+    /**
+     * Inserts a word into the Trie.
+     * @param word - The word in "suffix#word" format
+     * @param idx - The index of the word in the input array
+     */
+    private void insert(String word, int idx) {
+        Node curr = root;
+        for (char c : word.toCharArray()) {
+            curr.children.putIfAbsent(c, new Node()); // Create a new node if needed
+            curr = curr.children.get(c);
+            curr.indices = idx; // Store index at each node
+        }
+    }
+
+    /**
+     * Finds the highest index of a word that matches the prefix and suffix.
+     * @param pref - The prefix to search for
+     * @param suff - The suffix to search for
+     * @return - The highest index of a matching word, or -1 if no match
+     */
+    public int f(String pref, String suff) {
+        String query = suff + "#" + pref; // Formulate the search key
+        Node curr = root;
+
+        // Traverse the trie for the given query string
+        for (char c : query.toCharArray()) {
+            if (!curr.children.containsKey(c)) {
+                return -1; // No match found
+            }
+            curr = curr.children.get(c);
+        }
+
+        // Get the latest index from the stored indices list
+        return curr.indices;
+    }
+}
+
+
+or
+
+
+class WordFilter 
+{
+    String[] word;
+    Map<List<String>,Integer> map=new HashMap<>();
+    
+    public WordFilter(String[] words) 
+	{
+        word=words;
+	}
+    
+    public int f(String pre, String suff)
+    {
+        List<String> list=new ArrayList<>();
+        list.add(pre);list.add(suff);
+        
+        //implemented dp
+        if(map.containsKey(list))
+            return map.get(list);
+        
+        int ans=-1;
+        
+        for(int i=word.length-1;i>=0;i--)
+        {
+            String str=word[i];
+            boolean flag=true;
+            
+            //if prefix or suffix is longer than str
+             if(pre.length()>str.length() || suff.length()>str.length())
+                 continue;
+        
+            //to check prefix
+            for(int j=0;j<pre.length();j++)
+            {
+                if(pre.charAt(j)!=str.charAt(j))
+                {
+                    flag=false;
+                    break;
+                }
+            }
+
+            //to check suffix 
+            for(int j=suff.length()-1,k=str.length()-1;j>=0 && flag;)
+            {
+                if(suff.charAt(j--)!=str.charAt(k--))
+                {
+                    flag=false;
+                    break;
+                }
+            }
+            
+            
+             if(flag)
+             {
+               map.put(list,i);
+               return i;
+             }
+
+        }
+        map.put(list,ans);
+        return ans;
+    }
+}
+
+/**
+ * Your WordFilter object will be instantiated and called as such:
+ * WordFilter obj = new WordFilter(words);
+ * int param_1 = obj.f(prefix,suffix);
+ */
