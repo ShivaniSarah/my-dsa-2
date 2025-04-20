@@ -40,3 +40,95 @@ Constraints:
 
 # java
 
+class Solution {
+    public int numberOfGoodPartitions(int[] nums) {
+        Map<Integer, Integer> last = new HashMap<>();
+        int n = nums.length;
+        for (int i = 0; i < n; ++i) {
+            last.put(nums[i], i);
+        }
+        final int mod = (int) 1e9 + 7;
+        int j = -1;
+        int k = 0;
+        for (int i = 0; i < n; ++i) {
+            j = Math.max(j, last.get(nums[i]));
+            k += i == j ? 1 : 0;
+        }
+        return qpow(2, k - 1, mod);
+    }
+
+    private int qpow(long a, int n, int mod) {
+        long ans = 1;
+        for (; n > 0; n >>= 1) {
+            if ((n & 1) == 1) {
+                ans = ans * a % mod;
+            }
+            a = a * a % mod;
+        }
+        return (int) ans;
+    }
+}
+
+
+or
+
+
+class Solution {
+  public int numberOfGoodPartitions(int[] nums) {
+    final int MOD = 1_000_000_007;
+    int ans = 1;
+
+    // lastSeen[num] := the index of the last time `num` appeared
+    HashMap<Integer, Integer> lastSeen = new HashMap<>();
+
+    for (int i = 0; i < nums.length; ++i)
+      lastSeen.put(nums[i], i);
+
+    // Track the maximum right index of each running partition by ensuring that
+    // the first and last occurrences of a number fall within the same
+    // partition.
+    int maxRight = 0;
+    for (int i = 0; i < nums.length; ++i) {
+      if (i > maxRight)
+        // Start a new partition that starts from nums[i].
+        // Each partition doubles the total number of good partitions.
+        ans = (int) ((ans * 2L) % MOD);
+      maxRight = Math.max(maxRight, lastSeen.get(nums[i]));
+    }
+
+    return ans;
+  }
+}
+
+or
+
+
+class Solution {
+    static int mod = 1000000007;
+    public int numberOfGoodPartitions(int[] nums) {
+        HashMap<Integer,Integer> mp = new HashMap<>();
+        int n = nums.length;
+        for(int i = 0; i < n; i++){
+            mp.put(nums[i],i);
+        }
+
+        int i = 0;
+        int j = 0;
+        int cnt = 0;
+        while(i<n){
+            j = Math.max(j, mp.get(nums[i]));
+            if(i==j){
+                cnt++;
+            }
+            i++;
+        }
+
+        int res = 1;
+        for(int k = 1; k < cnt; k++){
+            res = res * 2;
+            res %= mod;
+        }
+    
+        return res;
+    }
+}
