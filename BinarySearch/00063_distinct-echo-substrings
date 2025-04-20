@@ -1,0 +1,127 @@
+https://leetcode.com/problems/distinct-echo-substrings/description/
+
+
+1316. Distinct Echo Substrings
+Hard
+Topics
+Companies
+Hint
+Return the number of distinct non-empty substrings of text that can be written as the concatenation of some string with itself (i.e. it can be written as a + a where a is some string).
+
+ 
+
+Example 1:
+
+Input: text = "abcabcabc"
+Output: 3
+Explanation: The 3 substrings are "abcabc", "bcabca" and "cabcab".
+Example 2:
+
+Input: text = "leetcodeleetcode"
+Output: 2
+Explanation: The 2 substrings are "ee" and "leetcodeleetcode".
+ 
+
+Constraints:
+
+1 <= text.length <= 2000
+text has only lowercase English letters.
+
+
+# java
+
+
+class Solution {
+  public int distinctEchoSubstrings(String text) {
+    Set<String> seen = new HashSet<>();
+
+    for (int k = 1; k <= text.length() / 2; ++k) { // the target length
+      int same = 0;
+      for (int l = 0, r = k; r < text.length(); ++l, ++r) {
+        if (text.charAt(l) == text.charAt(r))
+          ++same;
+        else
+          same = 0;
+        if (same == k) {
+          seen.add(text.substring(l - k + 1, l + 1));
+          // Move the window thus leaving a letter behind, so we need to
+          // decrease the counter.
+          --same;
+        }
+      }
+    }
+
+    return seen.size();
+  }
+}
+
+or
+
+
+class Solution {
+    private long[] h;
+    private long[] p;
+
+    public int distinctEchoSubstrings(String text) {
+        int n = text.length();
+        int base = 131;
+        h = new long[n + 10];
+        p = new long[n + 10];
+        p[0] = 1;
+        for (int i = 0; i < n; ++i) {
+            int t = text.charAt(i) - 'a' + 1;
+            h[i + 1] = h[i] * base + t;
+            p[i + 1] = p[i] * base;
+        }
+        Set<Long> vis = new HashSet<>();
+        for (int i = 0; i < n - 1; ++i) {
+            for (int j = i + 1; j < n; j += 2) {
+                int k = (i + j) >> 1;
+                long a = get(i + 1, k + 1);
+                long b = get(k + 2, j + 1);
+                if (a == b) {
+                    vis.add(a);
+                }
+            }
+        }
+        return vis.size();
+    }
+
+    private long get(int i, int j) {
+        return h[j] - h[i - 1] * p[j - i + 1];
+    }
+}
+
+
+or
+
+
+class Solution {
+    private static final int PRIME = 101;
+    private static final int MOD = 1_000_000_007;
+    public int distinctEchoSubstrings(String text) {
+        int n = text.length();
+        
+        // dp[i][j] : hash value of text[i:j]
+        int[][] dp = new int[n][n];
+        for (int i = 0; i < n; i++) {
+            long hash = 0;
+            for (int j = i; j < n; j++) {
+                hash = hash * PRIME + (text.charAt(j) - 'a' + 1);
+                hash %= MOD;
+                dp[i][j] = (int) hash;
+            }
+        }
+        
+        Set<Integer> set = new HashSet<>();
+        int res = 0;
+        for (int i = 0; i < n-1; i++) {
+            // compare text[i:j] with text[j+1: 2j-i+1]
+            for (int j = i; 2*j - i + 1 < n; j++) {
+                if (dp[i][j] == dp[j+1][2*j - i+1] && set.add(dp[i][j])) res++;
+            }
+        }
+        
+        return res;
+    }
+}
