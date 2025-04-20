@@ -1,0 +1,112 @@
+https://leetcode.com/problems/maximum-element-sum-of-a-complete-subset-of-indices/description/
+
+2862. Maximum Element-Sum of a Complete Subset of Indices
+Hard
+Topics
+Companies
+Hint
+You are given a 1-indexed array nums. Your task is to select a complete subset from nums where every pair of selected indices multiplied is a perfect square,. i. e. if you select ai and aj, i * j must be a perfect square.
+
+Return the sum of the complete subset with the maximum sum.
+
+ 
+
+Example 1:
+
+Input: nums = [8,7,3,5,7,2,4,9]
+
+Output: 16
+
+Explanation:
+
+We select elements at indices 2 and 8 and 2 * 8 is a perfect square.
+
+Example 2:
+
+Input: nums = [8,10,3,8,1,13,7,9,4]
+
+Output: 20
+
+Explanation:
+
+We select elements at indices 1, 4, and 9. 1 * 4, 1 * 9, 4 * 9 are perfect squares.
+
+ 
+
+Constraints:
+
+1 <= n == nums.length <= 104
+
+
+# java
+
+
+
+class Solution {
+  public long maximumSum(List<Integer> nums) {
+    long ans = 0;
+    HashMap<Integer, Long> oddPowerToSum = new HashMap<>();
+
+    for (int i = 0; i < nums.size(); ++i) {
+      final int oddPower = divideSquares(i + 1);
+      ans = Math.max(ans, oddPowerToSum.merge(oddPower, (long) nums.get(i), Long::sum));
+    }
+
+    return ans;
+  }
+
+  private int divideSquares(int val) {
+    for (int num = 2; num * num <= val; ++num)
+      while (val % (num * num) == 0)
+        val /= num * num;
+    return val;
+  }
+}
+
+
+or
+
+
+class Solution {
+  public long maximumSum(List<Integer> nums) {
+    long ans = 0;
+
+    for (int oddPower = 1; oddPower <= nums.size(); ++oddPower) {
+      long sum = 0;
+      for (int num = 1; num * num * oddPower <= nums.size(); ++num)
+        sum += nums.get(oddPower * num * num - 1);
+      ans = Math.max(ans, sum);
+    }
+
+    return ans;
+  }
+}
+
+
+or
+
+
+
+class Solution {
+    public long maximumSum(List<Integer> nums) {
+        long ans = 0;
+        int n = nums.size();
+        boolean[] used = new boolean[n + 1];
+        int bound = (int) Math.floor(Math.sqrt(n));
+        int[] squares = new int[bound + 1];
+        for (int i = 1; i <= bound + 1; i++) {
+            squares[i - 1] = i * i;
+        }
+        for (int i = 1; i <= n; i++) {
+            long res = 0;
+            int idx = 0;
+            int curr = i * squares[idx];
+            while (curr <= n) {
+                res += nums.get(curr - 1);
+                curr = i * squares[++idx];
+            }
+            ans = Math.max(ans, res);
+        }
+        return ans;
+    }
+}
