@@ -76,3 +76,64 @@ class Solution {
         return smallRange;
     }
 }
+
+
+or
+
+
+class Solution {
+    public int[] smallestRange(List<List<Integer>> nums) {
+        int[] ans = new int[2];
+        PriorityQueue<Pair> pq = new PriorityQueue<>((a, b) -> {
+            return a.e - b.e;
+        });
+        int minStart = Integer.MAX_VALUE;
+        int minEnd = Integer.MIN_VALUE;
+        int range = Integer.MAX_VALUE;
+        for (int i = 0; i < nums.size(); i++) {
+            int a = nums.get(i).get(0);
+            pq.add(new Pair(a, i, 0));
+            minStart = Math.min(minStart, a);
+            minEnd = Math.max(minEnd, a);
+            range = minEnd - minStart;
+        }
+        int max = minEnd;
+        int next = minStart;
+        while (!pq.isEmpty()) {
+            Pair p = pq.poll();
+            if (p.j + 1 < nums.get(p.i).size()) {
+                next = nums.get(p.i).get(p.j + 1);
+                pq.add(new Pair(next, p.i, p.j + 1));
+                max = Math.max(max, next);
+                int peek = Math.min(pq.peek().e, next);
+                if (Math.abs(max - peek) < range) {
+                    minStart = peek;
+                    minEnd = max;
+                    range = minEnd - minStart;
+                }
+            } else {
+                break;
+            }
+        }
+        ans[0] = minStart;
+        ans[1] = minEnd;
+        return ans;
+    }
+
+    class Pair {
+        int e;
+        int i;
+        int j;
+
+        Pair(int e, int i, int j) {
+            this.e = e;
+            this.i = i;
+            this.j = j;
+        }
+
+        public String toString() {
+            return " " + this.e;
+        }
+    }
+}
+
