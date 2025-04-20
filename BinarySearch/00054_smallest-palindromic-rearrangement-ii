@@ -1,0 +1,332 @@
+https://leetcode.com/problems/smallest-palindromic-rearrangement-ii/description/
+
+
+3518. Smallest Palindromic Rearrangement II
+Hard
+Topics
+Companies
+Hint
+You are given a palindromic string s and an integer k.
+
+Return the k-th lexicographically smallest palindromic permutation of s. If there are fewer than k distinct palindromic permutations, return an empty string.
+
+Note: Different rearrangements that yield the same palindromic string are considered identical and are counted once.
+
+ 
+
+Example 1:
+
+Input: s = "abba", k = 2
+
+Output: "baab"
+
+Explanation:
+
+The two distinct palindromic rearrangements of "abba" are "abba" and "baab".
+Lexicographically, "abba" comes before "baab". Since k = 2, the output is "baab".
+Example 2:
+
+Input: s = "aa", k = 2
+
+Output: ""
+
+Explanation:
+
+There is only one palindromic rearrangement: "aa".
+The output is an empty string since k = 2 exceeds the number of possible rearrangements.
+Example 3:
+
+Input: s = "bacab", k = 1
+
+Output: "abcba"
+
+Explanation:
+
+The two distinct palindromic rearrangements of "bacab" are "abcba" and "bacab".
+Lexicographically, "abcba" comes before "bacab". Since k = 1, the output is "abcba".
+ 
+
+Constraints:
+
+1 <= s.length <= 104
+s consists of lowercase English letters.
+s is guaranteed to be palindromic.
+1 <= k <= 106
+
+
+# java
+
+
+class Solution {
+    public String smallestPalindrome(String inputStr, int K) {
+        int[] frequency = new int[26];
+        for (int i = 0; i < inputStr.length(); i++) {
+            char ch = inputStr.charAt(i);
+            frequency[ch - 'a']++;
+        }
+        char mid = 0;
+        for (int i = 0; i < 26; i++) {
+            if (frequency[i] % 2 == 1) {
+                mid = (char) ('a' + i);
+                frequency[i]--;
+                break;
+            }
+        }
+        int[] halfFreq = new int[26];
+        int halfLength = 0;
+        for (int i = 0; i < 26; i++) {
+            halfFreq[i] = frequency[i] / 2;
+            halfLength += halfFreq[i];
+        }
+        long totalPerms = multinomial(halfFreq);
+        if (K > totalPerms) return "";
+        StringBuilder firstHalfBuilder = new StringBuilder();
+        for (int i = 0; i < halfLength; i++) {
+            for (int c = 0; c < 26; c++) {
+                if (halfFreq[c] > 0) {
+                    halfFreq[c]--;
+                    long perms = multinomial(halfFreq);
+                    if (perms >= K) {
+                        firstHalfBuilder.append((char) ('a' + c));
+                        break;
+                    } else {
+                        K -= perms;
+                        halfFreq[c]++;
+                    }
+                }
+            }
+        }
+        String firstHalf = firstHalfBuilder.toString();
+        String revHalf = new StringBuilder(firstHalf).reverse().toString();
+        String result;
+        if (mid == 0) {
+            result = firstHalf + revHalf;
+        } else {
+            result = firstHalf + mid + revHalf;
+        }
+        return result;
+    }
+    
+    static long maxK = 1000001;
+    
+    public long multinomial(int[] counts) {
+        int tot = 0;
+        for (int cnt : counts) {
+            tot += cnt;
+        }
+        long res = 1;
+        for (int i = 0; i < 26; i++) {
+            int cnt = counts[i];
+            res = res * binom(tot, cnt);
+            if (res >= maxK)
+                return maxK;
+            tot -= cnt;
+        }
+        return res;
+    }
+    
+    public long binom(int n, int k) {
+        if (k > n) return 0;
+        if (k > n - k) k = n - k;
+        long result = 1;
+        for (int i = 1; i <= k; i++) {
+            result = result * (n - i + 1) / i;
+            if (result >= maxK) return maxK;
+        }
+        return result;
+    }
+}
+
+
+
+or
+
+
+class Solution {
+    public String smallestPalindrome(String s, int kx) {
+        int[] arr = new int[26];
+        long k = kx;
+
+        // Count frequencies
+        for (char c : s.toCharArray()) {
+            arr[c - 'a']++;
+        }
+
+        // Only care about half for palindrome
+        for (int i = 0; i < 26; i++) {
+            arr[i] /= 2;
+        }
+
+        // If total permutations < k, it's invalid
+        if (perm(arr, kx) < kx) {
+            return "";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        int n = s.length();
+
+        // Build first half of palindrome
+        for (int ix = 0; ix < n / 2; ix++) {
+            for (int i = 0; i < 26; i++) {
+                if (arr[i] == 0) continue;
+
+                arr[i]--;
+                long per = perm(arr, k);
+                if (per >= k) {
+                    sb.append((char) ('a' + i));
+                    break;
+                } else {
+                    k -= per;
+                    arr[i]++;
+                }
+            }
+        }
+
+        // Construct full palindrome
+        return (n % 2 == 0)
+            ? sb.toString() + sb.reverse().toString()
+            : sb.toString() + s.charAt(n / 2) + sb.reverse().toString();
+    }
+
+    // Efficient nCr with limit pruning
+    public long nCr(int n, int r, long lim) {
+        long res = 1;
+        r = Math.min(r, n - r);
+        for (int i = 1; i <= r; i++) {
+            res *= (n - i + 1);
+            res /= i;
+            if (res > lim) return lim + 1;
+        }
+        return res;
+    }
+
+    // Calculates total permutations with current letter frequencies
+    public long perm(int[] arr, long lim) {
+        int total = 0;
+        for (int i : arr) total += i;
+
+        long res = 1;
+        for (int i = 0; i < 26; i++) {
+            long choices = nCr(total, arr[i], lim);
+            if (choices == lim + 1) return lim + 1;
+
+            res *= choices;
+            if (res > lim) return lim;
+
+            total -= arr[i];
+        }
+        return res;
+    }
+}
+
+
+or
+
+
+class Solution {
+
+    private long comb(int totalItems, int itemsToChoose, long maxValue) {
+        if (itemsToChoose > totalItems) {
+            return 0;
+        }
+        // Optimization: C(n,r) = C(n,n-r), so use the smaller value for efficiency
+        itemsToChoose = Math.min(itemsToChoose, totalItems - itemsToChoose);
+        
+        long combinations = 1;
+        for (int i = 1; i <= itemsToChoose; i++) {
+            combinations = combinations * (totalItems - itemsToChoose + i) / i;
+            if (combinations >= maxValue) {
+                return maxValue;
+            }
+        }
+        return combinations;
+    }
+
+
+    private long countPerms(List<Integer> characterCounts, int remainingPositions, long maxValue) {
+        long permutations = 1;
+        for (int count : characterCounts) {
+            // Calculate how many ways we can place 'count' characters in the remaining positions
+            long waysToPlace = comb(remainingPositions, count, maxValue);
+            permutations *= waysToPlace;
+            if (permutations >= maxValue) {
+                return maxValue;
+            }
+            remainingPositions -= count;
+        }
+        return permutations;
+    }
+
+
+    public String smallestPalindrome(String inputString, int kthSmallest) {
+        // Maximum permutations needed
+        final long maxPermutationsNeeded = kthSmallest + 1L;
+        
+        // Character frequency counter
+        int[] characterFrequency = new int[26];
+        for (char character : inputString.toCharArray()) {
+            characterFrequency[character - 'a']++;
+        }
+
+        // Process characters for palindrome construction
+        String middleCharacter = "";
+        List<Integer> halfPalindromeCharCounts = new ArrayList<>();
+        
+        for (int i = 0; i < 26; i++) {
+            // If character appears odd number of times, it must be in the middle
+            if (characterFrequency[i] % 2 == 1) {
+                middleCharacter = String.valueOf((char) ('a' + i));
+            }
+            // Half palindrome count
+            halfPalindromeCharCounts.add(characterFrequency[i] / 2);
+        }
+
+        // Half length calculation
+        int halfLength = 0;
+        for (int count : halfPalindromeCharCounts) {
+            halfLength += count;
+        }
+
+        // Total palindrome count
+        long totalPossiblePalindromes = countPerms(halfPalindromeCharCounts, halfLength, maxPermutationsNeeded);
+        
+        // Check validity of k
+        if (kthSmallest > totalPossiblePalindromes) {
+            return "";
+        }
+
+        // Build palindrome first half
+        StringBuilder firstHalf = new StringBuilder();
+        for (int position = 0; position < halfLength; position++) {
+            for (int charIndex = 0; charIndex < 26; charIndex++) {
+                // Skip unavailable characters
+                if (halfPalindromeCharCounts.get(charIndex) == 0) {
+                    continue;
+                }
+                
+                // Try character
+                halfPalindromeCharCounts.set(charIndex, halfPalindromeCharCounts.get(charIndex) - 1);
+                
+                // Count palindromes with this prefix
+                long palindromesWithThisPrefix = countPerms(
+                    halfPalindromeCharCounts, 
+                    halfLength - position - 1, 
+                    maxPermutationsNeeded
+                );
+
+                if (kthSmallest > palindromesWithThisPrefix) {
+                    // Not the right character, try next
+                    kthSmallest -= palindromesWithThisPrefix;
+                    halfPalindromeCharCounts.set(charIndex, halfPalindromeCharCounts.get(charIndex) + 1);
+                } else {
+                    // Found right character
+                    firstHalf.append((char) ('a' + charIndex));
+                    break;
+                }
+            }
+        }
+
+        // Construct full palindrome
+        return firstHalf.toString() + middleCharacter + firstHalf.reverse().toString();
+    }
+}
