@@ -1,0 +1,369 @@
+https://leetcode.com/problems/equal-rational-numbers/
+
+
+972. Equal Rational Numbers
+Hard
+Topics
+Companies
+Given two strings s and t, each of which represents a non-negative rational number, return true if and only if they represent the same number. The strings may use parentheses to denote the repeating part of the rational number.
+
+A rational number can be represented using up to three parts: <IntegerPart>, <NonRepeatingPart>, and a <RepeatingPart>. The number will be represented in one of the following three ways:
+
+<IntegerPart>
+For example, 12, 0, and 123.
+<IntegerPart><.><NonRepeatingPart>
+For example, 0.5, 1., 2.12, and 123.0001.
+<IntegerPart><.><NonRepeatingPart><(><RepeatingPart><)>
+For example, 0.1(6), 1.(9), 123.00(1212).
+The repeating portion of a decimal expansion is conventionally denoted within a pair of round brackets. For example:
+
+1/6 = 0.16666666... = 0.1(6) = 0.1666(6) = 0.166(66).
+ 
+
+Example 1:
+
+Input: s = "0.(52)", t = "0.5(25)"
+Output: true
+Explanation: Because "0.(52)" represents 0.52525252..., and "0.5(25)" represents 0.52525252525..... , the strings represent the same number.
+Example 2:
+
+Input: s = "0.1666(6)", t = "0.166(66)"
+Output: true
+Example 3:
+
+Input: s = "0.9(9)", t = "1."
+Output: true
+Explanation: "0.9(9)" represents 0.999999999... repeated forever, which equals 1.  [See this link for an explanation.]
+"1." represents the number 1, which is formed correctly: (IntegerPart) = "1" and (NonRepeatingPart) = "".
+ 
+
+Constraints:
+
+Each part consists only of digits.
+The <IntegerPart> does not have leading zeros (except for the zero itself).
+1 <= <IntegerPart>.length <= 4
+0 <= <NonRepeatingPart>.length <= 4
+1 <= <RepeatingPart>.length <= 4
+
+
+# java
+
+
+class Solution {
+    public boolean isRationalEqual(String S, String T) {
+        Fraction f1 = convert(S);
+        Fraction f2 = convert(T);
+        return f1.n == f2.n && f1.d == f2.d;
+    }
+
+    public Fraction convert(String S) {
+        int state = 0; //whole, decimal, repeating
+        Fraction ans = new Fraction(0, 1);
+        int decimal_size = 0;
+
+        for (String part: S.split("[.()]")) {
+            state++;
+            if (part.isEmpty()) continue;
+            long x = Long.valueOf(part);
+            int sz = part.length();
+
+            if (state == 1) { // whole
+                 ans.iadd(new Fraction(x, 1));
+            } else if (state == 2) { // decimal
+                 ans.iadd(new Fraction(x, (long) Math.pow(10, sz)));
+                 decimal_size = sz;
+            } else { // repeating
+                 long denom = (long) Math.pow(10, decimal_size);
+                 denom *= (long) (Math.pow(10, sz) - 1);
+                 ans.iadd(new Fraction(x, denom));
+            }
+        }
+        return ans;
+    }
+}
+
+class Fraction {
+    long n, d;
+    Fraction(long n, long d) {
+        long g = gcd(n, d);
+        this.n = n / g;
+        this.d = d / g;
+    }
+
+    public void iadd(Fraction other) {
+        long numerator = this.n * other.d + this.d * other.n;
+        long denominator = this.d * other.d;
+        long g = Fraction.gcd(numerator, denominator);
+        this.n = numerator / g;
+        this.d = denominator / g;
+    }
+
+    static long gcd(long x, long y) {
+        return x != 0 ? gcd(y % x, x) : y;
+    }
+}
+
+
+or
+
+
+class Solution {
+  public boolean isRationalEqual(String s, String t) {
+    return Math.abs(valueOf(s) - valueOf(t)) < 1e-9;
+  }
+
+  private static double[] ratios = new double[] {1.0, 1.0 / 9, 1.0 / 99, 1.0 / 999, 1.0 / 9999};
+
+  private double valueOf(final String s) {
+    if (!s.contains("("))
+      return Double.valueOf(s);
+
+    // Get the indices..
+    final int leftParenIndex = s.indexOf('(');
+    final int rightParenIndex = s.indexOf(')');
+    final int dotIndex = s.indexOf('.');
+
+    // integerAndNonRepeating := <IntegerPart><.><NonRepeatingPart>
+    final double nonRepeating = Double.valueOf(s.substring(0, leftParenIndex));
+    final int nonRepeatingLength = leftParenIndex - dotIndex - 1;
+
+    // repeating := <RepeatingPart>
+    final int repeating = Integer.parseInt(s.substring(leftParenIndex + 1, rightParenIndex));
+    final int repeatingLength = rightParenIndex - leftParenIndex - 1;
+    return nonRepeating + repeating * Math.pow(0.1, nonRepeatingLength) * ratios[repeatingLength];
+  }
+}
+
+
+or
+
+
+class Solution {
+    public boolean isRationalEqual(String S, String T) {
+        int[] rationalS = getRational(S);
+        int[] rationalT = getRational(T);
+        return rationalS[0] == rationalT[0] && rationalS[1] == rationalT[1];
+    }
+
+    public int[] getRational(String str) {
+        boolean positive = true;
+        if (str.charAt(0) == '-') {
+            str = str.substring(1);
+            positive = false;
+        }
+        int dotIndex = str.indexOf('.');
+        if (dotIndex < 0) {
+            int integer = Integer.parseInt(str);
+            if (!positive)
+                integer = -integer;
+            int[] rational = {integer, 1};
+            return rational;
+        }
+        int length = str.length();
+        if (dotIndex == length - 1) {
+            int integer = Integer.parseInt(str.substring(0, dotIndex));
+            if (!positive)
+                integer = -integer;
+            int[] rational = {integer, 1};
+            return rational;
+        }
+        String integerPart = str.substring(0, dotIndex);
+        int integer = Integer.parseInt(integerPart);
+        String decimalPart = str.substring(dotIndex + 1);
+        int decimalPartLength = length - dotIndex - 1;
+        int repeatingIndex = str.indexOf('(');
+        if (repeatingIndex < 0) {
+            int numerator = Integer.parseInt(decimalPart);
+            int denominator = (int) Math.pow(10, decimalPartLength);
+            int gcd = gcd(numerator, denominator);
+            numerator /= gcd;
+            denominator /= gcd;
+            int[] rational = {numerator, denominator};
+            rational[0] += integer * denominator;
+            if (!positive)
+                rational[0] = -rational[0];
+            return rational;
+        } else {
+            if (repeatingIndex - dotIndex == 1) {
+                int numerator = Integer.parseInt(str.substring(repeatingIndex + 1, length - 1));
+                int denominator = (int) Math.pow(10, decimalPartLength - 2) - 1;
+                int gcd = gcd(numerator, denominator);
+                numerator /= gcd;
+                denominator /= gcd;
+                int[] rational = {numerator, denominator};
+                rational[0] += integer * denominator;
+                if (!positive)
+                    rational[0] = -rational[0];
+                return rational;
+            } else {
+                int nonRepeatingLength = repeatingIndex - dotIndex - 1;
+                int repeatingLength = length - 2 - repeatingIndex;
+                int nonRepeating = Integer.parseInt(str.substring(dotIndex + 1, repeatingIndex));
+                int numerator = nonRepeating * (int) Math.pow(10, repeatingLength) + Integer.parseInt(str.substring(repeatingIndex + 1, length - 1)) - nonRepeating;
+                int denominator = (int) (Math.pow(10, repeatingLength) - 1) * (int) (Math.pow(10, nonRepeatingLength));
+                int gcd = gcd(numerator, denominator);
+                numerator /= gcd;
+                denominator /= gcd;
+                int[] rational = {numerator, denominator};
+                rational[0] += integer * denominator;
+                if (!positive)
+                    rational[0] = -rational[0];
+                return rational;
+            }
+        }
+    }
+
+    public int gcd(int a, int b) {
+        if (a == 0 && b == 0)
+            return 1;
+        while (a > 0 && b > 0) {
+            if (a > b) {
+                int temp = a;
+                a = b;
+                b = temp;
+            }
+            b %= a;
+        }
+        return a == 0 ? b : a;
+    }
+}
+
+
+or
+
+
+import java.math.BigDecimal;
+
+class Solution {
+    public boolean isRationalEqual(String s, String t) {
+        s = expand(s);
+        t = expand(t);
+
+        BigDecimal ds = new BigDecimal(s);
+        BigDecimal dt = new BigDecimal(t);
+
+        BigDecimal re = new BigDecimal("1E-10");
+        BigDecimal rr = ds.compareTo(dt) == 1 ? ds.subtract(dt) : dt.subtract(ds);
+
+        if (ds.compareTo(dt) == 0 || rr.equals(re)) {
+            return true;
+        }
+        return false;
+    }
+
+    private String expand(String s) {
+        int p = s.indexOf("(");
+        if (p > -1) {
+            String left = s.substring(0, p);
+            String right = s.substring(p + 1, s.length() - 1);
+            while (right.length() < 11) {
+                right += right;
+            }
+            s = left + right;
+            String[] parts = s.split("\\.");
+            parts[1] = parts[1].substring(0, 10);
+            s = parts[0] + "." + parts[1];
+        }
+        return s;
+    }
+}
+
+or
+
+
+class Solution {
+    // Input 12.3400 output 12.34
+    // Input 12. output 12
+    private String trimEndingChar(String s, char c) {
+        if(c == '0') {            
+            if(s.contains(".")) {
+                int i = s.length() - 1;
+                for(; s.charAt(i) != '.'; i--) {
+                    if(s.charAt(i) != '0') break;
+                }
+                s = s.substring(0, i + 1);
+            }
+        }else if(c == '.') {            
+            if(s.charAt(s.length() - 1) == '.')
+                s = s.substring(0, s.length() - 1);
+        }
+        return s;
+    }
+    // Input 0.166(66) output 0.166(6)
+    // Input 12.34(5656) output 12.34(56)
+    private String dedupRepeatDigits(String s) {
+        int repeatStartIndex = s.indexOf('(') + 1;
+        int repeatEndIndex = s.indexOf(')') - 1;
+        boolean allSame = true;
+        for(int i = repeatStartIndex + 1; i <= repeatEndIndex; i++) {
+            if(s.charAt(i) != s.charAt(repeatStartIndex)) {
+                allSame = false;
+                break;
+            }
+        }
+        if(allSame) {
+            s = s.substring(0, repeatStartIndex + 1) + ')';
+        }else if(repeatStartIndex + 3 == repeatEndIndex && s.substring(repeatStartIndex, repeatStartIndex + 2).equals(s.substring(repeatStartIndex + 2, repeatEndIndex + 1))) {
+            s = s.substring(0, repeatStartIndex + 2) + ')';
+        }
+        return s;
+    }
+    // Input 0.5(25) output 0.(52)
+    // Input 0.166(6) output 0.1(6) 
+    private String moveRepeatToLeftMost(String s) {
+        while(true) {
+            int i = s.indexOf('(');
+            int j = s.indexOf(')');
+            if(s.charAt(i - 1) == '.') {                    
+                break;
+            }else {
+                if(s.charAt(i - 1) == s.charAt(j - 1)) {
+                    s = s.substring(0, i - 1) + '(' + s.charAt(i - 1) + s.substring(i + 1, j - 1) + ')';
+                }else {
+                    break;
+                }
+            }
+        }
+        return s;
+    }
+    // Input 12.3(9) output 12.4
+    // Input 12.(9) output 13
+    private String handleRepeat9(String s) {
+        int i = s.indexOf('(');
+        if(i == -1) return s;
+        if("(9)".equals(s.substring(i))) {
+            int j = s.indexOf('.');
+            // +1e-9 to handle float rounding precision, e.g. the true number 1.23 may be represented by Java as 1.2299999999, by adding 1e-9, it is converted to 1.23000000
+            s = "" + (Double.parseDouble(s.substring(0, i)) + Math.pow(10, -1 * (i - j - 1) + 1e-9)); 
+            // Set j + 4 + 4 as max length to drop the tail digits to overcome rounding precision of floating number, e.g. 1.23 may be represented by Java as 1.23000000000001, 4 for non repeating digits and 4 for repeating digits
+            s = normalize(s.substring(0, Math.min(j + 4 + 4, s.length())));
+        }
+        return s;
+    }
+    // Input 12.3(0) output 12.3
+    // Input 1.(0) output 1
+    private String handleRepeat0(String s) {
+        int i = s.indexOf('(');
+        if(i == -1) return s;
+        if("(0)".equals(s.substring(i))) {
+            s = normalize(s.substring(0, i));            
+        }
+        return s;
+    }
+    private String normalize(String s) {          
+        if(!s.contains("(")) {            
+            s = trimEndingChar(s, '0');            
+            s = trimEndingChar(s, '.');
+        }else {            
+            s = dedupRepeatDigits(s);                     
+            s = moveRepeatToLeftMost(s);            
+            s = handleRepeat9(s);
+            s = handleRepeat0(s);            
+        }        
+        return s;
+    }
+    
+    public boolean isRationalEqual(String s, String t) {
+        return normalize(s).equals(normalize(t));
+    }
+}
