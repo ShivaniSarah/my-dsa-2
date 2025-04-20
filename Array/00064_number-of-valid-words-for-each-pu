@@ -1,0 +1,197 @@
+https://leetcode.com/problems/number-of-valid-words-for-each-puzzle/description/
+
+1178. Number of Valid Words for Each Puzzle
+Hard
+Topics
+Companies
+Hint
+With respect to a given puzzle string, a word is valid if both the following conditions are satisfied:
+word contains the first letter of puzzle.
+For each letter in word, that letter is in puzzle.
+For example, if the puzzle is "abcdefg", then valid words are "faced", "cabbage", and "baggage", while
+invalid words are "beefed" (does not include 'a') and "based" (includes 's' which is not in the puzzle).
+Return an array answer, where answer[i] is the number of words in the given word list words that is valid with respect to the puzzle puzzles[i].
+ 
+
+Example 1:
+
+Input: words = ["aaaa","asas","able","ability","actt","actor","access"], puzzles = ["aboveyz","abrodyz","abslute","absoryz","actresz","gaswxyz"]
+Output: [1,1,3,2,4,0]
+Explanation: 
+1 valid word for "aboveyz" : "aaaa" 
+1 valid word for "abrodyz" : "aaaa"
+3 valid words for "abslute" : "aaaa", "asas", "able"
+2 valid words for "absoryz" : "aaaa", "asas"
+4 valid words for "actresz" : "aaaa", "asas", "actt", "access"
+There are no valid words for "gaswxyz" cause none of the words in the list contains letter 'g'.
+Example 2:
+
+Input: words = ["apple","pleas","please"], puzzles = ["aelwxyz","aelpxyz","aelpsxy","saelpxy","xaelpsy"]
+Output: [0,1,3,2,0]
+ 
+
+Constraints:
+
+1 <= words.length <= 105
+4 <= words[i].length <= 50
+1 <= puzzles.length <= 104
+puzzles[i].length == 7
+words[i] and puzzles[i] consist of lowercase English letters.
+Each puzzles[i] does not contain repeated characters.
+
+
+# java
+
+
+class Solution {
+  public List<Integer> findNumOfValidWords(String[] words, String[] puzzles) {
+    List<Integer> ans = new ArrayList<>();
+    Map<Integer, Integer> binaryCount = new HashMap<>();
+
+    for (final String word : words) {
+      int mask = 0;
+      for (char c : word.toCharArray())
+        mask |= 1 << (c - 'a');
+      binaryCount.merge(mask, 1, Integer::sum);
+    }
+
+    for (final String puzzle : puzzles) {
+      int valid = 0;
+      final int n = puzzle.length() - 1;
+      for (int i = 0; i < (1 << n); ++i) {
+        int mask = 1 << puzzle.charAt(0) - 'a';
+        for (int j = 0; j < n; ++j)
+          if ((i >> j & 1) == 1)
+            mask |= 1 << puzzle.charAt(j + 1) - 'a';
+        if (binaryCount.containsKey(mask))
+          valid += binaryCount.get(mask);
+      }
+      ans.add(valid);
+    }
+
+    return ans;
+  }
+}
+
+
+or
+
+
+class Solution {
+    public List<Integer> findNumOfValidWords(String[] words, String[] puzzles) {
+        Map<Integer, Integer> cnt = new HashMap<>(words.length);
+        for (var w : words) {
+            int mask = 0;
+            for (int i = 0; i < w.length(); ++i) {
+                mask |= 1 << (w.charAt(i) - 'a');
+            }
+            cnt.merge(mask, 1, Integer::sum);
+        }
+        List<Integer> ans = new ArrayList<>();
+        for (var p : puzzles) {
+            int mask = 0;
+            for (int i = 0; i < p.length(); ++i) {
+                mask |= 1 << (p.charAt(i) - 'a');
+            }
+            int x = 0;
+            int i = p.charAt(0) - 'a';
+            for (int j = mask; j > 0; j = (j - 1) & mask) {
+                if ((j >> i & 1) == 1) {
+                    x += cnt.getOrDefault(j, 0);
+                }
+            }
+            ans.add(x);
+        }
+        return ans;
+    }
+}
+
+or
+
+
+
+class Solution {
+    public List<Integer> findNumOfValidWords(String[] words, String[] puzzles) {
+        
+        Map<Integer, Integer> map = new HashMap<>();
+        
+        for(String w : words){
+            int mask = 0;
+            for(int i = 0; i < w.length(); i++){
+                mask |= 1 << (w.charAt(i) - 'a');
+            }
+            map.put(mask, map.getOrDefault(mask, 0) + 1);
+        }
+        
+        List<Integer> res = new ArrayList<>();
+        
+        for(String p : puzzles){
+            int mask = 0;
+            for(int i = 0; i < p.length(); i++){
+                mask |= 1 << (p.charAt(i) - 'a');
+            }
+            int c = 0;
+            int sub = mask;
+            int first = 1 << (p.charAt(0) - 'a');
+            while(true){
+                if((sub & first) == first && map.containsKey(sub)){
+                    c += map.get(sub);
+                }
+                
+                if(sub == 0) break;
+                
+                sub = (sub - 1) & mask; // get the next substring
+            }
+            
+            res.add(c);
+        }
+        
+        return res;
+    }
+}
+
+
+or
+
+
+
+class Solution {
+
+public List<Integer> findNumOfValidWords(String[] words, String[] puzzles) {
+    
+    Map<Integer, Integer> map = new HashMap<>();
+    
+    for(String w : words){
+        int mask = 0;
+        for(int i = 0; i < w.length(); i++){
+            mask |= 1 << (w.charAt(i) - 'a');
+        }
+        map.put(mask, map.getOrDefault(mask, 0) + 1);
+    }
+    
+    List<Integer> res = new ArrayList<>();
+    
+    for(String p : puzzles){
+        int mask = 0;
+        for(int i = 0; i < p.length(); i++){
+            mask |= 1 << (p.charAt(i) - 'a');
+        }
+        int c = 0;
+        int sub = mask;
+        int first = 1 << (p.charAt(0) - 'a');
+        while(true){
+            if((sub & first) == first && map.containsKey(sub)){
+                c += map.get(sub);
+            }
+            
+            if(sub == 0) break;
+            
+            sub = (sub - 1) & mask; // get the next substring
+        }
+        
+        res.add(c);
+    }
+    
+    return res;
+}
+}
