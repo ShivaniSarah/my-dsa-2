@@ -1,0 +1,277 @@
+https://leetcode.com/problems/tag-validator/
+
+
+591. Tag Validator
+Hard
+Topics
+Companies
+Given a string representing a code snippet, implement a tag validator to parse the code and return whether it is valid.
+
+A code snippet is valid if all the following rules hold:
+
+The code must be wrapped in a valid closed tag. Otherwise, the code is invalid.
+A closed tag (not necessarily valid) has exactly the following format : <TAG_NAME>TAG_CONTENT</TAG_NAME>. Among them, <TAG_NAME> is the start tag, and </TAG_NAME> is the end tag. The TAG_NAME in start and end tags should be the same. A closed tag is valid if and only if the TAG_NAME and TAG_CONTENT are valid.
+A valid TAG_NAME only contain upper-case letters, and has length in range [1,9]. Otherwise, the TAG_NAME is invalid.
+A valid TAG_CONTENT may contain other valid closed tags, cdata and any characters (see note1) EXCEPT unmatched <, unmatched start and end tag, and unmatched or closed tags with invalid TAG_NAME. Otherwise, the TAG_CONTENT is invalid.
+A start tag is unmatched if no end tag exists with the same TAG_NAME, and vice versa. However, you also need to consider the issue of unbalanced when tags are nested.
+A < is unmatched if you cannot find a subsequent >. And when you find a < or </, all the subsequent characters until the next > should be parsed as TAG_NAME (not necessarily valid).
+The cdata has the following format : <![CDATA[CDATA_CONTENT]]>. The range of CDATA_CONTENT is defined as the characters between <![CDATA[ and the first subsequent ]]>.
+CDATA_CONTENT may contain any characters. The function of cdata is to forbid the validator to parse CDATA_CONTENT, so even it has some characters that can be parsed as tag (no matter valid or invalid), you should treat it as regular characters.
+ 
+
+Example 1:
+
+Input: code = "<DIV>This is the first line <![CDATA[<div>]]></DIV>"
+Output: true
+Explanation: 
+The code is wrapped in a closed tag : <DIV> and </DIV>. 
+The TAG_NAME is valid, the TAG_CONTENT consists of some characters and cdata. 
+Although CDATA_CONTENT has an unmatched start tag with invalid TAG_NAME, it should be considered as plain text, not parsed as a tag.
+So TAG_CONTENT is valid, and then the code is valid. Thus return true.
+Example 2:
+
+Input: code = "<DIV>>>  ![cdata[]] <![CDATA[<div>]>]]>]]>>]</DIV>"
+Output: true
+Explanation:
+We first separate the code into : start_tag|tag_content|end_tag.
+start_tag -> "<DIV>"
+end_tag -> "</DIV>"
+tag_content could also be separated into : text1|cdata|text2.
+text1 -> ">>  ![cdata[]] "
+cdata -> "<![CDATA[<div>]>]]>", where the CDATA_CONTENT is "<div>]>"
+text2 -> "]]>>]"
+The reason why start_tag is NOT "<DIV>>>" is because of the rule 6.
+The reason why cdata is NOT "<![CDATA[<div>]>]]>]]>" is because of the rule 7.
+Example 3:
+
+Input: code = "<A>  <B> </A>   </B>"
+Output: false
+Explanation: Unbalanced. If "<A>" is closed, then "<B>" must be unmatched, and vice versa.
+ 
+
+Constraints:
+
+1 <= code.length <= 500
+code consists of English letters, digits, '<', '>', '/', '!', '[', ']', '.', and ' '.
+
+
+
+# java
+
+public class Solution {
+    Stack < String > stack = new Stack < > ();
+    boolean contains_tag = false;
+    public boolean isValidTagName(String s, boolean ending) {
+        if (s.length() < 1 || s.length() > 9)
+            return false;
+        for (int i = 0; i < s.length(); i++) {
+            if (!Character.isUpperCase(s.charAt(i)))
+                return false;
+        }
+        if (ending) {
+            if (!stack.isEmpty() && stack.peek().equals(s))
+                stack.pop();
+            else
+                return false;
+        } else {
+            contains_tag = true;
+            stack.push(s);
+        }
+        return true;
+    }
+    public boolean isValidCdata(String s) {
+        return s.indexOf("[CDATA[") == 0;
+    }
+    public boolean isValid(String code) {
+        if (code.charAt(0) != '<' || code.charAt(code.length() - 1) != '>')
+            return false;
+        for (int i = 0; i < code.length(); i++) {
+            boolean ending = false;
+            int closeindex;
+            if(stack.isEmpty() && contains_tag)
+                return false;
+            if (code.charAt(i) == '<') {
+                if (!stack.isEmpty() && code.charAt(i + 1) == '!') {
+                    closeindex = code.indexOf("]]>", i + 1);
+                    if (closeindex < 0 || !isValidCdata(code.substring(i + 2, closeindex)))
+                        return false;
+                } else {
+                    if (code.charAt(i + 1) == '/') {
+                        i++;
+                        ending = true;
+                    }
+                    closeindex = code.indexOf('>', i + 1);
+                    if (closeindex < 0 || !isValidTagName(code.substring(i + 1, closeindex), ending))
+                        return false;
+                }
+                i = closeindex;
+            }
+        }
+        return stack.isEmpty() && contains_tag;
+    }
+}
+
+
+or
+
+
+import java.util.regex.*;
+public class Solution {
+    Stack < String > stack = new Stack < > ();
+    boolean contains_tag = false;
+    public boolean isValidTagName(String s, boolean ending) {
+        if (ending) {
+            if (!stack.isEmpty() && stack.peek().equals(s))
+                stack.pop();
+            else
+                return false;
+        } else {
+            contains_tag = true;
+            stack.push(s);
+        }
+        return true;
+    }
+    public boolean isValid(String code) {
+        String regex = "<[A-Z]{0,9}>([^<]*(<((\\/?[A-Z]{1,9}>)|(!\\[CDATA\\[(.*?)]]>)))?)*";
+        if (!Pattern.matches(regex, code))
+            return false;
+        for (int i = 0; i < code.length(); i++) {
+            boolean ending = false;
+            if (stack.isEmpty() && contains_tag)
+                return false;
+            if (code.charAt(i) == '<') {
+                if (code.charAt(i + 1) == '!') {
+                    i = code.indexOf("]]>", i + 1);
+                    continue;
+                }
+                if (code.charAt(i + 1) == '/') {
+                    i++;
+                    ending = true;
+                }
+                int closeindex = code.indexOf('>', i + 1);
+                if (closeindex < 0 || !isValidTagName(code.substring(i + 1, closeindex), ending))
+                    return false;
+                i = closeindex;
+            }
+        }
+        return stack.isEmpty();
+    }
+}
+
+
+or
+
+
+
+class Solution {
+  public boolean isValid(String code) {
+    if (code.charAt(0) != '<' || code.charAt(code.length() - 1) != '>')
+      return false;
+
+    Deque<String> stack = new ArrayDeque<>();
+
+    for (int i = 0; i < code.length(); ++i) {
+      int closeIndex = 0;
+      if (stack.isEmpty() && containsTag)
+        return false;
+      if (code.charAt(i) == '<') {
+        // It's inside a tag, so check if it's a cdata.
+        if (!stack.isEmpty() && code.charAt(i + 1) == '!') {
+          closeIndex = code.indexOf("]]>", i + 2);
+          if (closeIndex < 0 || !isValidCdata(code.substring(i + 2, closeIndex)))
+            return false;
+        } else if (code.charAt(i + 1) == '/') { // the end tag
+          closeIndex = code.indexOf('>', i + 2);
+          if (closeIndex < 0 || !isValidTagName(stack, code.substring(i + 2, closeIndex), true))
+            return false;
+        } else { // the start tag
+          closeIndex = code.indexOf('>', i + 1);
+          if (closeIndex < 0 || !isValidTagName(stack, code.substring(i + 1, closeIndex), false))
+            return false;
+        }
+        i = closeIndex;
+      }
+    }
+
+    return stack.isEmpty() && containsTag;
+  }
+
+  private boolean containsTag = false;
+
+  private boolean isValidCdata(final String s) {
+    return s.indexOf("[CDATA[") == 0;
+  }
+
+  private boolean isValidTagName(Deque<String> stack, String tagName, boolean isEndTag) {
+    if (tagName.isEmpty() || tagName.length() > 9)
+      return false;
+
+    for (final char c : tagName.toCharArray())
+      if (!Character.isUpperCase(c))
+        return false;
+
+    if (isEndTag)
+      return !stack.isEmpty() && stack.pop().equals(tagName);
+
+    containsTag = true;
+    stack.push(tagName);
+    return true;
+  }
+}
+
+
+or
+
+
+class Solution {
+    public boolean isValid(String code) {
+        Deque<String> stk = new ArrayDeque<>();
+        for (int i = 0; i < code.length(); ++i) {
+            if (i > 0 && stk.isEmpty()) {
+                return false;
+            }
+            if (code.startsWith("<![CDATA[", i)) {
+                i = code.indexOf("]]>", i + 9);
+                if (i < 0) {
+                    return false;
+                }
+                i += 2;
+            } else if (code.startsWith("</", i)) {
+                int j = i + 2;
+                i = code.indexOf(">", j);
+                if (i < 0) {
+                    return false;
+                }
+                String t = code.substring(j, i);
+                if (!check(t) || stk.isEmpty() || !stk.pop().equals(t)) {
+                    return false;
+                }
+            } else if (code.startsWith("<", i)) {
+                int j = i + 1;
+                i = code.indexOf(">", j);
+                if (i < 0) {
+                    return false;
+                }
+                String t = code.substring(j, i);
+                if (!check(t)) {
+                    return false;
+                }
+                stk.push(t);
+            }
+        }
+        return stk.isEmpty();
+    }
+
+    private boolean check(String tag) {
+        int n = tag.length();
+        if (n < 1 || n > 9) {
+            return false;
+        }
+        for (char c : tag.toCharArray()) {
+            if (!Character.isUpperCase(c)) {
+                return false;
+            }
+        }
+        return true;
+    }
+}
