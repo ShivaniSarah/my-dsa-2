@@ -1,0 +1,301 @@
+https://leetcode.com/problems/check-if-digits-are-equal-in-string-after-operations-ii/
+
+3463. Check If Digits Are Equal in String After Operations II
+Hard
+Topics
+Companies
+Hint
+You are given a string s consisting of digits. Perform the following operation repeatedly until the string has exactly two digits:
+
+For each pair of consecutive digits in s, starting from the first digit, calculate a new digit as the sum of the two digits modulo 10.
+Replace s with the sequence of newly calculated digits, maintaining the order in which they are computed.
+Return true if the final two digits in s are the same; otherwise, return false.
+
+ 
+
+Example 1:
+
+Input: s = "3902"
+
+Output: true
+
+Explanation:
+
+Initially, s = "3902"
+First operation:
+(s[0] + s[1]) % 10 = (3 + 9) % 10 = 2
+(s[1] + s[2]) % 10 = (9 + 0) % 10 = 9
+(s[2] + s[3]) % 10 = (0 + 2) % 10 = 2
+s becomes "292"
+Second operation:
+(s[0] + s[1]) % 10 = (2 + 9) % 10 = 1
+(s[1] + s[2]) % 10 = (9 + 2) % 10 = 1
+s becomes "11"
+Since the digits in "11" are the same, the output is true.
+Example 2:
+
+Input: s = "34789"
+
+Output: false
+
+Explanation:
+
+Initially, s = "34789".
+After the first operation, s = "7157".
+After the second operation, s = "862".
+After the third operation, s = "48".
+Since '4' != '8', the output is false.
+ 
+
+Constraints:
+
+3 <= s.length <= 105
+s consists of only digits.
+
+
+
+# java
+
+class Solution {
+  // Same as 3461. Check If Digits Are Equal in String After Operations I
+  public boolean hasSameDigits(String s) {
+    final int n = s.length();
+    int num1 = 0;
+    int num2 = 0;
+
+    for (int i = 0; i + 1 < n; ++i) {
+      final int coefficient = nCMOD10(n - 2, i);
+      num1 += (coefficient * (s.charAt(i) - '0')) % 10;
+      num1 %= 10;
+      num2 += (coefficient * (s.charAt(i + 1) - '0')) % 10;
+      num2 %= 10;
+    }
+
+    return num1 == num2;
+  }
+
+  // Returns (n, k) % 10.
+  private int nCMOD10(int n, int k) {
+    final int mod2 = lucasTheorem(n, k, 2);
+    final int mod5 = lucasTheorem(n, k, 5);
+    int[][] lookup = {
+        {0, 6, 2, 8, 4}, // mod2 == 0
+        {5, 1, 7, 3, 9}  // mod2 == 1
+    };
+    return lookup[mod2][mod5];
+  }
+
+  // Returns (n, k) % prime.
+  private int lucasTheorem(int n, int k, int prime) {
+    int res = 1;
+    while (n > 0 || k > 0) {
+      final int nMod = n % prime;
+      final int MOD = k % prime;
+      res *= nCk(nMod, MOD);
+      res %= prime;
+      n /= prime;
+      k /= prime;
+    }
+    return res;
+  }
+
+  // Returns (n, k).
+  private int nCk(int n, int k) {
+    int res = 1;
+    for (int i = 0; i < k; ++i) {
+      res *= (n - i);
+      res /= (i + 1);
+    }
+    return res;
+  }
+}
+
+
+or
+
+
+class Solution {
+     static int nCrMod10(int n, int r) {
+        int mod2 = nCrMod2(n, r);
+        int mod5 = nCrMod5(n, r);
+        return (5 * mod2 + 6 * mod5) % 10;
+    }
+    
+    static int nCrMod2(int n, int r) {
+        return ((n & r) == r) ? 1 : 0;
+    }
+    
+    static int nCrMod5(int n, int r) {
+        if (r > n) return 0;
+        int[] fact = {1, 1, 2, 1, 4};
+        int[] invFact = new int[5];
+        for (int i = 0; i < 5; i++) {
+            invFact[i] = modInverse5(fact[i]);
+        }
+        int anss = 1;
+        while (n > 0 || r > 0) {
+            int n_i = n % 5;
+            int r_i = r % 5;
+            n /= 5;
+            r /= 5;
+            if (r_i > n_i) return 0;
+            int term = fact[n_i];
+            term = (int) (((long) term * invFact[r_i]) % 5);
+            term = (int) (((long) term * invFact[n_i - r_i]) % 5);
+            anss = (anss * term) % 5;
+        }
+        return anss;
+    }
+    
+    static int modInverse5(int x) {
+        return power(x, 3, 5);
+    }
+    
+    static int power(int x, int y, int mod) {
+        int res = 1;
+        while (y > 0) {
+            if ((y & 1) == 1)
+                res = (res * x) % mod;
+            x = (x * x) % mod;
+            y >>= 1;
+        }
+        return res;
+    }
+    
+    static boolean hasSameDigits(String s) {
+        char[] nums = s.toCharArray();
+        int n = nums.length;
+        int x = n - 2, y = 0;
+        int ans = 0;
+        for (int i = 0; i < n - 1; i++) {
+            int val = nCrMod10(x, y++);
+            ans = (ans + ((int)(nums[i] - '0') * val)) % 10;
+        }
+        int temo = ans;
+        y = 0;
+        int one = 0;
+        for (int i = 1; i < n; i++) {
+            int val = nCrMod10(x, y);
+            one = (one + ((int)(nums[i] - '0') * val)) % 10;
+            y++;
+        }
+        return temo == one;
+    }
+}
+
+
+or
+
+
+class Solution 
+{
+    public boolean hasSameDigits(String s) 
+    {
+        // Step 1: Initialize Variables
+        int size = s.length();
+        int X = size - 2;
+        int x = 0, y = 0;
+
+        // Step 2: Compute Alternating Sum Using Binomial Coefficients
+        for (int j = 0; j <= X; j++) 
+        {
+            int coeff = binomialMod10(X, j);
+            x = (x + coeff * (s.charAt(j) - '0')) % 10;
+            y = (y + coeff * (s.charAt(j + 1) - '0')) % 10;
+        }
+
+        // Step 3: Compare Alternating Sums
+        return x == y;
+    }
+
+    // Step 4: Compute Binomial Coefficient Modulo 10
+    private int binomialMod10(int n, int k) 
+    {
+        int i = binomialMod2(n, k);
+        int j = binomialMod5(n, k);
+
+        for (int x = 0; x < 10; x++) 
+        {
+            if (x % 2 == i && x % 5 == j) 
+            {
+                return x;
+            }
+        }
+        return 0;
+    }
+
+    // Step 5: Compute Binomial Coefficient Modulo 2
+    private int binomialMod2(int n, int k) 
+    {
+        return ((n & k) == k) ? 1 : 0;
+    }
+
+    // Step 6: Compute Binomial Coefficient Modulo 5 Using Lookup Table
+    private int binomialMod5(int n, int k) 
+    {
+        int[][] tuples = {{1}, {1, 1}, {1, 2, 1}, {1, 3, 3, 1}, {1, 4, 1, 4, 1}};
+        int result = 1;
+
+        while (n > 0 || k > 0) 
+        {
+            int nthd = n % 5;
+            int kthd = k % 5;
+
+            if (kthd > nthd) return 0;
+
+            result = (result * tuples[nthd][kthd]) % 5;
+            n /= 5;
+            k /= 5;
+        }
+        return result;
+    }
+}
+
+
+OR
+
+
+class Solution {
+    public boolean hasSameDigits(String s) {
+        int n = s.length();
+        int N = n - 2;
+        int f0 = 0, f1 = 0;
+
+        for (int j = 0; j <= N; j++) {
+            int c = binomMod10(N, j);
+            f0 = (f0 + c * (s.charAt(j) - '0')) % 10;
+            f1 = (f1 + c * (s.charAt(j + 1) - '0')) % 10;
+        }
+        return f0 == f1;
+    }
+
+    private int binomMod10(int n, int k) {
+        int r2 = binomMod2(n, k);
+        int r5 = binomMod5(n, k);
+        for (int x = 0; x < 10; x++) {
+            if (x % 2 == r2 && x % 5 == r5) return x;
+        }
+        return 0;
+    }
+
+    private int binomMod2(int n, int k) {
+        return ((n & k) == k) ? 1 : 0;
+    }
+
+    private int binomMod5(int n, int k) {
+        int[][] t = {
+            {1}, {1, 1}, {1, 2, 1}, {1, 3, 3, 1}, {1, 4, 1, 4, 1}
+        };
+        int res = 1;
+
+        while (n > 0 || k > 0) {
+            int nd = n % 5;
+            int kd = k % 5;
+            if (kd > nd) return 0;
+            res = (res * t[nd][kd]) % 5;
+            n /= 5;
+            k /= 5;
+        }
+        return res;
+    }
+}
