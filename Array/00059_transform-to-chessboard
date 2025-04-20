@@ -1,0 +1,181 @@
+https://leetcode.com/problems/transform-to-chessboard/description/
+
+782. Transform to Chessboard
+Hard
+Topics
+Companies
+You are given an n x n binary grid board. In each move, you can swap any two rows with each other, or any two columns with each other.
+
+Return the minimum number of moves to transform the board into a chessboard board. If the task is impossible, return -1.
+
+A chessboard board is a board where no 0's and no 1's are 4-directionally adjacent.
+
+ 
+
+Example 1:
+
+
+Input: board = [[0,1,1,0],[0,1,1,0],[1,0,0,1],[1,0,0,1]]
+Output: 2
+Explanation: One potential sequence of moves is shown.
+The first move swaps the first and second column.
+The second move swaps the second and third row.
+Example 2:
+
+
+Input: board = [[0,1],[1,0]]
+Output: 0
+Explanation: Also note that the board with 0 in the top left corner, is also a valid chessboard.
+Example 3:
+
+
+Input: board = [[1,0],[1,0]]
+Output: -1
+Explanation: No matter what sequence of moves you make, you cannot end with a valid chessboard.
+ 
+
+Constraints:
+
+n == board.length
+n == board[i].length
+2 <= n <= 30
+board[i][j] is either 0 or 1.
+
+
+
+# java
+
+
+class Solution {
+  public int movesToChessboard(int[][] board) {
+    final int n = board.length;
+    int rowSum = 0;
+    int colSum = 0;
+    int rowSwaps = 0;
+    int colSwaps = 0;
+
+    for (int i = 0; i < n; ++i)
+      for (int j = 0; j < n; ++j)
+        if ((board[0][0] ^ board[i][0] ^ board[0][j] ^ board[i][j]) == 1)
+          return -1;
+
+    for (int i = 0; i < n; ++i) {
+      rowSum += board[0][i];
+      colSum += board[i][0];
+    }
+
+    if (rowSum != n / 2 && rowSum != (n + 1) / 2)
+      return -1;
+    if (colSum != n / 2 && colSum != (n + 1) / 2)
+      return -1;
+
+    for (int i = 0; i < n; ++i) {
+      if (board[i][0] == (i & 1))
+        ++rowSwaps;
+      if (board[0][i] == (i & 1))
+        ++colSwaps;
+    }
+
+    if (n % 2 == 1) {
+      if (rowSwaps % 2 == 1)
+        rowSwaps = n - rowSwaps;
+      if (colSwaps % 2 == 1)
+        colSwaps = n - colSwaps;
+    } else {
+      rowSwaps = Math.min(rowSwaps, n - rowSwaps);
+      colSwaps = Math.min(colSwaps, n - colSwaps);
+    }
+
+    return (rowSwaps + colSwaps) / 2;
+  }
+}
+
+
+or
+
+
+class Solution {
+    private int n;
+
+    public int movesToChessboard(int[][] board) {
+        n = board.length;
+        int mask = (1 << n) - 1;
+        int rowMask = 0, colMask = 0;
+        for (int i = 0; i < n; ++i) {
+            rowMask |= board[0][i] << i;
+            colMask |= board[i][0] << i;
+        }
+        int revRowMask = mask ^ rowMask;
+        int revColMask = mask ^ colMask;
+        int sameRow = 0, sameCol = 0;
+        for (int i = 0; i < n; ++i) {
+            int curRowMask = 0, curColMask = 0;
+            for (int j = 0; j < n; ++j) {
+                curRowMask |= board[i][j] << j;
+                curColMask |= board[j][i] << j;
+            }
+            if (curRowMask != rowMask && curRowMask != revRowMask) {
+                return -1;
+            }
+            if (curColMask != colMask && curColMask != revColMask) {
+                return -1;
+            }
+            sameRow += curRowMask == rowMask ? 1 : 0;
+            sameCol += curColMask == colMask ? 1 : 0;
+        }
+        int t1 = f(rowMask, sameRow);
+        int t2 = f(colMask, sameCol);
+        return t1 == -1 || t2 == -1 ? -1 : t1 + t2;
+    }
+
+    private int f(int mask, int cnt) {
+        int ones = Integer.bitCount(mask);
+        if (n % 2 == 1) {
+            if (Math.abs(n - ones * 2) != 1 || Math.abs(n - cnt * 2) != 1) {
+                return -1;
+            }
+            if (ones == n / 2) {
+                return n / 2 - Integer.bitCount(mask & 0xAAAAAAAA);
+            }
+            return (n / 2 + 1) - Integer.bitCount(mask & 0x55555555);
+        } else {
+            if (ones != n / 2 || cnt != n / 2) {
+                return -1;
+            }
+            int cnt0 = n / 2 - Integer.bitCount(mask & 0xAAAAAAAA);
+            int cnt1 = n / 2 - Integer.bitCount(mask & 0x55555555);
+            return Math.min(cnt0, cnt1);
+        }
+    }
+}
+
+
+or
+
+
+class Solution {
+    public int movesToChessboard(int[][] board) {
+        int N = board.length, rowSum = 0, colSum = 0, rowSwap = 0, colSwap = 0;
+        for (int r = 0; r < N; ++r)
+            for (int c = 0; c < N; ++c) {
+                if ((board[0][0] ^ board[r][0] ^ board[0][c] ^ board[r][c]) == 1)
+                    return -1;
+            }
+        for (int i = 0; i < N; ++i) {
+            rowSum += board[0][i];
+            colSum += board[i][0];
+            rowSwap += board[i][0] == i % 2 ? 1 : 0;
+            colSwap += board[0][i] == i % 2 ? 1 : 0;
+        }
+        if (N / 2 > rowSum || rowSum > (N + 1) / 2) return -1;
+        if (N / 2 > colSum || colSum > (N + 1) / 2) return -1;
+        if (N % 2 == 1) {
+            if (colSwap % 2 == 1) colSwap = N - colSwap;
+            if (rowSwap % 2 == 1) rowSwap = N - rowSwap;
+        } else {
+            colSwap = Math.min(N - colSwap, colSwap);
+            rowSwap = Math.min(N - rowSwap, rowSwap);
+        }
+        return (colSwap + rowSwap) / 2;
+    }
+}
