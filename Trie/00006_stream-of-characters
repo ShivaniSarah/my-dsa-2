@@ -1,0 +1,208 @@
+https://leetcode.com/problems/stream-of-characters/
+
+
+1032. Stream of Characters
+Hard
+Topics
+Companies
+Hint
+Design an algorithm that accepts a stream of characters and checks if a suffix of these characters is a string of a given array of strings words.
+
+For example, if words = ["abc", "xyz"] and the stream added the four characters (one by one) 'a', 'x', 'y', and 'z', your algorithm should detect that the suffix "xyz" of the characters "axyz" matches "xyz" from words.
+
+Implement the StreamChecker class:
+
+StreamChecker(String[] words) Initializes the object with the strings array words.
+boolean query(char letter) Accepts a new character from the stream and returns true if any non-empty suffix from the stream forms a word that is in words.
+ 
+
+Example 1:
+
+Input
+["StreamChecker", "query", "query", "query", "query", "query", "query", "query", "query", "query", "query", "query", "query"]
+[[["cd", "f", "kl"]], ["a"], ["b"], ["c"], ["d"], ["e"], ["f"], ["g"], ["h"], ["i"], ["j"], ["k"], ["l"]]
+Output
+[null, false, false, false, true, false, true, false, false, false, false, false, true]
+
+Explanation
+StreamChecker streamChecker = new StreamChecker(["cd", "f", "kl"]);
+streamChecker.query("a"); // return False
+streamChecker.query("b"); // return False
+streamChecker.query("c"); // return False
+streamChecker.query("d"); // return True, because 'cd' is in the wordlist
+streamChecker.query("e"); // return False
+streamChecker.query("f"); // return True, because 'f' is in the wordlist
+streamChecker.query("g"); // return False
+streamChecker.query("h"); // return False
+streamChecker.query("i"); // return False
+streamChecker.query("j"); // return False
+streamChecker.query("k"); // return False
+streamChecker.query("l"); // return True, because 'kl' is in the wordlist
+ 
+
+Constraints:
+
+1 <= words.length <= 2000
+1 <= words[i].length <= 200
+words[i] consists of lowercase English letters.
+letter is a lowercase English letter.
+At most 4 * 104 calls will be made to query.
+
+
+# java
+
+
+class TrieNode {
+  public TrieNode[] children = new TrieNode[26];
+  public boolean isWord = false;
+}
+
+class StreamChecker {
+  public StreamChecker(String[] words) {
+    for (final String word : words)
+      insert(word);
+  }
+
+  public boolean query(char letter) {
+    letters.append(letter);
+    TrieNode node = root;
+
+    for (int i = letters.length() - 1; i >= 0; --i) {
+      final int index = letters.charAt(i) - 'a';
+      if (node.children[index] == null)
+        return false;
+      node = node.children[index];
+      if (node.isWord)
+        return true;
+    }
+
+    return false;
+  }
+
+  private TrieNode root = new TrieNode();
+  private StringBuilder letters = new StringBuilder();
+
+  private void insert(final String word) {
+    TrieNode node = root;
+    for (int i = word.length() - 1; i >= 0; --i) {
+      final int index = word.charAt(i) - 'a';
+      if (node.children[index] == null)
+        node.children[index] = new TrieNode();
+      node = node.children[index];
+    }
+    node.isWord = true;
+  }
+}
+
+
+or
+
+
+class Trie {
+    Trie[] children = new Trie[26];
+    boolean isEnd = false;
+
+    public void insert(String w) {
+        Trie node = this;
+        for (int i = w.length() - 1; i >= 0; --i) {
+            int idx = w.charAt(i) - 'a';
+            if (node.children[idx] == null) {
+                node.children[idx] = new Trie();
+            }
+            node = node.children[idx];
+        }
+        node.isEnd = true;
+    }
+
+    public boolean query(StringBuilder s) {
+        Trie node = this;
+        for (int i = s.length() - 1; i >= 0; --i) {
+            int idx = s.charAt(i) - 'a';
+            if (node.children[idx] == null) {
+                return false;
+            }
+            node = node.children[idx];
+            if (node.isEnd) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+
+class StreamChecker {
+    private StringBuilder sb = new StringBuilder();
+    private Trie trie = new Trie();
+
+    public StreamChecker(String[] words) {
+        for (String w : words) {
+            trie.insert(w);
+        }
+    }
+
+    public boolean query(char letter) {
+        sb.append(letter);
+        return trie.query(sb);
+    }
+}
+
+/**
+ * Your StreamChecker object will be instantiated and called as such:
+ * StreamChecker obj = new StreamChecker(words);
+ * boolean param_1 = obj.query(letter);
+ */
+
+
+or
+
+
+class StreamChecker {
+
+   TreeMap<Character,HashSet<String>> map = new TreeMap<>();
+    String s = "";
+    int max = Integer.MIN_VALUE;
+    
+    public StreamChecker(String[] words) {
+        
+        for(String word:words)
+        {
+        	if(!map.containsKey(word.charAt(word.length()-1)))
+        		map.put(word.charAt(word.length()-1),new HashSet<>());
+        	map.get(word.charAt(word.length()-1)).add(word);
+        	max = Math.max(max, word.length());
+        }
+       
+    }
+    
+    public boolean query(char letter) {
+        
+        s=s+letter;
+        
+        if(s.length()>max)
+            s=s.substring(s.length()-max,s.length());
+        
+       if(map.containsKey(letter))
+        {
+        Iterator i = map.get(letter).iterator();
+        while(i.hasNext())
+        {
+        	String b = (String)i.next();
+        	if(b.length()>s.length())
+        		continue;
+        	String t = s.substring(s.length()-b.length(),s.length());
+        	if(b.equals(t))
+        		return true;
+        }
+        }
+        
+      
+        return false;
+    }
+}
+
+/**
+ * Your StreamChecker object will be instantiated and called as such:
+ * StreamChecker obj = new StreamChecker(words);
+ * boolean param_1 = obj.query(letter);
+ */
+ 
