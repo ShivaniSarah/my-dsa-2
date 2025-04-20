@@ -115,3 +115,236 @@ class Solution {
 or
 
 
+class Solution {
+  public int evaluate(String expression) {
+    return evaluate(expression, new HashMap<>());
+  }
+
+  private int evaluate(final String e, Map<String, Integer> prevScope) {
+    if (Character.isDigit(e.charAt(0)) || e.charAt(0) == '-')
+      return Integer.parseInt(e);
+    if (prevScope.containsKey(e))
+      return prevScope.get(e);
+
+    Map<String, Integer> scope = new HashMap<>();
+    scope.putAll(prevScope);
+
+    final int spaceIndex = e.indexOf(' ');
+    // +1 and -1 because of "()".
+    final String nextExpression = e.substring(spaceIndex + 1, e.length() - 1);
+    List<String> tokens = split(nextExpression);
+
+    if (e.startsWith("(m")) // 'mult'
+      return evaluate(tokens.get(0), scope) * evaluate(tokens.get(1), scope);
+    if (e.startsWith("(a")) // 'add'
+      return evaluate(tokens.get(0), scope) + evaluate(tokens.get(1), scope);
+
+    // 'let'
+    for (int i = 0; i < tokens.size() - 2; i += 2)
+      scope.put(tokens.get(i), evaluate(tokens.get(i + 1), scope));
+    return evaluate(tokens.get(tokens.size() - 1), scope);
+  }
+
+  private List<String> split(final String s) {
+    List<String> tokens = new ArrayList<>();
+    StringBuilder sb = new StringBuilder();
+    int opened = 0;
+
+    for (char c : s.toCharArray()) {
+      if (c == '(')
+        ++opened;
+      else if (c == ')')
+        --opened;
+      if (opened == 0 && c == ' ') {
+        tokens.add(sb.toString());
+        sb.setLength(0);
+      } else {
+        sb.append(c);
+      }
+    }
+
+    if (sb.length() > 0)
+      tokens.add(sb.toString());
+    return tokens;
+  }
+}
+
+
+or
+
+
+class Solution {
+    private int i;
+    private String expr;
+    private Map<String, Deque<Integer>> scope = new HashMap<>();
+
+    public int evaluate(String expression) {
+        expr = expression;
+        return eval();
+    }
+
+    private int eval() {
+        char c = expr.charAt(i);
+        if (c != '(') {
+            return Character.isLowerCase(c) ? scope.get(parseVar()).peekLast() : parseInt();
+        }
+        ++i;
+        c = expr.charAt(i);
+        int ans = 0;
+        if (c == 'l') {
+            i += 4;
+            List<String> vars = new ArrayList<>();
+            while (true) {
+                String var = parseVar();
+                if (expr.charAt(i) == ')') {
+                    ans = scope.get(var).peekLast();
+                    break;
+                }
+                vars.add(var);
+                ++i;
+                scope.computeIfAbsent(var, k -> new ArrayDeque<>()).offer(eval());
+                ++i;
+                if (!Character.isLowerCase(expr.charAt(i))) {
+                    ans = eval();
+                    break;
+                }
+            }
+            for (String v : vars) {
+                scope.get(v).pollLast();
+            }
+        } else {
+            boolean add = c == 'a';
+            i += add ? 4 : 5;
+            int a = eval();
+            ++i;
+            int b = eval();
+            ans = add ? a + b : a * b;
+        }
+        ++i;
+        return ans;
+    }
+
+    private String parseVar() {
+        int j = i;
+        while (i < expr.length() && expr.charAt(i) != ' ' && expr.charAt(i) != ')') {
+            ++i;
+        }
+        return expr.substring(j, i);
+    }
+
+    private int parseInt() {
+        int sign = 1;
+        if (expr.charAt(i) == '-') {
+            sign = -1;
+            ++i;
+        }
+        int v = 0;
+        while (i < expr.length() && Character.isDigit(expr.charAt(i))) {
+            v = v * 10 + (expr.charAt(i) - '0');
+            ++i;
+        }
+        return sign * v;
+    }
+}
+
+
+or
+
+
+class Solution {
+    public int evaluate(String expression) {
+    return eval(expression, new HashMap<>());
+}
+private int eval(String exp, Map<String, Integer> parent) {
+    if (exp.charAt(0) != '(') {
+        // just a number or a symbol
+        if (Character.isDigit(exp.charAt(0)) || exp.charAt(0) == '-')
+            return Integer.parseInt(exp);
+        return parent.get(exp);
+    }
+    // create a new scope, add add all the previous values to it
+    Map<String, Integer> map = new HashMap<>();
+    map.putAll(parent);
+    List<String> tokens = parse(exp.substring(exp.charAt(1) == 'm' ? 6 : 5, exp.length() - 1));
+    if (exp.startsWith("(a")) { // add
+        return eval(tokens.get(0), map) + eval(tokens.get(1), map);
+    } else if (exp.startsWith("(m")) { // mult
+        return eval(tokens.get(0), map) * eval(tokens.get(1), map);
+    } else { // let
+        for (int i = 0; i < tokens.size() - 2; i += 2)
+            map.put(tokens.get(i), eval(tokens.get(i + 1), map));
+        return eval(tokens.get(tokens.size() - 1), map);
+    }
+}
+private List<String> parse(String str) {
+    // seperate the values between two parentheses
+    List<String> res = new ArrayList<>();
+    int par = 0;
+    StringBuilder sb = new StringBuilder();
+    for (char c: str.toCharArray()) {
+        if (c == '(') par++;
+        if (c == ')') par--;
+        if (par == 0 && c == ' ') {
+            res.add(new String(sb));
+            sb = new StringBuilder();
+        } else {
+            sb.append(c);
+        }
+    }
+    if (sb.length() > 0) res.add(new String(sb));
+    return res;
+}
+}
+
+
+or
+
+
+
+class Solution {
+    public int evaluate(String expression) {
+        return eval(expression, new HashMap<>());
+    }
+
+    private int eval(String expr, Map<String, Integer> scope) {
+        // 1. If it's a number, return it directly
+        if (Character.isDigit(expr.charAt(0)) || expr.charAt(0) == '-')
+            return Integer.parseInt(expr);
+
+        // 2. If it's a variable, get its value from the scope
+        if (Character.isLowerCase(expr.charAt(0)) && !expr.startsWith("("))
+            return scope.get(expr); //e.g. scope={ "x": 2, "y": 3 }  so return 2 for eval(x, scope)
+
+        // 3. Remove outer parentheses and tokenize the expression
+        expr = expr.substring(1, expr.length() - 1); // Remove outer parentheses
+        List<String> tokens = new ArrayList<>();
+        int balance = 0, start = 0;
+
+        for (int i = 0; i < expr.length(); i++) {
+            char c = expr.charAt(i);
+            if (c == '(')
+                balance++;
+            if (c == ')')
+                balance--;
+            if (balance == 0 && (c == ' ' || i == expr.length() - 1)) {//Splits tokens when we hit a space (c == ' ') or reach the last character (i == expr.length() - 1
+                tokens.add(expr.substring(start, i + (i == expr.length() - 1 ? 1 : 0)).trim()); //If the current character is the last one, extend the substring to include it (i + 1).
+                start = i + 1;
+            }
+        }
+        //e.g. tokens = ["let", "x", "2", "(mult x (let x 3 y 4 (add x y)))"];
+        // 4. Parse operation and evaluate accordingly
+        String operation = tokens.get(0);
+        if (operation.equals("add"))
+            return eval(tokens.get(1), scope) + eval(tokens.get(2), scope);
+        else if (operation.equals("mult")) //tokens = ["mult", "x", "(let x 3 y 4 (add x y))"];
+            return eval(tokens.get(1), scope) * eval(tokens.get(2), scope); //get x val * get val of the other expr
+        else // "let" operation
+        {
+            Map<String, Integer> newScope = new HashMap<>(scope); // Create a new scope // Scope: {}
+            for (int i = 1; i < tokens.size() - 1; i += 2)
+                newScope.put(tokens.get(i), eval(tokens.get(i + 1), newScope)); // Assign variables - newScope.put("x", eval("2", newScope)); // x = 2
+            return eval(tokens.get(tokens.size() - 1), newScope); // Evaluate the final expression - eval("(mult x (let x 3 y 4 (add x y)))", newScope);
+
+        }
+    }
+}
