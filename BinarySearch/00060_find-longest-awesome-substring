@@ -1,0 +1,196 @@
+https://leetcode.com/problems/find-longest-awesome-substring/description/
+
+
+1542. Find Longest Awesome Substring
+Hard
+Topics
+Companies
+Hint
+You are given a string s. An awesome substring is a non-empty substring of s such that we can make any number of swaps in order to make it a palindrome.
+
+Return the length of the maximum length awesome substring of s.
+
+ 
+
+Example 1:
+
+Input: s = "3242415"
+Output: 5
+Explanation: "24241" is the longest awesome substring, we can form the palindrome "24142" with some swaps.
+Example 2:
+
+Input: s = "12345678"
+Output: 1
+Example 3:
+
+Input: s = "213123"
+Output: 6
+Explanation: "213123" is the longest awesome substring, we can form the palindrome "231132" with some swaps.
+ 
+
+Constraints:
+
+1 <= s.length <= 105
+s consists only of digits.
+
+
+# java
+
+
+class Solution {
+  public int longestAwesome(String s) {
+    int ans = 0;
+    int prefix = 0; // the binary prefix
+    int[] prefixToIndex = new int[1024];
+    Arrays.fill(prefixToIndex, s.length());
+    prefixToIndex[0] = -1;
+
+    for (int i = 0; i < s.length(); ++i) {
+      prefix ^= 1 << s.charAt(i) - '0';
+      ans = Math.max(ans, i - prefixToIndex[prefix]);
+      for (int j = 0; j < 10; ++j)
+        ans = Math.max(ans, i - prefixToIndex[prefix ^ 1 << j]);
+      prefixToIndex[prefix] = Math.min(prefixToIndex[prefix], i);
+    }
+
+    return ans;
+  }
+}
+
+or
+
+
+class Solution {
+    public int longestAwesome(String s) {
+        int[] d = new int[1024];
+        int st = 0, ans = 1;
+        Arrays.fill(d, -1);
+        d[0] = 0;
+        for (int i = 1; i <= s.length(); ++i) {
+            int v = s.charAt(i - 1) - '0';
+            st ^= 1 << v;
+            if (d[st] >= 0) {
+                ans = Math.max(ans, i - d[st]);
+            } else {
+                d[st] = i;
+            }
+            for (v = 0; v < 10; ++v) {
+                if (d[st ^ (1 << v)] >= 0) {
+                    ans = Math.max(ans, i - d[st ^ (1 << v)]);
+                }
+            }
+        }
+        return ans;
+    }
+}
+
+or
+
+
+class Solution {
+    public int longestAwesome(String s) {
+        //Pre-requisite: just dry-run 1-2 times atleast to grab the deep insight behind the working of this code then u can easly understand this question
+        
+        //time Optimized approach uses large array instead of  hashmap
+        Integer[]map = new Integer[(1 << 10)];//(1 << 10) -> 10000000000
+        // HashMap<Integer,Integer>map = new HashMap<>();//map(state, index);
+        map[0] = -1;
+        
+        int state = 0;
+        int ans = 0;
+        
+        for(int i = 0; i<s.length(); i++) {
+            char ch = s.charAt(i);
+            
+            int mask = (1 << (ch - '0'));
+            state ^= mask;
+            
+            if(map[state] != null) {
+                int j = map[state];
+                ans = Math.max(ans, i - j);
+            }
+            
+            for(int b = 0; b<10; b++) {
+                mask = (1 << b);//state^mask -> togling of 'bth' bit in the state variable
+                
+                if(map[state ^ mask] != null) {
+                    int j = map[state ^ mask];
+                    
+                    ans = Math.max(ans, i - j);
+                }
+            }
+            
+            if(map[state] == null) {
+                map[state] = i;
+            }
+        }
+        return ans;
+    }
+}
+
+
+
+or
+
+
+
+class Solution {
+    public int longestAwesome(String s) {
+        return util1(s);
+    }
+    // brain melt
+    public int util1(String str) {
+        HashMap<Integer, Integer> hm = new HashMap<>();
+        hm.put(0, -1);
+        int mask = 0, ans = 0;
+        for (int i = 0; i < str.length(); i++) {
+            mask = mask ^ (1 << (str.charAt(i) - '0'));
+            // if this conditions comes, that means every number in between has come even
+            // number of times
+            if (hm.containsKey(mask)) {
+                ans = Math.max(ans, (i - hm.get(mask)));
+            } else {
+                hm.put(mask, i);
+            }
+            // if the below conditions work, we know that that only one is odd, rest all
+            // were even
+            for (int j = 0; j < 10; j++) {
+                int newMask = mask ^ (1 << j);
+                if (hm.containsKey(newMask)) {
+                    ans = Math.max(ans, (i - hm.get(newMask)));
+                }
+            }
+        }
+        return ans;
+    }
+}
+
+
+
+or
+
+
+
+class Solution {
+    public int longestAwesome(String s) {
+        int[] arr = new int[1024];
+        int st = 0, ans = 1;
+        Arrays.fill(arr, -1);
+        arr[0] = 0;
+        for (int i = 1; i <= s.length(); ++i) {
+            int ch = s.charAt(i - 1) - '0';
+            st ^= 1 << ch;
+            if (arr[st] >= 0) {
+                ans = Math.max(ans, i - arr[st]);
+            } else {
+                arr[st] = i;
+            }
+            for (j = 0; j < 10; ++j) {
+                if (arr[st ^ (1 << j)] >= 0) {
+                    ans = Math.max(ans, i - arr[st ^ (1 << j)]);
+                }
+            }
+        }
+        return ans;
+    }
+}
