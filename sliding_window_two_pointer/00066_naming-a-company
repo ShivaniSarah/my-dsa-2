@@ -1,0 +1,245 @@
+https://leetcode.com/problems/naming-a-company/
+
+
+2306. Naming a Company
+Hard
+Topics
+Companies
+Hint
+You are given an array of strings ideas that represents a list of names to be used in the process of naming a company. The process of naming a company is as follows:
+
+Choose 2 distinct names from ideas, call them ideaA and ideaB.
+Swap the first letters of ideaA and ideaB with each other.
+If both of the new names are not found in the original ideas, then the name ideaA ideaB (the concatenation of ideaA and ideaB, separated by a space) is a valid company name.
+Otherwise, it is not a valid name.
+Return the number of distinct valid names for the company.
+
+ 
+
+Example 1:
+
+Input: ideas = ["coffee","donuts","time","toffee"]
+Output: 6
+Explanation: The following selections are valid:
+- ("coffee", "donuts"): The company name created is "doffee conuts".
+- ("donuts", "coffee"): The company name created is "conuts doffee".
+- ("donuts", "time"): The company name created is "tonuts dime".
+- ("donuts", "toffee"): The company name created is "tonuts doffee".
+- ("time", "donuts"): The company name created is "dime tonuts".
+- ("toffee", "donuts"): The company name created is "doffee tonuts".
+Therefore, there are a total of 6 distinct company names.
+
+The following are some examples of invalid selections:
+- ("coffee", "time"): The name "toffee" formed after swapping already exists in the original array.
+- ("time", "toffee"): Both names are still the same after swapping and exist in the original array.
+- ("coffee", "toffee"): Both names formed after swapping already exist in the original array.
+Example 2:
+
+Input: ideas = ["lack","back"]
+Output: 0
+Explanation: There are no valid selections. Therefore, 0 is returned.
+ 
+
+Constraints:
+
+2 <= ideas.length <= 5 * 104
+1 <= ideas[i].length <= 10
+ideas[i] consists of lowercase English letters.
+All the strings in ideas are unique.
+
+
+# java
+
+
+class Solution {
+  public long distinctNames(String[] ideas) {
+    long ans = 0;
+    // suffixes[i] := the set of strings omitting the first letter, where the first letter is
+    // ('a' + i)
+    Set<String>[] suffixes = new Set[26];
+
+    for (int i = 0; i < 26; ++i)
+      suffixes[i] = new HashSet<>();
+
+    for (final String idea : ideas)
+      suffixes[idea.charAt(0) - 'a'].add(idea.substring(1));
+
+    for (int i = 0; i < 25; ++i)
+      for (int j = i + 1; j < 26; ++j) {
+        int count = 0;
+        for (final String suffix : suffixes[i])
+          if (suffixes[j].contains(suffix))
+            ++count;
+        ans += 2 * (suffixes[i].size() - count) * (suffixes[j].size() - count);
+      }
+
+    return ans;
+  }
+}
+
+
+or
+
+
+class Solution {
+    public long distinctNames(String[] ideas) {
+        Set<String> s = new HashSet<>();
+        for (String v : ideas) {
+            s.add(v);
+        }
+        int[][] f = new int[26][26];
+        for (String v : ideas) {
+            char[] t = v.toCharArray();
+            int i = t[0] - 'a';
+            for (int j = 0; j < 26; ++j) {
+                t[0] = (char) (j + 'a');
+                if (!s.contains(String.valueOf(t))) {
+                    ++f[i][j];
+                }
+            }
+        }
+        long ans = 0;
+        for (String v : ideas) {
+            char[] t = v.toCharArray();
+            int i = t[0] - 'a';
+            for (int j = 0; j < 26; ++j) {
+                t[0] = (char) (j + 'a');
+                if (!s.contains(String.valueOf(t))) {
+                    ans += f[j][i];
+                }
+            }
+        }
+        return ans;
+    }
+}
+
+or
+
+
+
+class Solution {
+    public long distinctNames(String[] ideas) {
+        // map each first character to its suffix
+        // {c=[offee], d=[onuts], t=[ime, offee]}
+        Map<Character, Set<String>> map = new HashMap<>();
+        for (String s : ideas) {
+            map.putIfAbsent(s.charAt(0), new HashSet<>());
+            map.get(s.charAt(0)).add(s.substring(1, s.length()));
+        }
+
+        long ans = 0;
+        // for each first character, we would try to form a word 
+        // with the suffices of every other first characters
+        // for 'c', we would try to make a word with suffix of 'd' and 't'
+        // that is 'c' with "onuts" and then 'c' with "offee", "ime"
+        for (char c1 : map.keySet()) {
+            for (char c2 : map.keySet()) {
+                // we don't want to make word with suffix of the same character
+                // no word making for 'c' with "offee" of 'c' again
+                if (c1 == c2) {
+                    continue;   // so skip
+                }
+
+                // now we know other characters might have same suffices like current character
+                // like "offee" is present for both 'c' and 't'
+                // therefore to count the number of duplicacies we will initialize a variable
+                int common = 0;
+                // now we would go through all the suffices of current character
+                // and see if the other character has a same suffix or not
+                for (String suffix : map.get(c1)) {
+                    // if yes, we found a duplicate
+                    // that means, if we swap first characters, the pair is going to be same
+                    // example: 'c' and 't' has suffix "offee"
+                    // swapping 'c' and 't' would give us the same word again
+                    if (map.get(c2).contains(suffix)) {
+                        common++;   // so increment the variable
+                    }
+                }
+                
+                // now we need the number of distinct suffices in both sets
+                // i.e. nothing but number of suffices minus common suffices
+                // because we don't want to consider common suffices which would lead same word
+                int distinct1 = map.get(c1).size() - common;
+                int distinct2 = map.get(c2).size() - common;
+                // number of distinct combinations is product of the 
+                // number of distinct suffices from both sets
+                ans += distinct1 * distinct2;   // add that value to answer variable
+
+                // why did't we I multiply by 2?
+                // Say we are at 'c', it'll do the computations for 'd' and 't'
+                // when we are d, it'll do the computations of 'c' and 't'
+                // when we are at 't', we would do the computations for 'c' and 'd'
+                // that is, we are checking twice. 'd' with 'c' and then again 'c' with 'd'.
+                // so our looping is going to handle that situation
+            }
+        }
+
+        // at the end return the answer variable storing the number of unique combinations
+        return ans;
+    }
+}
+
+or
+
+
+
+
+class Solution {
+    public long distinctNames(String[] ideas) {
+        Set<String>[] sets = new Set[26];
+        for (int i = 0; i < 26; i++) {
+            sets[i] = new HashSet();
+        }
+        for (String s : ideas) {
+            sets[s.charAt(0) - 'a'].add(s.substring(1));
+        }
+        int[][] same = new int[26][26];
+        for (int i = 0; i < 26; i++) {
+            for (String s : sets[i]) {
+                for (int j = i + 1; j < 26; j++) {
+                    if (sets[j].contains(s)) {
+                        same[i][j]++;
+                    }
+                }
+            }
+        }
+        long res = 0;
+        for (int i = 0; i < 26; i++) {
+            for (int j = i + 1; j < 26; j++) {
+                res += (sets[i].size() - same[i][j]) * (sets[j].size() - same[i][j]) * 2;
+            }
+        }
+        return res;
+    }
+}
+
+
+or
+
+
+
+class Solution {
+    public long distinctNames(String[] ideas) {
+        HashSet<String>[] initialGroup = new HashSet[26];
+        for (int i = 0; i < 26; ++i) {
+            initialGroup[i] = new HashSet<>();
+        }
+        for (String idea : ideas) {
+            initialGroup[idea.charAt(0) - 'a'].add(idea.substring(1));
+        }
+
+        long answer = 0,mutuals=0;
+        for (int i = 0; i < 25; ++i) {
+            for (int j = i + 1; j < 26; ++j) {
+                mutuals = 0;
+                for (String idea : initialGroup[i]) {
+                    if (initialGroup[j].contains(idea))
+                        ++mutuals;
+                }
+                answer += 2 * (initialGroup[i].size() - mutuals) * (initialGroup[j].size() - mutuals);
+            }
+        }
+        
+        return answer;
+    }
+}
