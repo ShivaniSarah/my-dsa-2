@@ -1,0 +1,265 @@
+https://leetcode.com/problems/erect-the-fence/
+
+587. Erect the Fence
+Hard
+Topics
+Companies
+You are given an array trees where trees[i] = [xi, yi] represents the location of a tree in the garden.
+
+Fence the entire garden using the minimum length of rope, as it is expensive. The garden is well-fenced only if all the trees are enclosed.
+
+Return the coordinates of trees that are exactly located on the fence perimeter. You may return the answer in any order.
+
+ 
+
+Example 1:
+
+
+Input: trees = [[1,1],[2,2],[2,0],[2,4],[3,3],[4,2]]
+Output: [[1,1],[2,0],[4,2],[3,3],[2,4]]
+Explanation: All the trees will be on the perimeter of the fence except the tree at [2, 2], which will be inside the fence.
+Example 2:
+
+
+Input: trees = [[1,2],[2,2],[4,2]]
+Output: [[4,2],[2,2],[1,2]]
+Explanation: The fence forms a line that passes through all the trees.
+ 
+
+Constraints:
+
+1 <= trees.length <= 3000
+trees[i].length == 2
+0 <= xi, yi <= 100
+All the given positions are unique.
+
+
+# java
+
+
+class Solution {
+    public int[][] outerTrees(int[][] trees) {
+        int n = trees.length;
+        if (n < 4) {
+            return trees;
+        }
+        Arrays.sort(trees, (a, b) -> { return a[0] == b[0] ? a[1] - b[1] : a[0] - b[0]; });
+        boolean[] vis = new boolean[n];
+        int[] stk = new int[n + 10];
+        int cnt = 1;
+        for (int i = 1; i < n; ++i) {
+            while (cnt > 1 && cross(trees[stk[cnt - 1]], trees[stk[cnt - 2]], trees[i]) < 0) {
+                vis[stk[--cnt]] = false;
+            }
+            vis[i] = true;
+            stk[cnt++] = i;
+        }
+        int m = cnt;
+        for (int i = n - 1; i >= 0; --i) {
+            if (vis[i]) {
+                continue;
+            }
+            while (cnt > m && cross(trees[stk[cnt - 1]], trees[stk[cnt - 2]], trees[i]) < 0) {
+                --cnt;
+            }
+            stk[cnt++] = i;
+        }
+        int[][] ans = new int[cnt - 1][2];
+        for (int i = 0; i < ans.length; ++i) {
+            ans[i] = trees[stk[i]];
+        }
+        return ans;
+    }
+
+    private int cross(int[] a, int[] b, int[] c) {
+        return (b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]);
+    }
+}
+
+or
+
+// Monotone Chain
+class Solution {
+  public int[][] outerTrees(int[][] trees) {
+    Stack<int[]> hull = new Stack<>();
+
+    Arrays.sort(
+        trees,
+        Comparator.comparingInt((int[] tree) -> tree[0]).thenComparingInt((int[] tree) -> tree[1]));
+
+    // Build the lower hull: left-to-right scan.
+    for (int[] tree : trees) {
+      while (hull.size() > 1 && cross(hull.peek(), hull.get(hull.size() - 2), tree) > 0)
+        hull.pop();
+      hull.push(tree);
+    }
+    hull.pop();
+
+    // Build the upper hull: right-to-left scan.
+    for (int i = trees.length - 1; i >= 0; --i) {
+      while (hull.size() > 1 && cross(hull.peek(), hull.get(hull.size() - 2), trees[i]) > 0)
+        hull.pop();
+      hull.push(trees[i]);
+    }
+
+    // Remove the redundant elements from the stack.
+    return new HashSet<>(hull).stream().toArray(int[][] ::new);
+  }
+
+  private int cross(int[] p, int[] q, int[] r) {
+    return (q[1] - p[1]) * (r[0] - q[0]) - (q[0] - p[0]) * (r[1] - q[1]);
+  }
+}
+
+
+or
+
+
+
+class Solution {
+    private int orientation(int[] p,int[] q,int[] r){
+        return (r[1]-q[1]) * (q[0]-p[0]) - ( (q[1]-p[1]) * (r[0]-q[0])); 
+    }
+    public int[][] outerTrees(int[][] trees) {
+        Stack<int[]> upper= new Stack<>();
+        Stack<int[]> lower= new Stack<>();
+        Arrays.sort(trees,(p,q) ->
+                  q[0]-p[0]==0?q[1]-p[1]:q[0]-p[0] );
+        for(int i=0;i<trees.length;i++){
+            while(lower.size()>= 2 && orientation(lower.get(lower.size()-2),lower.get(lower.size()-1),trees[i]) >0){
+                lower.pop();
+            }
+            while(upper.size()>= 2 && orientation(upper.get(upper.size()-2),upper.get(upper.size()-1),trees[i])<0){
+                upper.pop();
+            }
+            lower.push(trees[i]);
+            upper.push(trees[i]);
+            
+        }
+        Set<int[]> res= new HashSet<>(lower);
+        res.addAll(upper);
+        return res.toArray(new int[res.size()][]);
+        
+    }
+}
+
+
+or
+
+
+class Solution {
+    public int isGreater(int a[],int b[],int c[]){
+        return ((b[0]-a[0])*(c[1]-a[1])-(c[0]-a[0])*(b[1]-a[1])); //slope formula transformed version
+        // slope=y2-y1/x2-x1 so we are comapring slope of 2 different line where first line is a to b second is a to c so if slope of a to c is greater here +ve number will get returned
+    }
+    public int[][] outerTrees(int[][] trees) {
+        Arrays.sort(trees,(a,b)->a[0]==b[0]?a[1]-b[1]:a[0]-b[0]);
+        ArrayList<int[]> upper=new ArrayList<>();
+        ArrayList<int[]> lower=new ArrayList<>();
+        HashSet<int[]> result=new HashSet<>();
+        // fense will connect the first tree with highest treee and  highest lastlowest and lastlowest to bottom highest or lowest forming a barfi aur rohmbus shape
+        for(int i=0;i<trees.length;i++){
+            int lastUpper=upper.size()-1;
+            int lastLower=lower.size()-1;
+            //upper fense or hull
+            //if the current tree is at highest rest all will be removed  except firstand this will be addded
+            while(upper.size()>=2 && isGreater(upper.get(lastUpper-1),upper.get(lastUpper),trees[i])>0){
+                 upper.remove(lastUpper);
+                 lastUpper--;
+            }
+            //lower fense or hull
+            //if current tree is at lowest then rest all will be removed  except first and this will be added
+            while(lower.size()>=2 && isGreater(lower.get(lastLower-1),lower.get(lastLower),trees[i])<0){
+                lower.remove(lastLower);
+                lastLower--;
+            }
+            //adding the current highest and lowest tree
+            upper.add(trees[i]);
+            lower.add(trees[i]);
+        }
+        result.addAll(lower);
+        result.addAll(upper);
+        return result.toArray(new int[result.size()][]);
+    }
+}
+
+or
+
+
+
+class Solution {
+    public int[][] outerTrees(int[][] trees) {
+        int n = trees.length;
+        if (n < 4) {
+            return trees;
+        }
+        Arrays.sort(trees, (a, b) -> { return a[0] == b[0] ? a[1] - b[1] : a[0] - b[0]; });
+        boolean[] vis = new boolean[n];
+        int[] stk = new int[n + 10];
+        int cnt = 1;
+        for (int i = 1; i < n; ++i) {
+            while (cnt > 1 && cross(trees[stk[cnt - 1]], trees[stk[cnt - 2]], trees[i]) < 0) {
+                vis[stk[--cnt]] = false;
+            }
+            vis[i] = true;
+            stk[cnt++] = i;
+        }
+        int m = cnt;
+        for (int i = n - 1; i >= 0; --i) {
+            if (vis[i]) {
+                continue;
+            }
+            while (cnt > m && cross(trees[stk[cnt - 1]], trees[stk[cnt - 2]], trees[i]) < 0) {
+                --cnt;
+            }
+            stk[cnt++] = i;
+        }
+        int[][] ans = new int[cnt - 1][2];
+        for (int i = 0; i < ans.length; ++i) {
+            ans[i] = trees[stk[i]];
+        }
+        return ans;
+    }
+
+    private int cross(int[] a, int[] b, int[] c) {
+        return (b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]);
+    }
+}
+
+
+
+or
+
+
+
+class Solution {
+     public int[][] outerTrees(int[][] points) {
+        if(points==null || points.length==0) return new int[][]{};
+        Arrays.sort(points,(x,y)->x[0]==y[0]?y[1]-x[1]:x[0]-y[0]);
+        Stack<int[]> stack = new Stack<>();
+		// scan from left to right find first part 
+        for(int i=0; i<points.length; i++){
+            while(stack.size()>=2 && crossProduct(stack.get(stack.size()-2),stack.peek(),points[i])>0){
+                stack.pop();
+            }
+            stack.push(points[i]);
+        }
+        stack.pop();
+		// scan from right to left find second part
+        for(int i=points.length-1; i>=0;i--){
+            while(stack.size()>=2 && crossProduct(stack.get(stack.size()-2),stack.peek(),points[i])>0){
+                stack.pop();
+            }
+            stack.push(points[i]);
+        }
+        Set<int[]> set = new HashSet<>(stack);
+        Iterator<int[]> iterator = set.iterator();
+        int[][] ans = new int[set.size()][2];
+        for(int i=0;i<set.size();i++) ans[i] = iterator.next();
+        return ans;
+    }
+    // if result >0 then q-o located in counterclockwise direction of   p-0 
+    private int crossProduct(int[] o,int[] p,int[] q){
+        return (p[1] - o[1]) * (q[0] - o[0]) - (q[1] - o[1]) * (p[0] - o[0]);
+    }
+}
