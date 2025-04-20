@@ -1,0 +1,274 @@
+https://leetcode.com/problems/minimum-number-of-operations-to-make-string-sorted/description/
+
+1830. Minimum Number of Operations to Make String Sorted
+Hard
+Topics
+Companies
+Hint
+You are given a string s (0-indexed)​​​​​​. You are asked to perform the following operation on s​​​​​​ until you get a sorted string:
+
+Find the largest index i such that 1 <= i < s.length and s[i] < s[i - 1].
+Find the largest index j such that i <= j < s.length and s[k] < s[i - 1] for all the possible values of k in the range [i, j] inclusive.
+Swap the two characters at indices i - 1​​​​ and j​​​​​.
+Reverse the suffix starting at index i​​​​​​.
+Return the number of operations needed to make the string sorted. Since the answer can be too large, return it modulo 109 + 7.
+
+ 
+
+Example 1:
+
+Input: s = "cba"
+Output: 5
+Explanation: The simulation goes as follows:
+Operation 1: i=2, j=2. Swap s[1] and s[2] to get s="cab", then reverse the suffix starting at 2. Now, s="cab".
+Operation 2: i=1, j=2. Swap s[0] and s[2] to get s="bac", then reverse the suffix starting at 1. Now, s="bca".
+Operation 3: i=2, j=2. Swap s[1] and s[2] to get s="bac", then reverse the suffix starting at 2. Now, s="bac".
+Operation 4: i=1, j=1. Swap s[0] and s[1] to get s="abc", then reverse the suffix starting at 1. Now, s="acb".
+Operation 5: i=2, j=2. Swap s[1] and s[2] to get s="abc", then reverse the suffix starting at 2. Now, s="abc".
+Example 2:
+
+Input: s = "aabaa"
+Output: 2
+Explanation: The simulation goes as follows:
+Operation 1: i=3, j=4. Swap s[2] and s[4] to get s="aaaab", then reverse the substring starting at 3. Now, s="aaaba".
+Operation 2: i=4, j=4. Swap s[3] and s[4] to get s="aaaab", then reverse the substring starting at 4. Now, s="aaaab".
+ 
+
+Constraints:
+
+1 <= s.length <= 3000
+s​​​​​​ consists only of lowercase English letters.
+
+
+
+# java
+
+
+class Solution {
+  public int makeStringSorted(String s) {
+    final int MOD = 1_000_000_007;
+    final int n = s.length();
+    final long[][] factAndInvFact = getFactAndInvFact(n);
+    final long[] fact = factAndInvFact[0];
+    final long[] invFact = factAndInvFact[1];
+    int ans = 0;
+    int[] count = new int[26];
+
+    for (int i = n - 1; i >= 0; --i) {
+      final int order = s.charAt(i) - 'a';
+      ++count[order];
+      long perm = Arrays.stream(count, 0, order).sum() * fact[n - 1 - i] % MOD;
+      for (int j = 0; j < 26; ++j)
+        perm = perm * invFact[count[j]] % MOD;
+      ans += perm;
+      ans %= MOD;
+    }
+
+    return ans;
+  }
+
+  private static final int MOD = 1_000_000_007;
+
+  private long[][] getFactAndInvFact(int n) {
+    long[] fact = new long[n + 1];
+    long[] invFact = new long[n + 1];
+    long[] inv = new long[n + 1];
+    fact[0] = invFact[0] = 1;
+    inv[0] = inv[1] = 1;
+    for (int i = 1; i <= n; ++i) {
+      if (i >= 2)
+        inv[i] = MOD - MOD / i * inv[MOD % i] % MOD;
+      fact[i] = fact[i - 1] * i % MOD;
+      invFact[i] = invFact[i - 1] * inv[i] % MOD;
+    }
+    return new long[][] {fact, invFact};
+  }
+}
+
+
+
+
+
+or
+
+
+
+class Solution {
+    private static final int N = 3010;
+    private static final int MOD = (int) 1e9 + 7;
+    private static final long[] f = new long[N];
+    private static final long[] g = new long[N];
+
+    static {
+        f[0] = 1;
+        g[0] = 1;
+        for (int i = 1; i < N; ++i) {
+            f[i] = f[i - 1] * i % MOD;
+            g[i] = qmi(f[i], MOD - 2);
+        }
+    }
+
+    public static long qmi(long a, int k) {
+        long res = 1;
+        while (k != 0) {
+            if ((k & 1) == 1) {
+                res = res * a % MOD;
+            }
+            k >>= 1;
+            a = a * a % MOD;
+        }
+        return res;
+    }
+
+    public int makeStringSorted(String s) {
+        int[] cnt = new int[26];
+        int n = s.length();
+        for (int i = 0; i < n; ++i) {
+            ++cnt[s.charAt(i) - 'a'];
+        }
+        long ans = 0;
+        for (int i = 0; i < n; ++i) {
+            int m = 0;
+            for (int j = s.charAt(i) - 'a' - 1; j >= 0; --j) {
+                m += cnt[j];
+            }
+            long t = m * f[n - i - 1] % MOD;
+            for (int v : cnt) {
+                t = t * g[v] % MOD;
+            }
+            --cnt[s.charAt(i) - 'a'];
+            ans = (ans + t + MOD) % MOD;
+        }
+        return (int) ans;
+    }
+}
+
+
+or
+
+
+class Solution {
+    public int modulo = 1000000007;
+    Map<Integer, Long> factorMemo = new HashMap();
+    
+    public int makeStringSorted(String s) {
+        int[] occurrences = new int[26];
+        populateOccurrences(occurrences, s);
+        int totalLength = s.length();
+        
+        long result = 0;
+        long possibilities = numberOfPossibilities(occurrences, totalLength, modulo);
+        while(totalLength > 1) {
+            // We start calculating after the first step
+            if(totalLength < s.length()) {
+                int previousOccurrences = occurrences[s.charAt(s.length() - totalLength - 1) - 'a'] + 1;
+                possibilities = modDivide((possibilities * previousOccurrences) % modulo, totalLength+1, modulo);
+            }
+            int numberOfOccurrencesBefore = numberOfOccurrencesBefore(occurrences, s.charAt(s.length() - totalLength));
+            long currentResult = modDivide((possibilities * numberOfOccurrencesBefore) % modulo, totalLength, modulo);
+            occurrences[s.charAt(s.length() - totalLength) - 'a'] -= 1;
+            result = (result + currentResult) % modulo;
+            totalLength--;
+        }
+
+        return (int) result;
+    }
+    
+    public void populateOccurrences(int[] occurrences, String s) {
+        for(char c: s.toCharArray()) {
+            occurrences[c - 'a'] += 1;
+        }
+    }
+    
+    public int numberOfOccurrencesBefore(int[] occurrences, char character) {
+        int result = 0;
+        for(int i=0; i<character-'a'; i++) {
+            result += occurrences[i];
+        }
+        return result;
+    }
+    
+    public long numberOfPossibilities(int[] occurrences, int totalSum, int mod) {
+        long result = modFact(totalSum, mod);
+        for(int i=0; i<occurrences.length; i++) {
+            result = modDivide(result, modFact(occurrences[i], mod), mod);
+        }
+        return result;
+    }
+    
+    public long modDivide(long a, long b, int mod) {
+        b = modPow(b, mod-2, mod);
+        return ((a%mod) * b)%mod;
+    }
+    
+    public long modFact(int n, int mod) {
+        if(factorMemo.get(n) != null) {
+            return factorMemo.get(n);
+        }
+        long result = 1;
+        for(int i=1; i<=n; i++) {
+            // We can simplify (i%mod) by i, because i < mod (and will always be).
+            result = (result * i) % mod;
+            factorMemo.put(i, result);
+        }
+        factorMemo.put(n, result);
+        return result;
+    }
+    
+    public long modPow(long base, int exponent, int modulus) {
+        if(modulus == 1) {
+            return 0;
+        }
+        long result = 1;
+        base = base % modulus;
+        
+        while(exponent > 0) {
+            if(exponent%2 == 1) {
+                result = (result * base) % modulus;
+            }
+            exponent = exponent >> 1;
+            base = (base * base) % modulus;
+        }
+        return result;
+    }
+}
+
+
+
+or
+
+
+
+// Time O(26N) [43ms]
+// Space O(3000)
+class Solution {
+    long[] inv = new long[3001];
+    long[] fact = new long[3001];
+    long[] invfact = new long[3001];
+    int M = (int)1e9+7;
+    public int makeStringSorted(String s) {
+        int[] count = new int[26]; // available to take
+        fact[0]=invfact[0]=fact[1]=invfact[1]=inv[1]=1;
+        for (int i = 2; i <= 3000; i++){
+            inv[i] = M-M/i*inv[M%i]%M;
+            fact[i] = fact[i-1]*i%M;
+            invfact[i] = invfact[i-1]*inv[i]%M;
+        }
+        long ans = 0;
+        for (int i = s.length()-1; i >= 0; i--){
+            int k = s.charAt(i) - 'a', ttl = 0;
+            count[k]++; // become available
+            for (int j = 0; j < k; j++){
+                ttl += count[j];
+            }
+            long cur = ttl * fact[s.length()-1-i] % M;
+            for (int j = 0; j < 26; j++){
+                cur *= invfact[count[j]];
+                cur %= M;
+            }
+            ans += cur;
+            ans %= M;
+        }
+        return (int)ans;
+    }
+}
