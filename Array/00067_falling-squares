@@ -127,6 +127,65 @@ class Solution {
 
 or
 
+class Solution {
+    public List<Integer> fallingSquares(int[][] positions) {
+        List<Integer> result = new ArrayList<>();
+        TreeMap<int[], Integer> intervalHeight = new TreeMap<>((a, b) -> {
+            if (a[0] != b[0]) return a[0] - b[0];
+            return a[1] - b[1];
+        });
+
+        int maxHeight = 0;
+
+        for (int[] pos : positions) {
+            int left = pos[0];
+            int sideLength = pos[1];
+            int right = left + sideLength;
+
+            // Find the max height in the overlapping intervals
+            int baseHeight = 0;
+            List<Map.Entry<int[], Integer>> toRemove = new ArrayList<>();
+            List<int[]> toRestore = new ArrayList<>();
+            List<Integer> toRestoreHeights = new ArrayList<>();
+
+            for (Map.Entry<int[], Integer> entry : intervalHeight.entrySet()) {
+                int[] range = entry.getKey();
+                int h = entry.getValue();
+                if (range[1] <= left || range[0] >= right) continue;
+
+                baseHeight = Math.max(baseHeight, h);
+                toRemove.add(entry);
+
+                // Save non-overlapping parts to restore later
+                if (range[0] < left) {
+                    toRestore.add(new int[]{range[0], left});
+                    toRestoreHeights.add(h);
+                }
+                if (right < range[1]) {
+                    toRestore.add(new int[]{right, range[1]});
+                    toRestoreHeights.add(h);
+                }
+            }
+
+            for (Map.Entry<int[], Integer> entry : toRemove)
+                intervalHeight.remove(entry.getKey());
+
+            int newHeight = baseHeight + sideLength;
+            intervalHeight.put(new int[]{left, right}, newHeight);
+
+            for (int i = 0; i < toRestore.size(); i++)
+                intervalHeight.put(toRestore.get(i), toRestoreHeights.get(i));
+
+            maxHeight = Math.max(maxHeight, newHeight);
+            result.add(maxHeight);
+        }
+
+        return result;
+    }
+}
+
+
+or
 
 class Solution {
     class SortPoint {
