@@ -60,4 +60,44 @@ Constraints:
 
 # java
 
+class Solution {
+    public int minimumEffort(int[][] tasks) {
+        Arrays.sort(tasks, (a, b) -> a[0] - b[0] - (a[1] - b[1]));
+        int ans = 0, cur = 0;
+        for (var task : tasks) {
+            int a = task[0], m = task[1];
+            if (cur < m) {
+                ans += m - cur;
+                cur = m;
+            }
+            cur -= a;
+        }
+        return ans;
+    }
+}
 
+
+or
+
+
+class Solution {
+  public int minimumEffort(int[][] tasks) {
+    int ans = 0;
+    int prevSaved = 0;
+
+    Arrays.sort(tasks, Comparator.comparingInt(task -> task[0] - task[1]));
+
+    for (int[] task : tasks) {
+      final int actual = task[0];
+      final int minimum = task[1];
+      if (prevSaved < minimum) {
+        ans += minimum - prevSaved;
+        prevSaved = minimum - actual;
+      } else {
+        prevSaved -= actual;
+      }
+    }
+
+    return ans;
+  }
+}
