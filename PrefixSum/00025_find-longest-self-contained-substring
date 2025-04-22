@@ -1,0 +1,140 @@
+https://leetcode.com/problems/find-longest-self-contained-substring/description/
+
+
+3104. Find Longest Self-Contained Substring 🔒
+Description
+Given a string s, your task is to find the length of the longest self-contained substring of s.
+
+A substring t of a string s is called self-contained if t != s and for every character in t, it doesn't exist in the rest of s.
+
+Return the length of the longest self-contained substring of s if it exists, otherwise, return -1.
+
+ 
+
+Example 1:
+
+Input: s = "abba"
+
+Output: 2
+
+Explanation:
+Let's check the substring "bb". You can see that no other "b" is outside of this substring. Hence the answer is 2.
+
+Example 2:
+
+Input: s = "abab"
+
+Output: -1
+
+Explanation:
+Every substring we choose does not satisfy the described property (there is some character which is inside and outside of that substring). So the answer would be -1.
+
+Example 3:
+
+Input: s = "abacd"
+
+Output: 4
+
+Explanation:
+Let's check the substring "abac". There is only one character outside of this substring and that is "d". There is no "d" inside the chosen substring, so it satisfies the condition and the answer is 4.
+
+ 
+
+Constraints:
+
+2 <= s.length <= 5 * 104
+s consists only of lowercase English letters.
+
+
+
+
+
+# java
+
+
+class Solution {
+  public int maxSubstringLength(String s) {
+    int ans = -1;
+    int count[] = new int[26];
+
+    for (final char c : s.toCharArray())
+      ++count[c - 'a'];
+
+    for (int n = 1; n <= 26; ++n)
+      ans = Math.max(ans, maxSubstringLengthWithNUniqueLetters(s, n, count));
+
+    return ans;
+  }
+
+  // Similar to 395. Longest Substring with At Least K Repeating Characters
+  private int maxSubstringLengthWithNUniqueLetters(final String s, int n, int[] allCount) {
+    int res = -1;
+    // the number of unique letters
+    int uniqueLetters = 0;
+    // the number of letters that have all their frequency in the substring
+    int lettersHavingAllFreq = 0;
+    int[] count = new int[26];
+
+    for (int l = 0, r = 0; r < s.length(); ++r) {
+      if (++count[s.charAt(r) - 'a'] == 1)
+        ++uniqueLetters;
+      if (count[s.charAt(r) - 'a'] == allCount[s.charAt(r) - 'a'])
+        ++lettersHavingAllFreq;
+      while (uniqueLetters > n) {
+        if (count[s.charAt(l) - 'a'] == allCount[s.charAt(l) - 'a'])
+          --lettersHavingAllFreq;
+        if (--count[s.charAt(l) - 'a'] == 0)
+          --uniqueLetters;
+        ++l;
+      }
+      // Since both the number of unique letters and the number of letters
+      // having all their frequency are equal to n, this is a valid window.
+      // Implcit: uniqueLetters == n
+      if (lettersHavingAllFreq == n && r - l + 1 < s.length())
+        res = Math.max(res, r - l + 1);
+    }
+
+    return res;
+  }
+}
+
+
+
+or
+
+
+class Solution {
+    public int maxSubstringLength(String s) {
+        int[] first = new int[26];
+        int[] last = new int[26];
+        Arrays.fill(first, -1);
+        int n = s.length();
+        for (int i = 0; i < n; ++i) {
+            int j = s.charAt(i) - 'a';
+            if (first[j] == -1) {
+                first[j] = i;
+            }
+            last[j] = i;
+        }
+        int ans = -1;
+        for (int k = 0; k < 26; ++k) {
+            int i = first[k];
+            if (i == -1) {
+                continue;
+            }
+            int mx = last[k];
+            for (int j = i; j < n; ++j) {
+                int a = first[s.charAt(j) - 'a'];
+                int b = last[s.charAt(j) - 'a'];
+                if (a < i) {
+                    break;
+                }
+                mx = Math.max(mx, b);
+                if (mx == j && j - i + 1 < n) {
+                    ans = Math.max(ans, j - i + 1);
+                }
+            }
+        }
+        return ans;
+    }
+}
