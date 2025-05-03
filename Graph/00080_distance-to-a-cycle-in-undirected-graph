@@ -1,0 +1,242 @@
+https://leetcode.com/problems/distance-to-a-cycle-in-undirected-graph/description/
+
+https://leetcode.ca/2021-12-12-2204-Distance-to-a-Cycle-in-Undirected-Graph/
+
+2204. Distance to a Cycle in Undirected Graph
+Description
+You are given a positive integer n representing the number of nodes in a connected undirected graph containing exactly one cycle. The nodes are numbered from 0 to n - 1 (inclusive).
+
+You are also given a 2D integer array edges, where edges[i] = [node1i, node2i] denotes that there is a bidirectional edge connecting node1i and node2i in the graph.
+
+The distance between two nodes a and b is defined to be the minimum number of edges that are needed to go from a to b.
+
+Return an integer array answer of size n, where answer[i] is the minimum distance between the ith node and any node in the cycle.
+
+ 
+
+Example 1:
+
+
+
+Input: n = 7, edges = [[1,2],[2,4],[4,3],[3,1],[0,1],[5,2],[6,5]]
+Output: [1,0,0,0,0,1,2]
+Explanation:
+The nodes 1, 2, 3, and 4 form the cycle.
+The distance from 0 to 1 is 1.
+The distance from 1 to 1 is 0.
+The distance from 2 to 2 is 0.
+The distance from 3 to 3 is 0.
+The distance from 4 to 4 is 0.
+The distance from 5 to 2 is 1.
+The distance from 6 to 2 is 2.
+Example 2:
+
+
+
+Input: n = 9, edges = [[0,1],[1,2],[0,2],[2,6],[6,7],[6,8],[0,3],[3,4],[3,5]]
+Output: [0,0,0,1,2,2,1,2,2]
+Explanation:
+The nodes 0, 1, and 2 form the cycle.
+The distance from 0 to 0 is 0.
+The distance from 1 to 1 is 0.
+The distance from 2 to 2 is 0.
+The distance from 3 to 1 is 1.
+The distance from 4 to 1 is 2.
+The distance from 5 to 1 is 2.
+The distance from 6 to 2 is 1.
+The distance from 7 to 2 is 2.
+The distance from 8 to 2 is 2.
+ 
+
+Constraints:
+
+3 <= n <= 105
+edges.length == n
+edges[i].length == 2
+0 <= node1i, node2i <= n - 1
+node1i != node2i
+The graph is connected.
+The graph has exactly one cycle.
+There is at most one edge between any pair of vertices.
+
+
+
+# java
+
+class Solution {
+
+    public int[] distanceToCycle(int n, int[][] edges) {
+        // Create an adjacency list to represent the graph
+        Set<Integer>[] graph = new Set[n];
+        // Initialize each node with a new hash set.
+        Arrays.setAll(graph, k -> new HashSet<>());
+        // Populate the adjacency list with the edges given.
+        for (var edge : edges) {
+            int node1 = edge[0], node2 = edge[1];
+            graph[node1].add(node2);
+            graph[node2].add(node1);
+        }
+      
+        Deque<Integer> queue = new ArrayDeque<>();
+        // Enqueue nodes with only one neighbor, which are leaf nodes in the tree.
+        for (int i = 0; i < n; ++i) {
+            if (graph[i].size() == 1) {
+                queue.offer(i);
+            }
+        }
+      
+        // Array to keep track of the farthest node in the path from each node.
+        int[] pathFarthestNode = new int[n];
+        Deque<Integer> sequence = new ArrayDeque<>();
+        // Process nodes in the queue until empty.
+        while (!queue.isEmpty()) {
+            int currentNode = queue.poll();
+            sequence.push(currentNode);
+            for (int neighbor : graph[currentNode]) {
+                // Remove the edge between currentNode and its neighbor to 'shrink' the tree.
+                graph[neighbor].remove(currentNode);
+                // Record the neighbor as the farthest node in the path from the current node.
+                pathFarthestNode[currentNode] = neighbor;
+                // If after removal, neighbor becomes a leaf node, enqueue it.
+                if (graph[neighbor].size() == 1) {
+                    queue.offer(neighbor);
+                }
+            }
+        }
+      
+        // This will hold the distances from each node to the cycle.
+        int[] distances = new int[n];
+        // Backtrack from leaf nodes towards the cycle, assigning distances.
+        while (!sequence.isEmpty()) {
+            int currentNode = sequence.pop();
+            distances[currentNode] = distances[pathFarthestNode[currentNode]] + 1;
+        }
+        return distances;
+    }
+  
+}
+
+
+or
+
+
+
+class Solution {
+    public int[] distanceToCycle(int n, int[][] edges) {
+        Set<Integer>[] g = new Set[n];
+        Arrays.setAll(g, k -> new HashSet<>());
+        for (var e : edges) {
+            int a = e[0], b = e[1];
+            g[a].add(b);
+            g[b].add(a);
+        }
+        Deque<Integer> q = new ArrayDeque<>();
+        for (int i = 0; i < n; ++i) {
+            if (g[i].size() == 1) {
+                q.offer(i);
+            }
+        }
+        int[] f = new int[n];
+        Deque<Integer> seq = new ArrayDeque<>();
+        while (!q.isEmpty()) {
+            int i = q.poll();
+            seq.push(i);
+            for (int j : g[i]) {
+                g[j].remove(i);
+                f[i] = j;
+                if (g[j].size() == 1) {
+                    q.offer(j);
+                }
+            }
+        }
+        int[] ans = new int[n];
+        while (!seq.isEmpty()) {
+            int i = seq.pop();
+            ans[i] = ans[f[i]] + 1;
+        }
+        return ans;
+    }
+}
+
+
+
+or
+
+
+
+
+class Solution {
+  public int[] distanceToCycle(int n, int[][] edges) {
+    int[] ans = new int[n];
+    List<Integer>[] graph = new List[n];
+
+    for (int i = 0; i < n; ++i)
+      graph[i] = new ArrayList<>();
+
+    for (int[] edge : edges) {
+      final int u = edge[0];
+      final int v = edge[1];
+      graph[u].add(v);
+      graph[v].add(u);
+    }
+
+    // rank[i] := the minimum node that node i can reach with forward edges
+    // Initialize with NO_RANK = -2 to indicate not visited.
+    int[] rank = new int[n];
+    Arrays.fill(rank, NO_RANK);
+    List<Integer> cycle = new ArrayList<>();
+    getRank(graph, 0, 0, rank, cycle);
+
+    Queue<Integer> q = cycle.stream().collect(Collectors.toCollection(ArrayDeque::new));
+    boolean[] seen = new boolean[n];
+    for (final int u : cycle)
+      seen[u] = true;
+
+    for (int step = 1; !q.isEmpty(); ++step)
+      for (int sz = q.size(); sz > 0; --sz) {
+        final int u = q.poll();
+        for (final int v : graph[u]) {
+          if (seen[v])
+            continue;
+          q.offer(v);
+          seen[v] = true;
+          ans[v] = step;
+        }
+      }
+
+    return ans;
+  }
+
+  private static final int NO_RANK = -2;
+
+  // The minRank that u can reach with forward edges
+  private int getRank(List<Integer>[] graph, int u, int currRank, int[] rank, List<Integer> cycle) {
+    if (rank[u] != NO_RANK) // The rank is already determined
+      return rank[u];
+
+    rank[u] = currRank;
+    int minRank = currRank;
+
+    for (final int v : graph[u]) {
+      // Visited || parent (that's why NO_RANK = -2 instead of -1)
+      if (rank[u] == rank.length || rank[v] == currRank - 1)
+        continue;
+      final int nextRank = getRank(graph, v, currRank + 1, rank, cycle);
+      // NextRank should > currRank if there's no cycle
+      if (nextRank <= currRank)
+        cycle.add(v);
+      minRank = Math.min(minRank, nextRank);
+    }
+
+    rank[u] = rank.length; // Mark as visited.
+    return minRank;
+  }
+}
+
+
+
+
+or
+
+
+
