@@ -1,0 +1,619 @@
+https://leetcode.com/problems/minimum-cost-to-make-at-least-one-valid-path-in-a-grid/description/
+
+
+1368. Minimum Cost to Make at Least One Valid Path in a Grid
+Solved
+Hard
+Topics
+Companies
+Hint
+Given an m x n grid. Each cell of the grid has a sign pointing to the next cell you should visit if you are currently in this cell. The sign of grid[i][j] can be:
+
+1 which means go to the cell to the right. (i.e go from grid[i][j] to grid[i][j + 1])
+2 which means go to the cell to the left. (i.e go from grid[i][j] to grid[i][j - 1])
+3 which means go to the lower cell. (i.e go from grid[i][j] to grid[i + 1][j])
+4 which means go to the upper cell. (i.e go from grid[i][j] to grid[i - 1][j])
+Notice that there could be some signs on the cells of the grid that point outside the grid.
+
+You will initially start at the upper left cell (0, 0). A valid path in the grid is a path that starts from the upper left cell (0, 0) and ends at the bottom-right cell (m - 1, n - 1) following the signs on the grid. The valid path does not have to be the shortest.
+
+You can modify the sign on a cell with cost = 1. You can modify the sign on a cell one time only.
+
+Return the minimum cost to make the grid have at least one valid path.
+
+ 
+
+Example 1:
+
+
+Input: grid = [[1,1,1,1],[2,2,2,2],[1,1,1,1],[2,2,2,2]]
+Output: 3
+Explanation: You will start at point (0, 0).
+The path to (3, 3) is as follows. (0, 0) --> (0, 1) --> (0, 2) --> (0, 3) change the arrow to down with cost = 1 --> (1, 3) --> (1, 2) --> (1, 1) --> (1, 0) change the arrow to down with cost = 1 --> (2, 0) --> (2, 1) --> (2, 2) --> (2, 3) change the arrow to down with cost = 1 --> (3, 3)
+The total cost = 3.
+Example 2:
+
+
+Input: grid = [[1,1,3],[3,2,2],[1,1,4]]
+Output: 0
+Explanation: You can follow the path from (0, 0) to (2, 2).
+Example 3:
+
+
+Input: grid = [[1,2],[4,3]]
+Output: 1
+ 
+
+Constraints:
+
+m == grid.length
+n == grid[i].length
+1 <= m, n <= 100
+1 <= grid[i][j] <= 4
+
+
+
+# java
+
+
+
+class Solution {
+  public int minCost(int[][] grid) {
+    final int m = grid.length;
+    final int n = grid[0].length;
+    int[][] mem = new int[m][n];
+    Arrays.stream(mem).forEach(A -> Arrays.fill(A, -1));
+    Queue<Pair<Integer, Integer>> q = new ArrayDeque<>();
+
+    dfs(grid, 0, 0, /*cost=*/0, q, mem);
+
+    for (int cost = 1; !q.isEmpty(); ++cost)
+      for (int sz = q.size(); sz > 0; --sz) {
+        Pair<Integer, Integer> pair = q.poll();
+        final int i = pair.getKey();
+        final int j = pair.getValue();
+        for (int[] dir : DIRS)
+          dfs(grid, i + dir[0], j + dir[1], cost, q, mem);
+      }
+
+    return mem[m - 1][n - 1];
+  }
+
+  private static final int[][] DIRS = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}};
+
+  private void dfs(int[][] grid, int i, int j, int cost, Queue<Pair<Integer, Integer>> q,
+                   int[][] mem) {
+    if (i < 0 || i == grid.length || j < 0 || j == grid[0].length)
+      return;
+    if (mem[i][j] != -1)
+      return;
+
+    mem[i][j] = cost;
+    q.add(new Pair<>(i, j));
+    int[] dir = DIRS[grid[i][j] - 1];
+    dfs(grid, i + dir[0], j + dir[1], cost, q, mem);
+  }
+}
+
+
+or
+
+
+class Solution {
+    public int minCost(int[][] grid) {
+        int m = grid.length, n = grid[0].length;
+        boolean[][] vis = new boolean[m][n];
+        Deque<int[]> q = new ArrayDeque<>();
+        q.offer(new int[] {0, 0, 0});
+        int[][] dirs = { {0, 0}, {0, 1}, {0, -1}, {1, 0}, {-1, 0} };
+        while (!q.isEmpty()) {
+            int[] p = q.poll();
+            int i = p[0], j = p[1], d = p[2];
+            if (i == m - 1 && j == n - 1) {
+                return d;
+            }
+            if (vis[i][j]) {
+                continue;
+            }
+            vis[i][j] = true;
+            for (int k = 1; k <= 4; ++k) {
+                int x = i + dirs[k][0], y = j + dirs[k][1];
+                if (x >= 0 && x < m && y >= 0 && y < n) {
+                    if (grid[i][j] == k) {
+                        q.offerFirst(new int[] {x, y, d});
+                    } else {
+                        q.offer(new int[] {x, y, d + 1});
+                    }
+                }
+            }
+        }
+        return -1;
+    }
+}
+
+
+
+or
+
+
+class Solution {
+
+    public int minCost(int[][] grid) {
+        int numRows = grid.length, numCols = grid[0].length;
+        int[][] minChanges = new int[numRows][numCols];
+
+        // Initialize all cells with max value
+        for (int[] row : minChanges) {
+            Arrays.fill(row, Integer.MAX_VALUE);
+        }
+        minChanges[0][0] = 0;
+
+        while (true) {
+            // Store previous state to check for convergence
+            int[][] prevState = new int[numRows][numCols];
+            for (int row = 0; row < numRows; row++) {
+                prevState[row] = Arrays.copyOf(minChanges[row], numCols);
+            }
+
+            // Forward pass: check cells coming from left and top
+            for (int row = 0; row < numRows; row++) {
+                for (int col = 0; col < numCols; col++) {
+                    // Check cell above
+                    if (row > 0) {
+                        minChanges[row][col] = Math.min(
+                            minChanges[row][col],
+                            minChanges[row - 1][col] +
+                            (grid[row - 1][col] == 3 ? 0 : 1)
+                        );
+                    }
+                    // Check cell to the left
+                    if (col > 0) {
+                        minChanges[row][col] = Math.min(
+                            minChanges[row][col],
+                            minChanges[row][col - 1] +
+                            (grid[row][col - 1] == 1 ? 0 : 1)
+                        );
+                    }
+                }
+            }
+
+            // Backward pass: check cells coming from right and bottom
+            for (int row = numRows - 1; row >= 0; row--) {
+                for (int col = numCols - 1; col >= 0; col--) {
+                    // Check cell below
+                    if (row < numRows - 1) {
+                        minChanges[row][col] = Math.min(
+                            minChanges[row][col],
+                            minChanges[row + 1][col] +
+                            (grid[row + 1][col] == 4 ? 0 : 1)
+                        );
+                    }
+                    // Check cell to the right
+                    if (col < numCols - 1) {
+                        minChanges[row][col] = Math.min(
+                            minChanges[row][col],
+                            minChanges[row][col + 1] +
+                            (grid[row][col + 1] == 2 ? 0 : 1)
+                        );
+                    }
+                }
+            }
+
+            // If no changes were made in this iteration, we've found optimal solution
+            if (Arrays.deepEquals(prevState, minChanges)) {
+                break;
+            }
+        }
+
+        return minChanges[numRows - 1][numCols - 1];
+    }
+}
+
+
+
+or
+
+
+
+class Solution {
+
+    // Direction vectors: right, left, down, up (matching grid values 1,2,3,4)
+    int[][] dirs = new int[][] { { 0, 1 }, { 0, -1 }, { 1, 0 }, { -1, 0 } };
+
+    public int minCost(int[][] grid) {
+        int numRows = grid.length, numCols = grid[0].length;
+
+        // Min-heap ordered by cost. Each element is [cost, row, col]
+        PriorityQueue<int[]> pq = new PriorityQueue<>((a, b) -> a[0] - b[0]);
+        pq.offer(new int[] { 0, 0, 0 });
+
+        // Track minimum cost to reach each cell
+        int[][] minCost = new int[numRows][numCols];
+        for (int row = 0; row < numRows; row++) {
+            Arrays.fill(minCost[row], Integer.MAX_VALUE);
+        }
+        minCost[0][0] = 0;
+
+        while (!pq.isEmpty()) {
+            int[] curr = pq.poll();
+            int cost = curr[0], row = curr[1], col = curr[2];
+
+            // Skip if we've found a better path to this cell
+            if (minCost[row][col] != cost) continue;
+
+            // Try all four directions
+            for (int dir = 0; dir < 4; dir++) {
+                int newRow = row + dirs[dir][0];
+                int newCol = col + dirs[dir][1];
+
+                // Check if new position is valid
+                if (
+                    newRow >= 0 &&
+                    newRow < numRows &&
+                    newCol >= 0 &&
+                    newCol < numCols
+                ) {
+                    // Add cost=1 if we need to change direction
+                    int newCost = cost + (dir != (grid[row][col] - 1) ? 1 : 0);
+
+                    // Update if we found a better path
+                    if (minCost[newRow][newCol] > newCost) {
+                        minCost[newRow][newCol] = newCost;
+                        pq.offer(new int[] { newCost, newRow, newCol });
+                    }
+                }
+            }
+        }
+
+        return minCost[numRows - 1][numCols - 1];
+    }
+}
+
+
+
+or
+
+
+// 0 1 bfs
+
+
+class Solution {
+
+    // Direction vectors: right, left, down, up (matching grid values 1,2,3,4)
+    private final int[][] dirs = { { 0, 1 }, { 0, -1 }, { 1, 0 }, { -1, 0 } };
+
+    public int minCost(int[][] grid) {
+        int numRows = grid.length, numCols = grid[0].length;
+
+        // Track minimum cost to reach each cell
+        int[][] minCost = new int[numRows][numCols];
+        for (int[] row : minCost) {
+            Arrays.fill(row, Integer.MAX_VALUE);
+        }
+
+        // Use deque for 0-1 BFS - add zero cost moves to front, cost=1 to back
+        Deque<int[]> deque = new ArrayDeque<>();
+        deque.offerFirst(new int[] { 0, 0 });
+        minCost[0][0] = 0;
+
+        while (!deque.isEmpty()) {
+            int[] curr = deque.pollFirst();
+            int row = curr[0], col = curr[1];
+
+            // Try all four directions
+            for (int dir = 0; dir < 4; dir++) {
+                int newRow = row + dirs[dir][0];
+                int newCol = col + dirs[dir][1];
+                int cost = (grid[row][col] != (dir + 1)) ? 1 : 0;
+
+                // If position is valid and we found a better path
+                if (
+                    isValid(newRow, newCol, numRows, numCols) &&
+                    minCost[row][col] + cost < minCost[newRow][newCol]
+                ) {
+                    minCost[newRow][newCol] = minCost[row][col] + cost;
+
+                    // Add to back if cost=1, front if cost=0
+                    if (cost == 1) {
+                        deque.offerLast(new int[] { newRow, newCol });
+                    } else {
+                        deque.offerFirst(new int[] { newRow, newCol });
+                    }
+                }
+            }
+        }
+
+        return minCost[numRows - 1][numCols - 1];
+    }
+
+    // Check if coordinates are within grid bounds
+    private boolean isValid(int row, int col, int numRows, int numCols) {
+        return row >= 0 && row < numRows && col >= 0 && col < numCols;
+    }
+}
+
+
+or
+
+
+
+// bfs + dfs
+
+
+class Solution {
+
+    // Direction vectors: right, left, down, up (matching grid values 1,2,3,4)
+    private final int[][] dirs = new int[][] {
+        { 0, 1 },
+        { 0, -1 },
+        { 1, 0 },
+        { -1, 0 },
+    };
+
+    public int minCost(int[][] grid) {
+        int numRows = grid.length, numCols = grid[0].length, cost = 0;
+
+        // Track minimum cost to reach each cell
+        int[][] minCost = new int[numRows][numCols];
+        for (int row = 0; row < numRows; row++) {
+            Arrays.fill(minCost[row], Integer.MAX_VALUE);
+        }
+
+        // Queue for BFS part - stores cells that need cost increment
+        Queue<int[]> queue = new LinkedList<>();
+
+        // Start DFS from origin with cost 0
+        dfs(grid, 0, 0, minCost, cost, queue);
+
+        // BFS part - process cells level by level with increasing cost
+        while (!queue.isEmpty()) {
+            cost++;
+            int levelSize = queue.size();
+
+            while (levelSize-- > 0) {
+                int[] curr = queue.poll();
+                int row = curr[0], col = curr[1];
+
+                // Try all 4 directions for next level
+                for (int dir = 0; dir < 4; dir++) {
+                    dfs(
+                        grid,
+                        row + dirs[dir][0],
+                        col + dirs[dir][1],
+                        minCost,
+                        cost,
+                        queue
+                    );
+                }
+            }
+        }
+
+        return minCost[numRows - 1][numCols - 1];
+    }
+
+    // DFS to explore all reachable cells with current cost
+    private void dfs(
+        int[][] grid,
+        int row,
+        int col,
+        int[][] minCost,
+        int cost,
+        Queue<int[]> queue
+    ) {
+        if (!isUnvisited(minCost, row, col)) return;
+
+        minCost[row][col] = cost;
+        queue.offer(new int[] { row, col });
+
+        // Follow the arrow direction without cost increase
+        int nextDir = grid[row][col] - 1;
+        dfs(
+            grid,
+            row + dirs[nextDir][0],
+            col + dirs[nextDir][1],
+            minCost,
+            cost,
+            queue
+        );
+    }
+
+    // Check if cell is within bounds and unvisited
+    private boolean isUnvisited(int[][] minCost, int row, int col) {
+        return (
+            row >= 0 &&
+            col >= 0 &&
+            row < minCost.length &&
+            col < minCost[0].length &&
+            minCost[row][col] == Integer.MAX_VALUE
+        );
+    }
+}
+
+
+
+or
+
+
+
+class Solution {
+    public int minCost(int[][] grid) {
+        int m = grid.length, n = grid[0].length;
+        int[][] dist = new int[m][n];
+        for (int[] row : dist) Arrays.fill(row, Integer.MAX_VALUE);
+        Deque<int[]> dq = new ArrayDeque<>();
+        dq.offerFirst(new int[]{0, 0});
+        dist[0][0] = 0;
+        int[] dx = {0, 0, 1, -1}, dy = {1, -1, 0, 0};
+        
+        while (!dq.isEmpty()) {
+            int[] curr = dq.pollFirst();
+            int x = curr[0], y = curr[1];
+            int curDir = grid[x][y] - 1;
+            for (int dir = 0; dir < 4; dir++) {
+                int nx = x + dx[dir], ny = y + dy[dir];
+                if (nx >= 0 && ny >= 0 && nx < m && ny < n) {
+                    int cost = dist[x][y] + (dir == curDir ? 0 : 1);
+                    if (cost < dist[nx][ny]) {
+                        dist[nx][ny] = cost;
+                        if (dir == curDir) {
+                            dq.offerFirst(new int[]{nx, ny});
+                        } else {
+                            dq.offerLast(new int[]{nx, ny});
+                        }
+                    }
+                }
+            }
+        }
+        return dist[m - 1][n - 1];
+    }
+}
+
+
+or
+
+
+import java.util.*;
+
+class Solution {
+
+    private final int[][] directions = {{0,0}, {0,1}, {0,-1}, {1,0}, {-1,0}};
+    private int M, N;
+
+    private boolean isValid(int R, int C) {
+        return R >= 0 && C >= 0 && R < M && C < N;
+    }
+
+    // O(K log K) time, O(K) space where K = M * N
+    public int minCost(int[][] grid) {
+        M = grid.length;
+        N = grid[0].length;
+
+        PriorityQueue<int[]> minHeap = new PriorityQueue<>(Comparator.comparingInt(a -> a[0]));
+        minHeap.offer(new int[]{0, 0, 0}); // cost, row, col
+
+        int[][] minimumCost = new int[M][N];
+        for (int[] row : minimumCost) {
+            Arrays.fill(row, Integer.MAX_VALUE);
+        }
+        minimumCost[0][0] = 0;
+
+        while (!minHeap.isEmpty()) {
+            int[] info = minHeap.poll();
+            int currentCost = info[0];
+            int R = info[1];
+            int C = info[2];
+
+            if (R == M - 1 && C == N - 1)
+                return currentCost;
+
+            for (int dir = 1; dir <= 4; dir++) {
+                int cellVal = grid[R][C];
+                int newR = R + directions[dir][0];
+                int newC = C + directions[dir][1];
+                int newCost = (dir == cellVal) ? currentCost : currentCost + 1;
+
+                if (isValid(newR, newC) && minimumCost[newR][newC] > newCost) {
+                    minimumCost[newR][newC] = newCost;
+                    minHeap.offer(new int[]{newCost, newR, newC});
+                }
+            }
+        }
+
+        return -1;
+    }
+}
+
+
+
+or
+
+
+class Solution {
+    public int minCost(int[][] grid) {
+        int m=grid.length;
+        int n=grid[0].length;
+        int[][] minCost=new int[m][n];
+        for(int i=0; i<m; i++){
+            Arrays.fill(minCost[i], Integer.MAX_VALUE);
+        }
+
+        Deque<int[]> dque=new ArrayDeque<>();
+        dque.offerFirst(new int[]{0,0});
+        minCost[0][0]=0;
+        
+        int[][] direction={ {0,1}, {0,-1}, {1,0}, {-1,0} };
+
+        while(!dque.isEmpty()){
+            int[] arr=dque.pollFirst();
+            int r=arr[0];
+            int c=arr[1];
+
+            //Visited adjacent cells
+            for(int i=0; i<4; i++){
+                int nr=r+direction[i][0];
+                int nc=c+direction[i][1];
+                int cost=(grid[r][c]!=(i+1))?1:0;
+
+                if( nr>=0 && nr<m && nc>=0 && nc<n && minCost[r][c]+cost<minCost[nr][nc]){
+                    minCost[nr][nc]=minCost[r][c]+cost;
+
+                    if(cost==1){
+                        dque.offerLast(new int[]{nr,nc});
+                    }else{
+                        dque.offerFirst(new int[]{nr,nc});
+                    }                   
+                }
+            }
+        }
+
+        return minCost[m-1][n-1];
+    }
+}      
+
+
+
+or
+
+
+
+class Solution {
+    public int minCost(int[][] grid) {
+        int m=grid.length;
+        int n=grid[0].length;
+        int[][] minCost=new int[m][n];
+        for(int i=0; i<m; i++){
+            Arrays.fill(minCost[i], Integer.MAX_VALUE);
+        }
+
+        Deque<int[]> dque=new ArrayDeque<>();
+        dque.offerFirst(new int[]{0,0});
+        minCost[0][0]=0;
+        
+        int[][] direction={ {0,1}, {0,-1}, {1,0}, {-1,0} };
+
+        while(!dque.isEmpty()){
+            int[] arr=dque.pollFirst();
+            int r=arr[0];
+            int c=arr[1];
+
+            //Visited adjacent cells
+            for(int i=0; i<4; i++){
+                int nr=r+direction[i][0];
+                int nc=c+direction[i][1];
+                int cost=(grid[r][c]!=(i+1))?1:0;
+
+                if( nr>=0 && nr<m && nc>=0 && nc<n && minCost[r][c]+cost<minCost[nr][nc]){
+                    minCost[nr][nc]=minCost[r][c]+cost;
+
+                    if(cost==1){
+                        dque.offerLast(new int[]{nr,nc});
+                    }else{
+                        dque.offerFirst(new int[]{nr,nc});
+                    }                   
+                }
+            }
+        }
+
+        return minCost[m-1][n-1];
+    }
+}      
