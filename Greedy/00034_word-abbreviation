@@ -1,0 +1,258 @@
+https://leetcode.ca/2017-05-10-527-Word-Abbreviation/
+
+https://leetcode.com/problems/word-abbreviation/description/
+
+
+527 - Word Abbreviation
+Posted on May 10, 2017 · 6 minute read
+Welcome to Subscribe On Youtube
+
+527. Word Abbreviation
+Description
+Given an array of distinct strings words, return the minimal possible abbreviations for every word.
+
+The following are the rules for a string abbreviation:
+
+The initial abbreviation for each word is: the first character, then the number of characters in between, followed by the last character.
+If more than one word shares the same abbreviation, then perform the following operation:
+Increase the prefix (characters in the first part) of each of their abbreviations by 1.
+For example, say you start with the words ["abcdef","abndef"] both initially abbreviated as "a4f". Then, a sequence of operations would be ["a4f","a4f"] -> ["ab3f","ab3f"] -> ["abc2f","abn2f"].
+This operation is repeated until every abbreviation is unique.
+At the end, if an abbreviation did not make a word shorter, then keep it as the original word.
+ 
+
+Example 1:
+
+Input: words = ["like","god","internal","me","internet","interval","intension","face","intrusion"]
+Output: ["l2e","god","internal","me","i6t","interval","inte4n","f2e","intr4n"]
+Example 2:
+
+Input: words = ["aa","aaa"]
+Output: ["aa","aaa"]
+ 
+
+Constraints:
+
+1 <= words.length <= 400
+2 <= words[i].length <= 400
+words[i] consists of lowercase English letters.
+All the strings of words are unique.
+
+
+
+
+# java
+
+
+
+class Trie {
+    private final Trie[] children = new Trie[26];
+    private int cnt;
+
+    public void insert(String w) {
+        Trie node = this;
+        for (char c : w.toCharArray()) {
+            int idx = c - 'a';
+            if (node.children[idx] == null) {
+                node.children[idx] = new Trie();
+            }
+            node = node.children[idx];
+            ++node.cnt;
+        }
+    }
+
+    public int search(String w) {
+        Trie node = this;
+        int ans = 0;
+        for (char c : w.toCharArray()) {
+            ++ans;
+            int idx = c - 'a';
+            node = node.children[idx];
+            if (node.cnt == 1) {
+                return ans;
+            }
+        }
+        return w.length();
+    }
+}
+
+class Solution {
+    public List<String> wordsAbbreviation(List<String> words) {
+        Map<List<Integer>, Trie> tries = new HashMap<>();
+        for (var w : words) {
+            var key = List.of(w.length(), w.charAt(w.length() - 1) - 'a');
+            tries.putIfAbsent(key, new Trie());
+            tries.get(key).insert(w);
+        }
+        List<String> ans = new ArrayList<>();
+        for (var w : words) {
+            int m = w.length();
+            var key = List.of(m, w.charAt(m - 1) - 'a');
+            int cnt = tries.get(key).search(w);
+            ans.add(cnt + 2 >= m ? w : w.substring(0, cnt) + (m - cnt - 1) + w.substring(m - 1));
+        }
+        return ans;
+    }
+}
+
+
+
+or
+
+
+class Solution {
+  public List<String> wordsAbbreviation(List<String> words) {
+    final int n = words.size();
+    List<String> ans = new ArrayList<>();
+    // prefix[i] := ans[i] takes words[i][0..prefix[i]]
+    int[] prefix = new int[n];
+
+    for (int i = 0; i < n; ++i)
+      ans.add(getAbbrev(words.get(i), 0));
+
+    for (int i = 0; i < n; ++i)
+      while (true) {
+        List<Integer> dupeIndices = new ArrayList<>();
+        for (int j = i + 1; j < n; ++j)
+          if (ans.get(i).equals(ans.get(j)))
+            dupeIndices.add(j);
+        if (dupeIndices.isEmpty())
+          break;
+        dupeIndices.add(i);
+        for (final int dupeIndex : dupeIndices)
+          ans.set(dupeIndex, getAbbrev(words.get(dupeIndex), ++prefix[dupeIndex]));
+      }
+
+    return ans;
+  }
+
+  private String getAbbrev(final String s, int prefixIndex) {
+    final int n = s.length();
+    final int num = n - (prefixIndex + 1) - 1;
+    final int numLength = num < 10 ? 1 : num < 100 ? 2 : 3;
+    final int abbrevLength = (prefixIndex + 1) + numLength + 1;
+    if (abbrevLength >= n)
+      return s;
+    return s.substring(0, prefixIndex + 1) + num + s.charAt(n - 1);
+  }
+}
+
+
+
+or
+
+
+
+class Solution {
+  public List<String> wordsAbbreviation(List<String> words) {
+    record IndexedWord(String word, int index) {}
+    String[] ans = new String[words.size()];
+    Map<String, List<IndexedWord>> abbrevToIndexedWords = new HashMap<>();
+
+    for (int i = 0; i < words.size(); ++i) {
+      final String abbrev = getAbbrev(words.get(i), 0);
+      abbrevToIndexedWords.putIfAbsent(abbrev, new ArrayList<>());
+      abbrevToIndexedWords.get(abbrev).add(new IndexedWord(words.get(i), i));
+    }
+
+    for (List<IndexedWord> indexedWords : abbrevToIndexedWords.values()) {
+      Collections.sort(indexedWords, (a, b) -> a.word.compareTo(b.word));
+      int[] lcp = new int[indexedWords.size()];
+      for (int i = 1; i < indexedWords.size(); ++i) {
+        final int k = longestCommonPrefix(indexedWords.get(i - 1).word, indexedWords.get(i).word);
+        lcp[i - 1] = Math.max(lcp[i - 1], k);
+        lcp[i] = k;
+      }
+      for (int i = 0; i < indexedWords.size(); ++i)
+        ans[indexedWords.get(i).index] = getAbbrev(indexedWords.get(i).word, lcp[i]);
+    }
+
+    return Arrays.asList(ans);
+  }
+
+  private String getAbbrev(final String s, int prefixIndex) {
+    final int n = s.length();
+    final int num = n - (prefixIndex + 1) - 1;
+    final int numLength = num < 10 ? 1 : num < 100 ? 2 : 3;
+    final int abbrevLength = (prefixIndex + 1) + numLength + 1;
+    if (abbrevLength >= n)
+      return s;
+    return s.substring(0, prefixIndex + 1) + num + s.charAt(n - 1);
+  }
+
+  private int longestCommonPrefix(final String s1, final String s2) {
+    int i = 0;
+    while (i < s1.length() && i < s2.length() && s1.charAt(i) == s2.charAt(i))
+      ++i;
+    return i;
+  }
+}
+
+
+or
+
+
+
+class TrieNode {
+  public TrieNode[] children = new TrieNode[26];
+  public int count = 0;
+}
+
+class Solution {
+  public List<String> wordsAbbreviation(List<String> words) {
+    record IndexedWord(String word, int index) {}
+    String[] ans = new String[words.size()];
+    Map<String, List<IndexedWord>> abbrevToIndexedWords = new HashMap<>();
+
+    for (int i = 0; i < words.size(); ++i) {
+      final String abbrev = getAbbrev(words.get(i), 0);
+      abbrevToIndexedWords.putIfAbsent(abbrev, new ArrayList<>());
+      abbrevToIndexedWords.get(abbrev).add(new IndexedWord(words.get(i), i));
+    }
+
+    for (List<IndexedWord> indexedWords : abbrevToIndexedWords.values()) {
+      TrieNode root = new TrieNode();
+      for (IndexedWord iw : indexedWords)
+        insertWord(root, iw.word);
+      for (IndexedWord iw : indexedWords) {
+        final int index = firstUniqueIndex(root, iw.word);
+        ans[iw.index] = getAbbrev(iw.word, index);
+      }
+    }
+
+    return Arrays.asList(ans);
+  }
+
+  private String getAbbrev(final String s, int prefixIndex) {
+    final int n = s.length();
+    final int num = n - (prefixIndex + 1) - 1;
+    final int numLength = num < 10 ? 1 : num < 100 ? 2 : 3;
+    final int abbrevLength = (prefixIndex + 1) + numLength + 1;
+    if (abbrevLength >= n)
+      return s;
+    return s.substring(0, prefixIndex + 1) + num + s.charAt(n - 1);
+  }
+
+  private void insertWord(TrieNode root, final String word) {
+    TrieNode node = root;
+    for (final char c : word.toCharArray()) {
+      final int i = c - 'a';
+      if (node.children[i] == null)
+        node.children[i] = new TrieNode();
+      node = node.children[i];
+      ++node.count;
+    }
+  }
+
+  private int firstUniqueIndex(TrieNode root, final String word) {
+    TrieNode node = root;
+    for (int i = 0; i < word.length(); ++i) {
+      node = node.children[word.charAt(i) - 'a'];
+      if (node.count == 1)
+        return i;
+    }
+    return word.length();
+  }
+}
+
+
