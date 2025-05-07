@@ -1,0 +1,201 @@
+https://leetcode.com/problems/merge-operations-for-minimum-travel-time/description/
+
+3538. Merge Operations for Minimum Travel Time
+Hard
+Topics
+Companies
+Hint
+You are given a straight road of length l km, an integer n, an integer k, and two integer arrays, position and time, each of length n.
+
+The array position lists the positions (in km) of signs in strictly increasing order (with position[0] = 0 and position[n - 1] = l).
+
+Each time[i] represents the time (in minutes) required to travel 1 km between position[i] and position[i + 1].
+
+You must perform exactly k merge operations. In one merge, you can choose any two adjacent signs at indices i and i + 1 (with i > 0 and i + 1 < n) and:
+
+Update the sign at index i + 1 so that its time becomes time[i] + time[i + 1].
+Remove the sign at index i.
+Return the minimum total travel time (in minutes) to travel from 0 to l after exactly k merges.
+
+ 
+
+Example 1:
+
+Input: l = 10, n = 4, k = 1, position = [0,3,8,10], time = [5,8,3,6]
+
+Output: 62
+
+Explanation:
+
+Merge the signs at indices 1 and 2. Remove the sign at index 1, and change the time at index 2 to 8 + 3 = 11.
+
+After the merge:
+position array: [0, 8, 10]
+time array: [5, 11, 6]
+Segment	Distance (km)	Time per km (min)	Segment Travel Time (min)
+0 → 8	8	5	8 × 5 = 40
+8 → 10	2	11	2 × 11 = 22
+Total Travel Time: 40 + 22 = 62, which is the minimum possible time after exactly 1 merge.
+Example 2:
+
+Input: l = 5, n = 5, k = 1, position = [0,1,2,3,5], time = [8,3,9,3,3]
+
+Output: 34
+
+Explanation:
+
+Merge the signs at indices 1 and 2. Remove the sign at index 1, and change the time at index 2 to 3 + 9 = 12.
+After the merge:
+position array: [0, 2, 3, 5]
+time array: [8, 12, 3, 3]
+Segment	Distance (km)	Time per km (min)	Segment Travel Time (min)
+0 → 2	2	8	2 × 8 = 16
+2 → 3	1	12	1 × 12 = 12
+3 → 5	2	3	2 × 3 = 6
+Total Travel Time: 16 + 12 + 6 = 34, which is the minimum possible time after exactly 1 merge.
+ 
+
+Constraints:
+
+1 <= l <= 105
+2 <= n <= min(l + 1, 50)
+0 <= k <= min(n - 2, 10)
+position.length == n
+position[0] = 0 and position[n - 1] = l
+position is sorted in strictly increasing order.
+time.length == n
+1 <= time[i] <= 100​
+1 <= sum(time) <= 100​​​​​​
+
+
+
+# jvaa
+
+// 3 d dp
+
+class Solution {
+     static public int minTravelTime(int l, int n, int k, int[] positions, int[] times) {
+        int[] prefix = new int[n];
+        prefix[0] = times[0];
+        for (int idx = 1; idx < n - 1; idx++)
+            prefix[idx] = prefix[idx - 1] + times[idx];
+        Integer[][][] dp = new Integer[k + 1][n][n + 1];
+        return (int) solve(k, 0, 0, n, positions, prefix, dp);
+    }
+
+    static private int solve(int k, int i, int last, int n, int[] positions, int[] prefix, Integer[][][] dp) {
+        if (i == n - 1) {
+            if (k == 0) return 0;
+            return 10000000;
+        }
+
+        if (dp[k][i][last] != null) return dp[k][i][last];
+
+        int rate = prefix[i] - (last > 0 ? prefix[last - 1] : 0), ans = 10000000;
+        int till = Math.min(n - 1, i + k + 1);
+        for (int j = i + 1; j <= till; j++) {
+            int dist = positions[j] - positions[i];
+            int temp = dist * rate + solve(k - (j - i - 1), j, i + 1, n, positions, prefix, dp);
+            ans = Math.min(ans, temp);
+        }
+        return dp[k][i][last] = ans;
+    }
+}
+
+
+or
+
+// 2 d dp
+public class Solution {
+    public int minTravelTime(int l, int n, int k, int[] position, int[] time) {
+        long[] pref_t = new long[n];
+        pref_t[0] = time[0];
+        for (int i = 1; i < n; i++) {
+            pref_t[i] = pref_t[i - 1] + time[i];
+        }
+
+        List<Map<Integer, Long>>[] dp = new List[n];
+        for (int i = 0; i < n; i++) {
+            dp[i] = new ArrayList<>();
+            for (int m = 0; m <= k; m++) {
+                dp[i].add(new HashMap<>());
+            }
+        }
+        dp[0].get(0).put(time[0], 0L);
+
+        for (int i = 0; i < n; i++) {
+            for (int m = 0; m <= k; m++) {
+                for (Map.Entry<Integer, Long> e : dp[i].get(m).entrySet()) {
+                    int accum = e.getKey();
+                    long time_t = e.getValue();
+                    for (int j = i + 1; j < n; j++) {
+                        int rem = j - i - 1;
+                        if (m + rem > k) continue;
+                        long seg_time = (long)(position[j] - position[i]) * accum;
+                        long new_time = time_t + seg_time;
+                        int new_acc = (int)(pref_t[j] - pref_t[i]);
+                        int rd = m + rem;
+                        Long curr = dp[j].get(rd).get(new_acc);
+                        if (curr == null || new_time < curr) {
+                            dp[j].get(rd).put(new_acc, new_time);
+                        }
+                    }
+                }
+            }
+        }
+
+        long res = Long.MAX_VALUE;
+        for (long time_t : dp[n - 1].get(k).values()) {
+            res = Math.min(res, time_t);
+        }
+        return (int)res;
+    }
+}
+
+
+or
+
+// 4 d dp
+
+import java.util.*;
+
+class Solution {
+    int[][][][] dp;
+
+    public int sol(List<Integer> p, List<Integer> t, int i, int k, int pt, int nt) {
+        int n = p.size();
+        if (i >= n) {
+            if (k != 0)
+                return (int) 1e8;
+            else
+                return 0;
+        }
+        if (dp[i][k][pt][nt] != -1)
+            return dp[i][k][pt][nt];
+
+        int ans = ((p.get(i) - p.get(i - 1)) * pt) + sol(p, t, i + 1, k, nt, t.get(i + 1));
+        if (k > 0 && i < n - 1) {
+            int tans = ((p.get(i) - p.get(i - 1)) * pt) + sol(p, t, i + 1, k - 1, pt, t.get(i + 1) + nt);
+            ans = Math.min(ans, tans);
+        }
+        return dp[i][k][pt][nt] = ans;
+    }
+    public int minTravelTime(int l, int n, int k, int[] pArr, int[] tArr) 
+    {
+        List<Integer> p = new ArrayList<>();
+        for (int x : pArr) p.add(x);
+        List<Integer> t = new ArrayList<>();
+        for (int x : tArr) t.add(x);
+        dp = new int[n + 1][k + 1][101][101];
+        for (int[][][] a : dp)
+            for (int[][] b : a)
+                for (int[] c : b)
+                    Arrays.fill(c, -1);
+        t.add(t.get(t.size() - 1));
+        return sol(p, t, 1, k, t.get(0), t.get(1));
+    }
+}
+
+
+
+
