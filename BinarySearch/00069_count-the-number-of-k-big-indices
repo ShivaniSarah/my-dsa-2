@@ -1,0 +1,149 @@
+https://leetcode.com/problems/count-the-number-of-k-big-indices/description/
+
+
+2519. Count the Number of K-Big Indices
+Description
+You are given a 0-indexed integer array nums and a positive integer k.
+
+We call an index i k-big if the following conditions are satisfied:
+
+There exist at least k different indices idx1 such that idx1 < i and nums[idx1] < nums[i].
+There exist at least k different indices idx2 such that idx2 > i and nums[idx2] < nums[i].
+Return the number of k-big indices.
+
+ 
+
+Example 1:
+
+Input: nums = [2,3,6,5,2,3], k = 2
+Output: 2
+Explanation: There are only two 2-big indices in nums:
+- i = 2 --> There are two valid idx1: 0 and 1. There are three valid idx2: 2, 3, and 4.
+- i = 3 --> There are two valid idx1: 0 and 1. There are two valid idx2: 3 and 4.
+Example 2:
+
+Input: nums = [1,1,1], k = 3
+Output: 0
+Explanation: There are no 3-big indices in nums.
+ 
+
+Constraints:
+
+1 <= nums.length <= 105
+1 <= nums[i], k <= nums.length
+
+
+
+
+
+# java
+
+
+class FenwickTree {
+  public FenwickTree(int n) {
+    sums = new int[n + 1];
+  }
+
+  public void add(int i, int delta) {
+    while (i < sums.length) {
+      sums[i] += delta;
+      i += lowbit(i);
+    }
+  }
+
+  public int get(int i) {
+    int sum = 0;
+    while (i > 0) {
+      sum += sums[i];
+      i -= lowbit(i);
+    }
+    return sum;
+  }
+
+  private int[] sums;
+
+  private static int lowbit(int i) {
+    return i & -i;
+  }
+}
+
+class Solution {
+  public int kBigIndices(int[] nums, int k) {
+    final int n = nums.length;
+    int ans = 0;
+    FenwickTree leftTree = new FenwickTree(n);
+    FenwickTree rightTree = new FenwickTree(n);
+    // left[i] := the number of `nums` < nums[i] with index < i
+    int[] left = new int[n];
+    // right[i] := the number of `nums` < nums[i] with index > i
+    int[] right = new int[n];
+
+    for (int i = 0; i < n; ++i) {
+      left[i] = leftTree.get(nums[i] - 1);
+      leftTree.add(nums[i], 1);
+    }
+
+    for (int i = n - 1; i >= 0; --i) {
+      right[i] = rightTree.get(nums[i] - 1);
+      rightTree.add(nums[i], 1);
+    }
+
+    for (int i = 0; i < n; ++i)
+      if (left[i] >= k && right[i] >= k)
+        ++ans;
+
+    return ans;
+  }
+}
+
+
+or
+
+
+class BinaryIndexedTree {
+    private int n;
+    private int[] c;
+
+    public BinaryIndexedTree(int n) {
+        this.n = n;
+        c = new int[n + 1];
+    }
+
+    public void update(int x, int delta) {
+        while (x <= n) {
+            c[x] += delta;
+            x += x & -x;
+        }
+    }
+
+    public int query(int x) {
+        int s = 0;
+        while (x > 0) {
+            s += c[x];
+            x -= x & -x;
+        }
+        return s;
+    }
+}
+
+class Solution {
+    public int kBigIndices(int[] nums, int k) {
+        int n = nums.length;
+        BinaryIndexedTree tree1 = new BinaryIndexedTree(n);
+        BinaryIndexedTree tree2 = new BinaryIndexedTree(n);
+        for (int v : nums) {
+            tree2.update(v, 1);
+        }
+        int ans = 0;
+        for (int v : nums) {
+            tree2.update(v, -1);
+            if (tree1.query(v - 1) >= k && tree2.query(v - 1) >= k) {
+                ++ans;
+            }
+            tree1.update(v, 1);
+        }
+        return ans;
+    }
+}
+
+
