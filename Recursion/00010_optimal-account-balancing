@@ -1,0 +1,136 @@
+https://leetcode.com/problems/optimal-account-balancing/description/
+
+
+465. Optimal Account Balancing
+Description
+You are given an array of transactions transactions where transactions[i] = [fromi, toi, amounti] indicates that the person with ID = fromi gave amounti to the person with ID = toi.
+
+Return the minimum number of transactions required to settle the debt.
+
+ 
+
+Example 1:
+
+Input: transactions = [[0,1,10],[2,0,5]]
+Output: 2
+Explanation:
+Person #0 gave person #1 10.
+Person #2 gave person #0 5.
+Two transactions are needed. One way to settle the debt is person #1 pays person #0 and #2 5 each.
+Example 2:
+
+Input: transactions = [[0,1,10],[1,0,1],[1,2,5],[2,0,5]]
+Output: 1
+Explanation:
+Person #0 gave person #1 10.
+Person #1 gave person #0 1.
+Person #1 gave person #2 5.
+Person #2 gave person #0 5.
+Therefore, person #1 only need to give person #0 4, and all debt is settled.
+ 
+
+Constraints:
+
+1 <= transactions.length <= 8
+transactions[i].length == 3
+0 <= fromi, toi < 12
+fromi != toi
+1 <= amounti <= 100
+
+
+
+# java
+
+
+
+
+
+
+
+class Solution {
+  public int minTransfers(int[][] transactions) {
+    int[] balance = new int[21];
+    List<Integer> debts = new ArrayList<>();
+
+    for (int[] t : transactions) {
+      final int from = t[0];
+      final int to = t[1];
+      final int amount = t[2];
+      balance[from] -= amount;
+      balance[to] += amount;
+    }
+
+    for (final int b : balance)
+      if (b != 0)
+        debts.add(b);
+
+    return dfs(debts, 0);
+  }
+
+  private int dfs(List<Integer> debts, int s) {
+    while (s < debts.size() && debts.get(s) == 0)
+      ++s;
+    if (s == debts.size())
+      return 0;
+
+    int ans = Integer.MAX_VALUE;
+
+    for (int i = s + 1; i < debts.size(); ++i)
+      if (debts.get(i) * debts.get(s) < 0) {
+        debts.set(i, debts.get(i) + debts.get(s)); // `debts.get(s)` is settled.
+        ans = Math.min(ans, 1 + dfs(debts, s + 1));
+        debts.set(i, debts.get(i) - debts.get(s)); // Backtrack.
+      }
+
+    return ans;
+  }
+}
+
+
+
+or
+
+
+
+class Solution {
+    public int minTransfers(int[][] transactions) {
+        int[] g = new int[12];
+        for (var t : transactions) {
+            g[t[0]] -= t[2];
+            g[t[1]] += t[2];
+        }
+        List<Integer> nums = new ArrayList<>();
+        for (int x : g) {
+            if (x != 0) {
+                nums.add(x);
+            }
+        }
+        int m = nums.size();
+        int[] f = new int[1 << m];
+        Arrays.fill(f, 1 << 29);
+        f[0] = 0;
+        for (int i = 1; i < 1 << m; ++i) {
+            int s = 0;
+            for (int j = 0; j < m; ++j) {
+                if ((i >> j & 1) == 1) {
+                    s += nums.get(j);
+                }
+            }
+            if (s == 0) {
+                f[i] = Integer.bitCount(i) - 1;
+                for (int j = (i - 1) & i; j > 0; j = (j - 1) & i) {
+                    f[i] = Math.min(f[i], f[j] + f[i ^ j]);
+                }
+            }
+        }
+        return f[(1 << m) - 1];
+    }
+}
+
+
+
+
+
+or
+
+
