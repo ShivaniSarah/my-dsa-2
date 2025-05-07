@@ -1,0 +1,155 @@
+https://leetcode.com/problems/minimum-operations-to-remove-adjacent-ones-in-matrix/description/
+
+2123. Minimum Operations to Remove Adjacent Ones in Matrix
+Description
+You are given a 0-indexed binary matrix grid. In one operation, you can flip any 1 in grid to be 0.
+
+A binary matrix is well-isolated if there is no 1 in the matrix that is 4-directionally connected (i.e., horizontal and vertical) to another 1.
+
+Return the minimum number of operations to make grid well-isolated.
+
+ 
+
+Example 1:
+
+
+
+Input: grid = [[1,1,0],[0,1,1],[1,1,1]]
+Output: 3
+Explanation: Use 3 operations to change grid[0][1], grid[1][2], and grid[2][1] to 0.
+After, no more 1's are 4-directionally connected and grid is well-isolated.
+Example 2:
+
+
+
+Input: grid = [[0,0,0],[0,0,0],[0,0,0]]
+Output: 0
+Explanation: There are no 1's in grid and it is well-isolated.
+No operations were done so return 0.
+Example 3:
+
+
+
+Input: grid = [[0,1],[1,0]]
+Output: 0
+Explanation: None of the 1's are 4-directionally connected and grid is well-isolated.
+No operations were done so return 0.
+ 
+
+Constraints:
+
+m == grid.length
+n == grid[i].length
+1 <= m, n <= 300
+grid[i][j] is either 0 or 1.
+
+
+
+# java
+
+
+
+class Solution {
+  public int minimumOperations(int[][] grid) {
+    final int m = grid.length;
+    final int n = grid[0].length;
+    int ans = 0;
+    int[][] seen = new int[m][n];
+    int[][] match = new int[m][n];
+    Arrays.stream(match).forEach(A -> Arrays.fill(A, -1));
+
+    for (int i = 0; i < m; ++i)
+      for (int j = 0; j < n; ++j)
+        if (grid[i][j] == 1 && match[i][j] == -1) {
+          final int sessionId = i * n + j;
+          seen[i][j] = sessionId;
+          if (dfs(grid, i, j, sessionId, seen, match))
+            ++ans;
+        }
+
+    return ans;
+  }
+
+  private static final int[][] DIRS = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
+
+  private boolean dfs(final int[][] grid, int i, int j, int sessionId, int[][] seen,
+                      int[][] match) {
+    final int m = grid.length;
+    final int n = grid[0].length;
+
+    for (int[] dir : DIRS) {
+      final int x = i + dir[0];
+      final int y = j + dir[1];
+      if (x < 0 || x == m || y < 0 || y == n)
+        continue;
+      if (grid[x][y] == 0 || seen[x][y] == sessionId)
+        continue;
+      seen[x][y] = sessionId;
+      if (match[x][y] == -1 ||
+          dfs(grid, match[x][y] / n, match[x][y] % n, sessionId, seen, match)) {
+        match[x][y] = i * n + j;
+        match[i][j] = x * n + y;
+        return true;
+      }
+    }
+
+    return false;
+  }
+}
+
+
+
+or
+
+
+
+class Solution {
+    private Map<Integer, List<Integer>> g = new HashMap<>();
+    private Set<Integer> vis = new HashSet<>();
+    private int[] match;
+
+    public int minimumOperations(int[][] grid) {
+        int m = grid.length, n = grid[0].length;
+        for (int i = 0; i < m; ++i) {
+            for (int j = 0; j < n; ++j) {
+                if ((i + j) % 2 == 1 && grid[i][j] == 1) {
+                    int x = i * n + j;
+                    if (i < m - 1 && grid[i + 1][j] == 1) {
+                        g.computeIfAbsent(x, z -> new ArrayList<>()).add(x + n);
+                    }
+                    if (i > 0 && grid[i - 1][j] == 1) {
+                        g.computeIfAbsent(x, z -> new ArrayList<>()).add(x - n);
+                    }
+                    if (j < n - 1 && grid[i][j + 1] == 1) {
+                        g.computeIfAbsent(x, z -> new ArrayList<>()).add(x + 1);
+                    }
+                    if (j > 0 && grid[i][j - 1] == 1) {
+                        g.computeIfAbsent(x, z -> new ArrayList<>()).add(x - 1);
+                    }
+                }
+            }
+        }
+        match = new int[m * n];
+        Arrays.fill(match, -1);
+        int ans = 0;
+        for (int i : g.keySet()) {
+            ans += find(i);
+            vis.clear();
+        }
+        return ans;
+    }
+
+    private int find(int i) {
+        for (int j : g.get(i)) {
+            if (vis.add(j)) {
+                if (match[j] == -1 || find(match[j]) == 1) {
+                    match[j] = i;
+                    return 1;
+                }
+            }
+        }
+        return 0;
+    }
+}
+
+
