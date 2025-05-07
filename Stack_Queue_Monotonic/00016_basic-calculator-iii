@@ -1,0 +1,142 @@
+https://leetcode.com/problems/basic-calculator-iii/description/
+
+http://buttercola.blogspot.com/2019/03/leetcode-772-basic-calculator-iii.html
+
+
+772. Basic Calculator III
+Level
+Hard
+
+Description
+Implement a basic calculator to evaluate a simple expression string.
+
+The expression string contains only non-negative integers, '+', '-', '*', '/' operators, and open '(' and closing parentheses ')'. The integer division should truncate toward zero.
+
+You may assume that the given expression is always valid. All intermediate results will be in the range of [-231, 231 - 1].
+
+Note: You are not allowed to use any built-in function which evaluates strings as mathematical expressions, such as eval().
+
+ 
+
+Example 1:
+
+Input: s = "1+1"
+Output: 2
+Example 2:
+
+Input: s = "6-4/2"
+Output: 4
+Example 3:
+
+Input: s = "2*(5+5*2)/3+(6/2+8)"
+Output: 21
+ 
+
+Constraints:
+
+1 <= s <= 104
+s consists of digits, '+', '-', '*', '/', '(', and ')'.
+s is a valid expression.
+
+
+
+ #java
+
+
+class Solution {
+        public int calculate(String s) {
+            if (s == null || s.length() == 0) {
+                return 0;
+            }
+
+            // remove leading and trailing spaces and white spaces.
+            //
+            s = s.trim().replaceAll("[ ]+", "");
+
+            if (s == null || s.length() == 0) {
+                return 0;
+            }
+
+            Stack<Character> opStack = new Stack<>();
+            Stack<Integer> numStack = new Stack<>();
+
+            int i = 0;
+            while (i < s.length()) {
+                if (Character.isDigit(s.charAt(i))) {
+                    int num = 0;
+                    while (i < s.length() && Character.isDigit(s.charAt(i))) {
+                        num = num * 10 + Character.getNumericValue(s.charAt(i));
+                        i++;
+                    }
+                    numStack.push(num);
+                } else {
+                    char op = s.charAt(i);
+                    if (opStack.isEmpty()) {
+                        opStack.push(op);
+                        i++;
+                    } else if (op == '+' || op == '-') {
+                        char top = opStack.peek();
+                        if (top == '(') {
+                            opStack.push(op);
+                            i++;
+                        } else {
+                            calculate(numStack, opStack);
+                        }
+                    } else if (op == '*' || op == '/') {
+                        char top = opStack.peek();
+                        if (top == '(') {
+                            opStack.push(op);
+                            i++;
+                        } else if (top == '*' || top == '/') {
+                            calculate(numStack, opStack);
+                        } else if (top == '+' || top == '-') {
+                            opStack.push(op);
+                            i++;
+                        }
+                    } else if (op == '(') {
+                        opStack.push(op);
+                        i++;
+                    } else if (op == ')') {
+                        while (opStack.peek() != '(') {
+                            calculate(numStack, opStack);
+                        }
+                        opStack.pop();
+                        i++;
+                    }
+                }
+            }
+
+            while (!opStack.isEmpty()) {
+                calculate(numStack, opStack);
+            }
+
+            return numStack.peek();
+        }
+
+        private void calculate(Stack<Integer> numStack, Stack<Character> opStack) {
+            int num2 = numStack.pop();
+            int num1 = numStack.pop();
+
+            char op = opStack.pop();
+
+            int ans = 0;
+
+            switch(op) {
+                case '+':
+                    ans = num1 + num2;
+                    break;
+                case '-':
+                    ans = num1 - num2;
+                    break;
+                case '*':
+                    ans = num1 * num2;
+                    break;
+                case '/':
+                    ans = num1 / num2;
+                    break;
+            }
+
+            numStack.push(ans);
+        }
+    }
+
