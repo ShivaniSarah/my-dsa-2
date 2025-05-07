@@ -1,0 +1,123 @@
+https://leetcode.com/problems/nth-magical-number/
+
+878. Nth Magical Number
+Hard
+Topics
+Companies
+A positive integer is magical if it is divisible by either a or b.
+
+Given the three integers n, a, and b, return the nth magical number. Since the answer may be very large, return it modulo 109 + 7.
+
+ 
+
+Example 1:
+
+Input: n = 1, a = 2, b = 3
+Output: 2
+Example 2:
+
+Input: n = 4, a = 2, b = 3
+Output: 6
+ 
+
+Constraints:
+
+1 <= n <= 109
+2 <= a, b <= 4 * 104
+
+
+
+# java
+
+
+
+class Solution {
+    private static final int MOD = (int) 1e9 + 7;
+
+    public int nthMagicalNumber(int n, int a, int b) {
+        int c = a * b / gcd(a, b);
+        long l = 0, r = (long) (a + b) * n;
+        while (l < r) {
+            long mid = l + r >>> 1;
+            if (mid / a + mid / b - mid / c >= n) {
+                r = mid;
+            } else {
+                l = mid + 1;
+            }
+        }
+        return (int) (l % MOD);
+    }
+
+    private int gcd(int a, int b) {
+        return b == 0 ? a : gcd(b, a % b);
+    }
+}
+
+
+or
+
+
+
+class Solution {
+  public int nthMagicalNumber(long n, long a, long b) {
+    final int MOD = 1_000_000_007;
+    final long lcm = a * b / gcd(a, b);
+    long l = Math.min(a, b);
+    long r = Math.min(a, b) * n;
+
+    while (l < r) {
+      final long m = (l + r) / 2;
+      if (m / a + m / b - m / lcm >= n)
+        r = m;
+      else
+        l = m + 1;
+    }
+
+    return (int) (l % MOD);
+  }
+
+  private long gcd(long a, long b) {
+    return b == 0 ? a : gcd(b, a % b);
+  }
+}
+
+
+
+or
+
+
+
+class Solution {
+    public int nthMagicalNumber(int n, int a, int b) {
+        
+        long A = a, B = b;
+        long mod = (long)(Math.pow(10,9)+7);
+        
+        
+        long left = Math.min(a,b), right = (long)n*Math.min(a,b);
+        
+		// Finding GCD
+        while (B > 0) {
+            long tmp = A;
+            A = B;
+            B = tmp % B;
+        }
+		
+        long lcm = (a*b)/A;     //(n1*n2)/GCD
+		
+        while (left < right) {
+            long m = left+(right-left)/2;
+			
+            if ((m / a) + (m / b) - (m / lcm) < n) left = m + 1;   
+			
+            else right = m;
+        }
+        return (int)(left % mod);
+    }
+}
+
+
+or
+
+
+
