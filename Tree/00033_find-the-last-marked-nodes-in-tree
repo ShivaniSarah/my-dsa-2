@@ -1,0 +1,214 @@
+https://leetcode.com/problems/find-the-last-marked-nodes-in-tree/description/
+
+
+3313. Find the Last Marked Nodes in Tree 🔒
+Description
+There exists an undirected tree with n nodes numbered 0 to n - 1. You are given a 2D integer array edges of length n - 1, where edges[i] = [ui, vi] indicates that there is an edge between nodes ui and vi in the tree.
+
+Initially, all nodes are unmarked. After every second, you mark all unmarked nodes which have at least one marked node adjacent to them.
+
+Return an array nodes where nodes[i] is the last node to get marked in the tree, if you mark node i at time t = 0. If nodes[i] has multiple answers for any node i, you can choose any one answer.
+
+ 
+
+Example 1:
+
+Input: edges = [[0,1],[0,2]]
+
+Output: [2,2,1]
+
+Explanation:
+
+
+
+For i = 0, the nodes are marked in the sequence: [0] -> [0,1,2]. Either 1 or 2 can be the answer.
+For i = 1, the nodes are marked in the sequence: [1] -> [0,1] -> [0,1,2]. Node 2 is marked last.
+For i = 2, the nodes are marked in the sequence: [2] -> [0,2] -> [0,1,2]. Node 1 is marked last.
+Example 2:
+
+Input: edges = [[0,1]]
+
+Output: [1,0]
+
+Explanation:
+
+
+
+For i = 0, the nodes are marked in the sequence: [0] -> [0,1].
+For i = 1, the nodes are marked in the sequence: [1] -> [0,1].
+Example 3:
+
+Input: edges = [[0,1],[0,2],[2,3],[2,4]]
+
+Output: [3,3,1,1,1]
+
+Explanation:
+
+
+
+For i = 0, the nodes are marked in the sequence: [0] -> [0,1,2] -> [0,1,2,3,4].
+For i = 1, the nodes are marked in the sequence: [1] -> [0,1] -> [0,1,2] -> [0,1,2,3,4].
+For i = 2, the nodes are marked in the sequence: [2] -> [0,2,3,4] -> [0,1,2,3,4].
+For i = 3, the nodes are marked in the sequence: [3] -> [2,3] -> [0,2,3,4] -> [0,1,2,3,4].
+For i = 4, the nodes are marked in the sequence: [4] -> [2,4] -> [0,2,3,4] -> [0,1,2,3,4].
+ 
+
+Constraints:
+
+2 <= n <= 105
+edges.length == n - 1
+edges[i].length == 2
+0 <= edges[i][0], edges[i][1] <= n - 1
+The input is generated such that edges represents a valid tree.
+
+
+# java
+
+
+
+
+class Solution {
+  // Similar to 3241. Time Taken to Mark All Nodes
+  public int[] lastMarkedNodes(int[][] edges) {
+    final int n = edges.length + 1;
+    int[] ans = new int[n];
+    List<Integer>[] tree = new List[n];
+    // dp[i] := the last marked two nodes for subtree rooted at node i, where
+    // each node contains the time it got marked
+    Last2[] dp = new Last2[n];
+
+    for (int i = 0; i < n; ++i) {
+      tree[i] = new ArrayList<>();
+      dp[i] = new Last2();
+    }
+
+    for (int[] edge : edges) {
+      final int u = edge[0];
+      final int v = edge[1];
+      tree[u].add(v);
+      tree[v].add(u);
+    }
+
+    dfs(tree, 0, /*prev=*/-1, dp);
+    reroot(tree, 0, /*prev=*/-1, /*last=*/new Node(), dp, ans);
+    return ans;
+  }
+
+  private record Node(int node, int time) {
+    Node() {
+      this(0, 0);
+    }
+  }
+
+  private record Last2(Node last1, Node last2) {
+    Last2() {
+      this(new Node(), new Node());
+    }
+  }
+
+  // Performs a DFS traversal of the subtree rooted at node `u`, computes the
+  // time taken to mark all nodes in the subtree, records the last two marked
+  // nodes, and returns the last marked node.
+  //
+  // These values are used later in the rerooting process.
+  private Node dfs(List<Integer>[] tree, int u, int prev, Last2[] dp) {
+    Node last1 = new Node(u, 0);
+    Node last2 = new Node();
+    for (final int v : tree[u]) {
+      if (v == prev)
+        continue;
+      Node child = dfs(tree, v, u, dp);
+      final int time = child.time() + 1;
+      if (time > last1.time) {
+        last2 = last1;
+        last1 = new Node(child.node(), time);
+      } else if (time > last2.time) {
+        last2 = new Node(child.node(), time);
+      }
+    }
+    dp[u] = new Last2(last1, last2);
+    return last1;
+  }
+
+  // Reroots the tree at node `u` and updates the answer array, where `last`
+  // is the last marked node that doesn't go through `u`'s subtree.
+  private void reroot(List<Integer>[] tree, int u, int prev, Node last, Last2[] dp, int[] ans) {
+    ans[u] = last.time() > dp[u].last1().time() ? last.node() : dp[u].last1().node();
+    for (final int v : tree[u]) {
+      if (v == prev)
+        continue;
+      Node newLast = new Node(last.node(), last.time() + 1); // 1 := u -> v
+      if (dp[u].last1().node() == dp[v].last1().node()) {
+        final int alternativeTime = 1 + dp[u].last2().time();
+        if (alternativeTime > newLast.time())
+          newLast = new Node(dp[u].last2().node(), alternativeTime);
+      } else {
+        final int alternativeTime = 1 + dp[u].last1().time();
+        if (alternativeTime > newLast.time())
+          newLast = new Node(dp[u].last1().node(), alternativeTime);
+      }
+      reroot(tree, v, u, newLast, dp, ans);
+    }
+  }
+}
+
+
+
+or
+
+
+
+
+class Solution {
+    private List<Integer>[] g;
+
+    public int[] lastMarkedNodes(int[][] edges) {
+        int n = edges.length + 1;
+        g = new List[n];
+        Arrays.setAll(g, k -> new ArrayList<>());
+        for (var e : edges) {
+            int u = e[0], v = e[1];
+            g[u].add(v);
+            g[v].add(u);
+        }
+        int[] dist1 = new int[n];
+        dist1[0] = 0;
+        dfs(0, -1, dist1);
+        int a = maxNode(dist1);
+
+        int[] dist2 = new int[n];
+        dist2[a] = 0;
+        dfs(a, -1, dist2);
+        int b = maxNode(dist2);
+
+        int[] dist3 = new int[n];
+        dist3[b] = 0;
+        dfs(b, -1, dist3);
+
+        int[] ans = new int[n];
+        for (int i = 0; i < n; ++i) {
+            ans[i] = dist2[i] > dist3[i] ? a : b;
+        }
+        return ans;
+    }
+
+    private void dfs(int i, int fa, int[] dist) {
+        for (int j : g[i]) {
+            if (j != fa) {
+                dist[j] = dist[i] + 1;
+                dfs(j, i, dist);
+            }
+        }
+    }
+
+    private int maxNode(int[] dist) {
+        int mx = 0;
+        for (int i = 0; i < dist.length; ++i) {
+            if (dist[mx] < dist[i]) {
+                mx = i;
+            }
+        }
+        return mx;
+    }
+}
+
