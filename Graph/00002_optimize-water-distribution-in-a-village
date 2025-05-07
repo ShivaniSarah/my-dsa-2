@@ -1,5 +1,7 @@
 https://leetcode.ca/2019-02-10-1168-Optimize-Water-Distribution-in-a-Village/
 
+1168
+
 There are n houses in a village. We want to supply water for all the houses by building wells and laying pipes.
 
 For each house i, we can either build a well inside it directly with cost wells[i - 1] (note the -1 due to 0-indexing),
