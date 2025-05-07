@@ -1,5 +1,7 @@
 https://leetcode.ca/2024-01-16-2969-Minimum-Number-of-Coins-for-Fruits-II/
 
+2969
+
 You are at a fruit market with different types of exotic fruits on display.
 
 You are given a 1-indexed array prices, where prices[i] denotes the number of coins needed to purchase the ith fruit.
