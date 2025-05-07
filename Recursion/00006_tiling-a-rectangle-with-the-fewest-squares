@@ -1,0 +1,396 @@
+https://leetcode.com/problems/tiling-a-rectangle-with-the-fewest-squares/
+
+1240. Tiling a Rectangle with the Fewest Squares
+Hard
+Topics
+Companies
+Hint
+Given a rectangle of size n x m, return the minimum number of integer-sided squares that tile the rectangle.
+
+ 
+
+Example 1:
+
+
+
+Input: n = 2, m = 3
+Output: 3
+Explanation: 3 squares are necessary to cover the rectangle.
+2 (squares of 1x1)
+1 (square of 2x2)
+Example 2:
+
+
+
+Input: n = 5, m = 8
+Output: 5
+Example 3:
+
+
+
+Input: n = 11, m = 13
+Output: 6
+ 
+
+Constraints:
+
+1 <= n, m <= 13
+
+
+# java
+
+
+
+class Solution {
+  public int tilingRectangle(int n, int m) {
+    return tilingRectangle(n, m, 0, new int[m]);
+  }
+
+  private static final int BASE = 13;
+  private Map<Long, Integer> dp = new HashMap<>();
+
+  private int tilingRectangle(int n, int m, long hashedHeights, int[] heights) {
+    if (dp.containsKey(hashedHeights))
+      return dp.get(hashedHeights);
+
+    final int minHeight = Arrays.stream(heights).min().getAsInt();
+    if (minHeight == n) // All filled.
+      return 0;
+
+    int ans = m * n;
+    int start = -1;
+
+    for (int i = 0; i < m; ++i)
+      if (heights[i] == minHeight) {
+        start = i;
+        break;
+      }
+
+    // Try to put square of different size that doesn't exceed the width/height.
+    for (int sz = 1; sz <= Math.min(m - start, n - minHeight); ++sz) {
+      // heights[start..start + sz) must has the same height.
+      if (heights[start + sz - 1] != minHeight)
+        break;
+      // Put a square of size `sz` to cover heights[start..start + sz).
+      for (int i = start; i < start + sz; ++i)
+        heights[i] += sz;
+      ans = Math.min(ans, tilingRectangle(n, m, hash(heights), heights));
+      for (int i = start; i < start + sz; ++i)
+        heights[i] -= sz;
+    }
+
+    dp.put(hashedHeights, 1 + ans);
+    return 1 + ans;
+  }
+
+  private long hash(int[] heights) {
+    long hashed = 0;
+    for (int i = heights.length - 1; i >= 0; --i)
+      hashed = hashed * BASE + heights[i];
+    return hashed;
+  }
+}
+
+
+
+or
+
+
+
+class Solution {
+    private int n;
+    private int m;
+    private int[] filled;
+    private int ans;
+
+    public int tilingRectangle(int n, int m) {
+        this.n = n;
+        this.m = m;
+        ans = n * m;
+        filled = new int[n];
+        dfs(0, 0, 0);
+        return ans;
+    }
+
+    private void dfs(int i, int j, int t) {
+        if (j == m) {
+            ++i;
+            j = 0;
+        }
+        if (i == n) {
+            ans = t;
+            return;
+        }
+        if ((filled[i] >> j & 1) == 1) {
+            dfs(i, j + 1, t);
+        } else if (t + 1 < ans) {
+            int r = 0, c = 0;
+            for (int k = i; k < n; ++k) {
+                if ((filled[k] >> j & 1) == 1) {
+                    break;
+                }
+                ++r;
+            }
+            for (int k = j; k < m; ++k) {
+                if ((filled[i] >> k & 1) == 1) {
+                    break;
+                }
+                ++c;
+            }
+            int mx = Math.min(r, c);
+            for (int w = 1; w <= mx; ++w) {
+                for (int k = 0; k < w; ++k) {
+                    filled[i + w - 1] |= 1 << (j + k);
+                    filled[i + k] |= 1 << (j + w - 1);
+                }
+                dfs(i, j + w, t + 1);
+            }
+            for (int x = i; x < i + mx; ++x) {
+                for (int y = j; y < j + mx; ++y) {
+                    filled[x] ^= 1 << y;
+                }
+            }
+        }
+    }
+}
+
+
+or
+
+
+class Solution {    
+    private int trUtil(int n, int m, int[][] cache)
+    {
+        if (n > m)
+        {
+            int temp = n;
+            n = m;
+            m = temp;
+        }
+        
+        if (cache[n][m] != 0)
+            return cache[n][m];
+        
+        if (n == 0)
+        {
+            cache[0][m] = 0;
+            return 0;
+        }
+        
+        if (n == 1)
+        {
+            cache[n][m] = m;
+            return m;
+        }
+        
+        if (n == m)
+        {
+            cache[n][m] = 1;
+            return 1;
+        }
+        
+        if (m % n == 0)
+        {
+            cache[n][m] = m/n;
+            return m/n;
+        }
+        
+        if (m > 2 * n)
+        {
+            int num = (m / n) - 1;
+            int newM = m - num*n;            
+            cache[n][m] = num + trUtil(n, newM, cache);
+            return cache[n][m];
+        }
+        
+        cache[n][m] = 1 + trUtil(Math.min(n, m-n), Math.max(n, m-n), cache);
+        
+        // if 1 < n < m < 2n then we do the following
+        // Let i be size of big square
+        // Let j be size of horizontal extension beyond big square
+        // Horizontal side is of len m, Vertical side is of len n
+        // Bigger square is in bottom left corner, smaller sqaure attached to bigger
+        // is in bottom right corner
+        //
+        /*  ---------------------------
+            |                      *  |
+            |                      *  |
+            |--------i--------..j.>*  |
+            |                |        |
+            n                |        |
+            |                |--------|
+            |                |        |
+            |                |        |
+            --------------m------------
+        */
+        
+        for (int i = (m+1)/2; i < n; i++)
+        {
+            for (int j = 0; j <= (m - i); j++)
+            {
+                cache[n][m] = Math.min(cache[n][m], 2 +
+                                      trUtil(n-i, i+j, cache) +
+                                      trUtil(n - (m-i), (m-i) - j, cache) +
+                                      trUtil(j, i - (m-i), cache));
+            }
+        }
+        
+        return cache[n][m];
+    }
+    
+    
+    public int tilingRectangle(int n, int m) {
+        int temp = Math.min(n, m);
+        m = Math.max(n, m);
+        n = temp;
+        
+        int[][] cache = new int[n+1][m+1];
+        return trUtil(n, m, cache);
+    }
+}
+
+
+
+or
+
+
+class Solution {
+    int ret; // store the final result
+    int m, n; // m is the height, and n is the width
+	
+	// Note: original signature is changed from n,m to m,n
+    public int tilingRectangle(int m, int n) { 
+        this.m = m;
+        this.n = n;
+        this.ret = m * n; // initilize the result as m*n if cut rectangle to be all 1*1 squares
+        int[][] mat = new int[m][n]; // record the status of every location, 0 means not covered, 1 means covered
+        backtrack(mat, 0); // start backtracking
+        return ret;
+    }
+    
+	// the size means how many squares cut now
+    public void backtrack(int[][] mat, int size) {
+        if (size > ret) return; // if we already have more squares than the min result, no need to go forward
+        
+		// find out the leftmost and topmost postion where is not covered yet
+        int x = -1, y = -1;
+        for(int i = 0; i < m; i++) {
+            for(int j = 0; j < n; j++) {
+                if (mat[i][j] == 0) {
+                    x = i;
+                    y = j;
+                    break;
+                }
+            }
+            if (x != -1 && y != -1) break;
+        }
+		// if not found, we know that all positions are covered
+        if (x == -1 && y == -1) {
+		    // update the result
+            ret = Math.min(size, ret);
+        }
+        else {
+            int len = findWidth(x, y, mat); // find the maximum width to cut the square
+            while(len >= 1) {
+                cover(x, y, len, mat, 1); // cover the current square
+                backtrack(mat, size + 1);
+                cover(x, y, len, mat, 0); // uncover the previous result
+                len--; // decrement the square width by 1
+            }
+        }
+    }
+    
+    public int findWidth(int x, int y, int[][] mat) {
+        int len = 1;
+        while(x + len < m && y + len < n) {
+            boolean flag = true; // flag means the len is reachable
+            for (int i = 0; i <= len; i++) {
+			    // check the right i-th column and the bottom i-th row away from (x, y) 
+                if (mat[x + i][y + len] == 1 || mat[x + len][y + i] == 1) {
+                    flag = false;
+                    break;
+                }
+            }
+            if (!flag) break;
+            len++;
+        }
+        return len;
+    }
+    
+    public void cover(int x, int y, int len, int[][] mat, int val) {
+        for (int i = x; i < x + len; i++) {
+            for (int j = y; j < y + len; j++) {
+                mat[i][j] = val;
+            }
+        }
+    }
+}
+
+
+
+or
+
+
+
+class Solution {
+    int n, m;
+    boolean[][] covered;
+    int res;
+    public int tilingRectangle(int n, int m) {
+        this.n = n;
+        this.m = m;
+        this.covered = new boolean[n][m];
+        this.res = m * n;
+        backtrack(0);
+        return res;
+    }
+    public void backtrack(int count){
+        if(count >= res) return;
+        boolean find = false;
+        for(int r = 0; r < n; r++){
+            for(int c = 0; c < m; c++){
+                if(!covered[r][c]){
+                    find = true;
+                    int len = findMaxWidth(r, c);
+                    while(len > 0){
+                        cover(r, c, len, true);
+                        backtrack(count + 1);
+                        cover(r, c, len, false);
+                        len--;
+                    }
+                    break;
+                } 
+            }
+            if(find) break;
+        }
+        if(!find) res = Math.min(res, count);
+        return;
+    }
+    public void cover(int r, int c, int len, boolean flag){
+        for(int i = r; i < r + len; i++){
+            for(int j = c; j < c + len; j++){
+                covered[i][j] = flag;
+            }
+        }
+    }
+    public int findMaxWidth(int r, int c){
+        int len = Math.min(n - r, m - c);
+        while(true){
+            boolean find = false;
+            for(int i = r; i < r + len; i++){
+                for(int j = c; j < c + len; j++){
+                    if(covered[i][j]){
+                        find = true;
+                        len = Math.min(i - r, j - c);
+                        break;
+                    }
+                }
+                if(find) break;
+            }
+            if(!find) break;
+        }
+        return len;
+    }
+}
+
+
