@@ -1,0 +1,177 @@
+https://leetcode.com/problems/encode-string-with-shortest-length/description/
+
+
+471. Encode String with Shortest Length
+Description
+Given a string s, encode the string such that its encoded length is the shortest.
+
+The encoding rule is: k[encoded_string], where the encoded_string inside the square brackets is being repeated exactly k times. k should be a positive integer.
+
+If an encoding process does not make the string shorter, then do not encode it. If there are several solutions, return any of them.
+
+ 
+
+Example 1:
+
+Input: s = "aaa"
+Output: "aaa"
+Explanation: There is no way to encode it such that it is shorter than the input string, so we do not encode it.
+Example 2:
+
+Input: s = "aaaaa"
+Output: "5[a]"
+Explanation: "5[a]" is shorter than "aaaaa" by 1 character.
+Example 3:
+
+Input: s = "aaaaaaaaaa"
+Output: "10[a]"
+Explanation: "a9[a]" or "9[a]a" are also valid solutions, both of them have the same length = 5, which is the same as "10[a]".
+ 
+
+Constraints:
+
+1 <= s.length <= 150
+s consists of only lowercase English letters.
+
+
+
+# java
+
+
+
+
+class Solution {
+  public String encode(String s) {
+    final int n = s.length();
+    String[][] mem = new String[n][n];
+    return encode(s, 0, n - 1, mem);
+  }
+
+  // Returns the shortest encoded string of s[i..j].
+  private String encode(final String s, int i, int j, String[][] mem) {
+    if (mem[i][j] != null)
+      return mem[i][j];
+
+    final String curr = s.substring(i, j + 1);
+    mem[i][j] = curr;
+
+    if (mem[i][j].length() < 5)
+      return mem[i][j];
+
+    // Try all the possible partitions.
+    for (int k = i; k < j; ++k) {
+      final String l = encode(s, i, k, mem);
+      final String r = encode(s, k + 1, j, mem);
+      if (l.length() + r.length() < mem[i][j].length())
+        mem[i][j] = l + r;
+    }
+
+    // Try to compress the string.
+    // e.g. s = aabaabaab -> 3[aab]
+    for (int k = i; k <= j; ++k) {
+      final String pattern = s.substring(i, k + 1);
+      if (curr.length() % pattern.length() == 0 && curr.replaceAll(pattern, "").isEmpty()) {
+        final String candidate =
+            String.valueOf(curr.length() / pattern.length()) + "[" + encode(s, i, k, mem) + "]";
+        if (candidate.length() < mem[i][j].length())
+          mem[i][j] = candidate;
+      }
+    }
+
+    return mem[i][j];
+  }
+}
+
+
+
+or
+
+
+class Solution {
+  public String encode(String s) {
+    final int n = s.length();
+    // dp[i][j] := shortest encoded String of s[i..j]
+    String[][] dp = new String[n][n];
+
+    for (int d = 0; d < n; ++d) {
+      for (int i = 0; i + d < n; ++i) {
+        final int j = i + d;
+        final String curr = s.substring(i, j + 1);
+        dp[i][j] = curr;
+
+        if (dp[i][j].length() < 5)
+          continue;
+
+        // Try all the possible partitions.
+        for (int k = i; k < j; ++k)
+          if (dp[i][k].length() + dp[k + 1][j].length() < dp[i][j].length())
+            dp[i][j] = dp[i][k] + dp[k + 1][j];
+
+        // Try to compress the string.
+        // e.g. s = aabaabaab -> 3[aab]
+        for (int k = i; k <= j; ++k) {
+          final String pattern = s.substring(i, k + 1);
+          if (curr.length() % pattern.length() == 0 && curr.replaceAll(pattern, "").isEmpty()) {
+            final String candidate =
+                String.valueOf(curr.length() / pattern.length()) + "[" + dp[i][k] + "]";
+            if (candidate.length() < dp[i][j].length())
+              dp[i][j] = candidate;
+          }
+        }
+      }
+    }
+
+    return dp[0][n - 1];
+  }
+}
+
+
+
+or
+
+
+
+class Solution {
+    private String s;
+    private String[][] f;
+
+    public String encode(String s) {
+        this.s = s;
+        int n = s.length();
+        f = new String[n][n];
+        for (int i = n - 1; i >= 0; --i) {
+            for (int j = i; j < n; ++j) {
+                f[i][j] = g(i, j);
+                if (j - i + 1 > 4) {
+                    for (int k = i; k < j; ++k) {
+                        String t = f[i][k] + f[k + 1][j];
+                        if (f[i][j].length() > t.length()) {
+                            f[i][j] = t;
+                        }
+                    }
+                }
+            }
+        }
+        return f[0][n - 1];
+    }
+
+    private String g(int i, int j) {
+        String t = s.substring(i, j + 1);
+        if (t.length() < 5) {
+            return t;
+        }
+        int k = (t + t).indexOf(t, 1);
+        if (k < t.length()) {
+            int cnt = t.length() / k;
+            return String.format("%d[%s]", cnt, f[i][i + k - 1]);
+        }
+        return t;
+    }
+}
+
+
+
+or
+
+
+
