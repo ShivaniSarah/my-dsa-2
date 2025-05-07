@@ -1,6 +1,8 @@
 https://leetcode.ca/all/1183.html
 https://leetcode.ca/2019-02-25-1183-Maximum-Number-of-Ones/
 
+https://leetcode.com/problems/maximum-number-of-ones/description/
+
 Consider a matrix M with dimensions width * height, such that every cell has value 0 or 1, 
 and any square sub-matrix of M of size sideLength * sideLength has at most maxOnes ones.
 
