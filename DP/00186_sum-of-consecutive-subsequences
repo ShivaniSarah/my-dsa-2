@@ -1,0 +1,159 @@
+https://leetcode.com/problems/sum-of-consecutive-subsequences/description/
+
+
+3299. Sum of Consecutive Subsequences 🔒
+Description
+We call an array arr of length n consecutive if one of the following holds:
+
+arr[i] - arr[i - 1] == 1 for all 1 <= i < n.
+arr[i] - arr[i - 1] == -1 for all 1 <= i < n.
+The value of an array is the sum of its elements.
+
+For example, [3, 4, 5] is a consecutive array of value 12 and [9, 8] is another of value 17. While [3, 4, 3] and [8, 6] are not consecutive.
+
+Given an array of integers nums, return the sum of the values of all consecutive non-empty subsequences.
+
+Since the answer may be very large, return it modulo 109 + 7.
+
+Note that an array of length 1 is also considered consecutive.
+
+ 
+
+Example 1:
+
+Input: nums = [1,2]
+
+Output: 6
+
+Explanation:
+
+The consecutive subsequences are: [1], [2], [1, 2].
+
+Example 2:
+
+Input: nums = [1,4,2,3]
+
+Output: 31
+
+Explanation:
+
+The consecutive subsequences are: [1], [4], [2], [3], [1, 2], [2, 3], [4, 3], [1, 2, 3].
+
+ 
+
+Constraints:
+
+1 <= nums.length <= 105
+1 <= nums[i] <= 105
+
+
+
+# jav
+
+
+
+
+class Solution {
+  public int getSum(int[] nums) {
+    final long increasingSequenceSum = getSequenceSum(nums, 1);
+    final long decreasingSequenceSum = getSequenceSum(nums, -1);
+    final long arraySum = getArraySum(nums);
+    return (int) ((increasingSequenceSum + decreasingSequenceSum - arraySum + MOD) % MOD);
+  }
+
+  private static final int MOD = 1_000_000_007;
+
+  // Returns the sum of all sequences in the array that are in consecutive
+  // increasing order if `direction` is 1, or in consecutive decreasing order if
+  // `direction` is -1.
+  private long getSequenceSum(int[] nums, int direction) {
+    int n = nums.length;
+    long sequenceSum = 0;
+    // {num: the number of subsequences ending in `num` so far}
+    Map<Integer, Integer> prefixCount = new HashMap<>();
+    // {num: the number of subsequences starting from `num` so far}
+    Map<Integer, Integer> suffixCount = new HashMap<>();
+    // prefixSubseqs[i] := the number of subsequences ending in nums[i]
+    int[] prefixSubseqs = new int[n];
+    // suffixSubseqs[i] := the number of subsequences starting from nums[i]
+    int[] suffixSubseqs = new int[n];
+
+    for (int i = 0; i < n; ++i) {
+      final int prevNum = nums[i] - direction;
+      final int subseqsCount = prefixCount.getOrDefault(prevNum, 0) + 1;
+      prefixSubseqs[i] = subseqsCount;
+      prefixCount.merge(nums[i], subseqsCount, Integer::sum);
+      prefixCount.put(nums[i], prefixCount.get(nums[i]) % MOD);
+    }
+
+    for (int i = n - 1; i >= 0; --i) {
+      int nextNum = nums[i] + direction;
+      int subseqsCount = suffixCount.getOrDefault(nextNum, 0) + 1;
+      suffixSubseqs[i] = subseqsCount;
+      suffixCount.merge(nums[i], subseqsCount, Integer::sum);
+      suffixCount.put(nums[i], suffixCount.get(nums[i]) % MOD);
+    }
+
+    for (int i = 0; i < n; ++i) {
+      sequenceSum += (long) nums[i] * prefixSubseqs[i] % MOD * suffixSubseqs[i];
+      sequenceSum %= MOD;
+    }
+
+    return sequenceSum;
+  }
+
+  private int getArraySum(int[] nums) {
+    int arraySum = 0;
+    for (int num : nums)
+      arraySum = (arraySum + num) % MOD;
+    return arraySum;
+  }
+}
+
+
+
+or
+
+
+
+
+class Solution {
+    private final int mod = (int) 1e9 + 7;
+
+    public int getSum(int[] nums) {
+        long x = calc(nums);
+        for (int i = 0, j = nums.length - 1; i < j; ++i, --j) {
+            int t = nums[i];
+            nums[i] = nums[j];
+            nums[j] = t;
+        }
+        long y = calc(nums);
+        long s = Arrays.stream(nums).asLongStream().sum();
+        return (int) ((x + y + s) % mod);
+    }
+
+    private long calc(int[] nums) {
+        int n = nums.length;
+        long[] left = new long[n];
+        long[] right = new long[n];
+        Map<Integer, Long> cnt = new HashMap<>();
+        for (int i = 1; i < n; ++i) {
+            cnt.merge(nums[i - 1], 1 + cnt.getOrDefault(nums[i - 1] - 1, 0L), Long::sum);
+            left[i] = cnt.getOrDefault(nums[i] - 1, 0L);
+        }
+        cnt.clear();
+        for (int i = n - 2; i >= 0; --i) {
+            cnt.merge(nums[i + 1], 1 + cnt.getOrDefault(nums[i + 1] + 1, 0L), Long::sum);
+            right[i] = cnt.getOrDefault(nums[i] + 1, 0L);
+        }
+        long ans = 0;
+        for (int i = 0; i < n; ++i) {
+            ans = (ans + (left[i] + right[i] + left[i] * right[i] % mod) * nums[i] % mod) % mod;
+        }
+        return ans;
+    }
+}
+
+
+
+
