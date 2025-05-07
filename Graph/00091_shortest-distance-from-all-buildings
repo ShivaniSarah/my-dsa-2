@@ -1,0 +1,181 @@
+https://leetcode.com/problems/shortest-distance-from-all-buildings/description/
+
+https://leetcode.ca/2016-10-12-317-Shortest-Distance-from-All-Buildings/
+
+
+317. Shortest Distance from All Buildings
+Description
+You are given an m x n grid grid of values 0, 1, or 2, where:
+
+each 0 marks an empty land that you can pass by freely,
+each 1 marks a building that you cannot pass through, and
+each 2 marks an obstacle that you cannot pass through.
+You want to build a house on an empty land that reaches all buildings in the shortest total travel distance. You can only move up, down, left, and right.
+
+Return the shortest travel distance for such a house. If it is not possible to build such a house according to the above rules, return -1.
+
+The total travel distance is the sum of the distances between the houses of the friends and the meeting point.
+
+The distance is calculated using Manhattan Distance, where distance(p1, p2) = |p2.x - p1.x| + |p2.y - p1.y|.
+
+ 
+
+Example 1:
+
+
+
+Input: grid = [[1,0,2,0,1],[0,0,0,0,0],[0,0,1,0,0]]
+Output: 7
+Explanation: Given three buildings at (0,0), (0,4), (2,2), and an obstacle at (0,2).
+The point (1,2) is an ideal empty land to build a house, as the total travel distance of 3+3+1=7 is minimal.
+So return 7.
+Example 2:
+
+Input: grid = [[1,0]]
+Output: 1
+Example 3:
+
+Input: grid = [[1]]
+Output: -1
+ 
+
+Constraints:
+
+m == grid.length
+n == grid[i].length
+1 <= m, n <= 50
+grid[i][j] is either 0, 1, or 2.
+There will be at least one building in the grid.
+
+
+
+
+# java
+
+
+class Solution {
+  public int shortestDistance(int[][] grid) {
+    final int m = grid.length;
+    final int n = grid[0].length;
+    final int nBuildings = getBuildingsCount(grid);
+    int ans = Integer.MAX_VALUE;
+    // dist[i][j] := the total distance of grid[i][j] (0) to reach all the
+    // buildings (1)
+    int[][] dist = new int[m][n];
+    // reachCount[i][j] := the number of buildings (1) grid[i][j] (0) can reach
+    int[][] reachCount = new int[m][n];
+
+    for (int i = 0; i < m; ++i)
+      for (int j = 0; j < n; ++j)
+        if (grid[i][j] == 1) // BFS from this building.
+          if (!bfs(grid, i, j, dist, reachCount, nBuildings))
+            return -1;
+
+    for (int i = 0; i < m; ++i)
+      for (int j = 0; j < n; ++j)
+        if (reachCount[i][j] == nBuildings)
+          ans = Math.min(ans, dist[i][j]);
+
+    return ans == Integer.MAX_VALUE ? -1 : ans;
+  }
+
+  private static final int[][] DIRS = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
+
+  private boolean bfs(int[][] grid, int row, int col, int[][] dist, int[][] reachCount,
+                      int nBuildings) {
+    final int m = grid.length;
+    final int n = grid[0].length;
+    Queue<Pair<Integer, Integer>> q = new ArrayDeque<>(List.of(new Pair<>(row, col)));
+    boolean[][] seen = new boolean[m][n];
+    seen[row][col] = true;
+    int seenBuildings = 1;
+
+    for (int step = 1; !q.isEmpty(); ++step)
+      for (int sz = q.size(); sz > 0; --sz) {
+        final int i = q.peek().getKey();
+        final int j = q.poll().getValue();
+        for (int[] dir : DIRS) {
+          final int x = i + dir[0];
+          final int y = j + dir[1];
+          if (x < 0 || x == m || y < 0 || y == n)
+            continue;
+          if (seen[x][y])
+            continue;
+          seen[x][y] = true;
+          if (grid[x][y] == 0) {
+            dist[x][y] += step;
+            ++reachCount[x][y];
+            q.offer(new Pair<>(x, y));
+          } else if (grid[x][y] == 1) {
+            ++seenBuildings;
+          }
+        }
+      }
+
+    return seenBuildings == nBuildings;
+  }
+
+  private int getBuildingsCount(int[][] grid) {
+    int buildingCount = 0;
+    for (int[] row : grid)
+      for (final int cell : row)
+        if (cell == 1)
+          ++buildingCount;
+    return buildingCount;
+  }
+}
+
+
+or
+
+
+
+class Solution {
+    public int shortestDistance(int[][] grid) {
+        int m = grid.length;
+        int n = grid[0].length;
+        Deque<int[]> q = new LinkedList<>();
+        int total = 0;
+        int[][] cnt = new int[m][n];
+        int[][] dist = new int[m][n];
+        int[] dirs = {-1, 0, 1, 0, -1};
+        for (int i = 0; i < m; ++i) {
+            for (int j = 0; j < n; ++j) {
+                if (grid[i][j] == 1) {
+                    ++total;
+                    q.offer(new int[] {i, j});
+                    int d = 0;
+                    boolean[][] vis = new boolean[m][n];
+                    while (!q.isEmpty()) {
+                        ++d;
+                        for (int k = q.size(); k > 0; --k) {
+                            int[] p = q.poll();
+                            for (int l = 0; l < 4; ++l) {
+                                int x = p[0] + dirs[l];
+                                int y = p[1] + dirs[l + 1];
+                                if (x >= 0 && x < m && y >= 0 && y < n && grid[x][y] == 0
+                                    && !vis[x][y]) {
+                                    ++cnt[x][y];
+                                    dist[x][y] += d;
+                                    q.offer(new int[] {x, y});
+                                    vis[x][y] = true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        int ans = Integer.MAX_VALUE;
+        for (int i = 0; i < m; ++i) {
+            for (int j = 0; j < n; ++j) {
+                if (grid[i][j] == 0 && cnt[i][j] == total) {
+                    ans = Math.min(ans, dist[i][j]);
+                }
+            }
+        }
+        return ans == Integer.MAX_VALUE ? -1 : ans;
+    }
+}
+
+
