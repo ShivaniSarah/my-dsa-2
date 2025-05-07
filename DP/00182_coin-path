@@ -1,0 +1,183 @@
+https://leetcode.com/problems/coin-path/description/
+
+
+656. Coin Path
+Description
+You are given an integer array coins (1-indexed) of length n and an integer maxJump. You can jump to any index i of the array coins if coins[i] != -1 and you have to pay coins[i] when you visit index i. In addition to that, if you are currently at index i, you can only jump to any index i + k where i + k <= n and k is a value in the range [1, maxJump].
+
+You are initially positioned at index 1 (coins[1] is not -1). You want to find the path that reaches index n with the minimum cost.
+
+Return an integer array of the indices that you will visit in order so that you can reach index n with the minimum cost. If there are multiple paths with the same cost, return the lexicographically smallest such path. If it is not possible to reach index n, return an empty array.
+
+A path p1 = [Pa1, Pa2, ..., Pax] of length x is lexicographically smaller than p2 = [Pb1, Pb2, ..., Pbx] of length y, if and only if at the first j where Paj and Pbj differ, Paj < Pbj; when no such j exists, then x < y.
+
+ 
+
+Example 1:
+
+Input: coins = [1,2,4,-1,2], maxJump = 2
+Output: [1,3,5]
+Example 2:
+
+Input: coins = [1,2,4,-1,2], maxJump = 1
+Output: []
+ 
+
+Constraints:
+
+1 <= coins.length <= 1000
+-1 <= coins[i] <= 100
+coins[1] != -1
+1 <= maxJump <= 100
+
+
+
+
+# java
+
+
+
+class Solution {
+  public List<Integer> cheapestJump(int[] coins, int maxJump) {
+    if (coins[coins.length - 1] == -1)
+      return new ArrayList<>();
+
+    int n = coins.length;
+    int[] next = new int[n];
+    Arrays.fill(next, -1);
+    int[] mem = new int[n];
+    Arrays.fill(mem, Integer.MAX_VALUE);
+    cheapestJump(coins, maxJump, 0, next, mem);
+
+    if (mem[0] == Integer.MAX_VALUE)
+      return new ArrayList<>();
+    return constructPath(next, 0);
+  }
+
+  // Returns the minimum cost to jump from i to n - 1.
+  private int cheapestJump(int[] coins, int maxJump, int i, int[] next, int[] mem) {
+    if (i == coins.length - 1)
+      return mem[i] = coins[i];
+    if (mem[i] < Integer.MAX_VALUE)
+      return mem[i];
+    if (coins[i] == -1)
+      return Integer.MAX_VALUE;
+
+    for (int j = i + 1; j <= Math.min(i + maxJump, coins.length - 1); ++j) {
+      final int res = cheapestJump(coins, maxJump, j, next, mem);
+      if (res == Integer.MAX_VALUE)
+        continue;
+      final int cost = coins[i] + res;
+      if (cost < mem[i]) {
+        mem[i] = cost;
+        next[i] = j;
+      }
+    }
+
+    return mem[i];
+  }
+
+  private List<Integer> constructPath(int[] next, int i) {
+    List<Integer> ans = new ArrayList<>();
+    while (i != -1) {
+      ans.add(i + 1); // 1-indexed
+      i = next[i];
+    }
+    return ans;
+  }
+}
+
+
+
+or
+
+
+class Solution {
+  public List<Integer> cheapestJump(int[] coins, int maxJump) {
+    if (coins[coins.length - 1] == -1)
+      return new ArrayList<>();
+
+    final int n = coins.length;
+    // dp[i] := the minimum cost to jump from i to n - 1
+    int[] dp = new int[n];
+    int[] next = new int[n];
+
+    Arrays.fill(dp, Integer.MAX_VALUE);
+    Arrays.fill(next, -1);
+
+    dp[n - 1] = coins[n - 1];
+
+    for (int i = n - 2; i >= 0; --i) {
+      if (coins[i] == -1)
+        continue;
+      for (int j = i + 1; j < Math.min(i + maxJump + 1, n); ++j) {
+        if (dp[j] == Integer.MAX_VALUE)
+          continue;
+        final int cost = coins[i] + dp[j];
+        if (cost < dp[i]) {
+          dp[i] = cost;
+          next[i] = j;
+        }
+      }
+    }
+
+    if (dp[0] == Integer.MAX_VALUE)
+      return new ArrayList<>();
+    return constructPath(next, 0);
+  }
+
+  private List<Integer> constructPath(int[] next, int i) {
+    List<Integer> ans = new ArrayList<>();
+    while (i != -1) {
+      ans.add(i + 1); // 1-indexed
+      i = next[i];
+    }
+    return ans;
+  }
+}
+
+
+
+
+or
+
+
+
+
+
+class Solution {
+    public List<Integer> cheapestJump(int[] coins, int maxJump) {
+        int n = coins.length;
+        List<Integer> ans = new ArrayList<>();
+        if (coins[n - 1] == -1) {
+            return ans;
+        }
+        int[] f = new int[n];
+        final int inf = 1 << 30;
+        Arrays.fill(f, inf);
+        f[n - 1] = coins[n - 1];
+        for (int i = n - 2; i >= 0; --i) {
+            if (coins[i] != -1) {
+                for (int j = i + 1; j < Math.min(n, i + maxJump + 1); ++j) {
+                    if (f[i] > f[j] + coins[i]) {
+                        f[i] = f[j] + coins[i];
+                    }
+                }
+            }
+        }
+        if (f[0] == inf) {
+            return ans;
+        }
+        for (int i = 0, s = f[0]; i < n; ++i) {
+            if (f[i] == s) {
+                s -= coins[i];
+                ans.add(i + 1);
+            }
+        }
+        return ans;
+    }
+}
+
+
+
+
