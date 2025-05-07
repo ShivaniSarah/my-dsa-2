@@ -1,0 +1,251 @@
+https://leetcode.com/problems/design-excel-sum-formula/description/
+
+
+631. Design Excel Sum Formula
+Level
+Hard
+
+Description
+Your task is to design the basic function of Excel and implement the function of sum formula. Specifically, you need to implement the following functions:
+
+Excel(int H, char W): This is the constructor. The inputs represents the height and width of the Excel form. H is a positive integer, range from 1 to 26. It represents the height. W is a character range from ‘A’ to ‘Z’. It represents that the width is the number of characters from ‘A’ to W. The Excel form content is represented by a height * width 2D integer array C, it should be initialized to zero. You should assume that the first row of C starts from 1, and the first column of C starts from ‘A’.
+
+void Set(int row, char column, int val): Change the value at C(row, column) to be val.
+
+int Get(int row, char column): Return the value at C(row, column).
+
+int Sum(int row, char column, List of Strings : numbers): This function calculate and set the value at C(row, column), where the value should be the sum of cells represented by numbers. This function return the sum result at C(row, column). This sum formula should exist until this cell is overlapped by another value or another sum formula.
+
+numbers is a list of strings that each string represent a cell or a range of cells. If the string represent a single cell, then it has the following format: ColRow. For example, “F7” represents the cell at (7, F).
+
+If the string represent a range of cells, then it has the following format: ColRow1:ColRow2. The range will always be a rectangle, and ColRow1 represent the position of the top-left cell, and ColRow2 represents the position of the bottom-right cell.
+
+Example 1:
+
+Excel(3,"C"); 
+// construct a 3*3 2D array with all zero.
+//   A B C
+// 1 0 0 0
+// 2 0 0 0
+// 3 0 0 0
+
+Set(1, "A", 2);
+// set C(1,"A") to be 2.
+//   A B C
+// 1 2 0 0
+// 2 0 0 0
+// 3 0 0 0
+
+Sum(3, "C", ["A1", "A1:B2"]);
+// set C(3,"C") to be the sum of value at C(1,"A") and the values sum of the rectangle range whose top-left cell is C(1,"A") and bottom-right cell is C(2,"B"). Return 4. 
+//   A B C
+// 1 2 0 0
+// 2 0 0 0
+// 3 0 0 4
+
+Set(2, "B", 2);
+// set C(2,"B") to be 2. Note C(3, "C") should also be changed.
+//   A B C
+// 1 2 0 0
+// 2 0 2 0
+// 3 0 0 6
+Note:
+
+You could assume that there won’t be any circular sum reference. For example, A1 = sum(B1) and B1 = sum(A1).
+The test cases are using double-quotes to represent a character.
+Please remember to RESET your class variables declared in class Excel, as static/class variables are persisted across multiple test cases. Please see here for more details.
+
+
+
+
+# java
+
+
+
+class Cell {
+  public int val = 0;
+  public Map<Integer, Integer> posCount = new HashMap<>(); // {pos, count}
+  public Cell(int val, Map<Integer, Integer> posCount) {
+    this.val = val;
+    this.posCount = posCount;
+  }
+}
+
+class Excel {
+  public Excel(int height, char width) {
+    this.width = width;
+    this.sheet = new Cell[height][width];
+
+    for (int i = 0; i < height; ++i)
+      for (int j = 0; j < width; ++j)
+        sheet[i][j] = new Cell(0, null);
+  }
+
+  public void set(int row, char column, int val) {
+    sheet[row - 1][column - 'A'] = new Cell(val, null);
+  }
+
+  public int get(int row, char column) {
+    Cell cell = sheet[row - 1][column - 'A'];
+    if (cell.posCount == null)
+      return cell.val;
+
+    int val = 0;
+    for (Map.Entry<Integer, Integer> entry : cell.posCount.entrySet()) {
+      final int pos = entry.getKey();
+      final int count = entry.getValue();
+      val += get(pos / width + 1, (char) ((pos % width) + 'A')) * count;
+    }
+    return val;
+  }
+
+  public int sum(int row, char column, String[] numbers) {
+    sheet[row - 1][column - 'A'].posCount = parse(numbers);
+    return get(row, column);
+  }
+
+  private int width;
+  private Cell[][] sheet;
+
+  private Map<Integer, Integer> parse(String[] numbers) {
+    Map<Integer, Integer> count = new HashMap<>();
+
+    for (final String s : numbers) {
+      Pair<String, String> tokens = parse(s);
+      final int startRow = Integer.parseInt(tokens.getKey().substring(1));
+      final char startCol = tokens.getKey().charAt(0);
+      final int endRow = Integer.parseInt(tokens.getValue().substring(1));
+      final char endCol = tokens.getValue().charAt(0);
+      for (int i = startRow - 1; i < endRow; ++i)
+        for (int j = startCol - 'A'; j < endCol - 'A' + 1; ++j)
+          count.merge(i * width + j, 1, Integer::sum);
+    }
+
+    return count;
+  }
+
+  private Pair<String, String> parse(final String s) {
+    if (!s.contains(":"))
+      return new Pair<>(s, s);
+
+    String[] tokens = s.split(":");
+    return new Pair<>(tokens[0], tokens[1]);
+  }
+}
+
+
+
+or
+
+
+
+class Excel {
+    int rows;
+    int columns;
+    int[][] cells;
+    Map<String, Map<String, Integer>> cellSumMap;
+    Map<String, Map<String, Integer>> sumCellMap;
+
+    public Excel(int H, char W) {
+        rows = H + 1;
+        columns = W - 'A' + 1;
+        cells = new int[rows][columns];
+        cellSumMap = new HashMap<String, Map<String, Integer>>();
+        sumCellMap = new HashMap<String, Map<String, Integer>>();
+    }
+    
+    public void set(int r, char c, int v) {
+        int prevValue = cells[r][c - 'A'];
+        int difference = v - prevValue;
+        String cellName = String.valueOf(c) + r;
+        Map<String, Integer> cellMap = sumCellMap.getOrDefault(cellName, new HashMap<String, Integer>());
+        sumCellMap.remove(cellName);
+        Set<String> cellSet = cellMap.keySet();
+        for (String cell : cellSet) {
+            Map<String, Integer> sumMap = cellSumMap.getOrDefault(cell, new HashMap<String, Integer>());
+            sumMap.remove(cellName);
+            cellSumMap.put(cell, sumMap);
+        }
+        updateRelevantCells(cellName, difference);
+    }
+    
+    public int get(int r, char c) {
+        return cells[r][c - 'A'];
+    }
+    
+    public int sum(int r, char c, String[] strs) {
+        int sum = 0;
+        int prevValue = cells[r][c - 'A'];
+        set(r, c, prevValue);
+        String sumCellName = String.valueOf(c) + r;
+        for (String str : strs) {
+            if (str.indexOf(':') >= 0) {
+                String[] array = str.split(":");
+                String start = array[0], end = array[1];
+                char startColumn = start.charAt(0), endColumn = end.charAt(0);
+                int startRow = Integer.parseInt(start.substring(1)), endRow = Integer.parseInt(end.substring(1));
+                for (int i = startRow; i <= endRow; i++) {
+                    for (char j = startColumn; j <= endColumn; j++) {
+                        String cellName = String.valueOf(j) + i;
+                        Map<String, Integer> sumMap = cellSumMap.getOrDefault(cellName, new HashMap<String, Integer>());
+                        int sumCount = sumMap.getOrDefault(sumCellName, 0) + 1;
+                        sumMap.put(sumCellName, sumCount);
+                        cellSumMap.put(cellName, sumMap);
+                        Map<String, Integer> cellMap = sumCellMap.getOrDefault(sumCellName, new HashMap<String, Integer>());
+                        int cellCount = cellMap.getOrDefault(cellName, 0) + 1;
+                        cellMap.put(cellName, cellCount);
+                        sumCellMap.put(sumCellName, cellMap);
+                        sum += cells[i][j - 'A'];
+                    }
+                }
+                
+            } else {
+                Map<String, Integer> sumMap = cellSumMap.getOrDefault(str, new HashMap<String, Integer>());
+                int sumCount = sumMap.getOrDefault(sumCellName, 0) + 1;
+                sumMap.put(sumCellName, sumCount);
+                cellSumMap.put(str, sumMap);
+                Map<String, Integer> cellMap = sumCellMap.getOrDefault(sumCellName, new HashMap<String, Integer>());
+                int cellCount = cellMap.getOrDefault(str, 0) + 1;
+                cellMap.put(str, cellCount);
+                sumCellMap.put(sumCellName, cellMap);
+                char cellColumn = str.charAt(0);
+                int cellRow = Integer.parseInt(str.substring(1));
+                sum += cells[cellRow][cellColumn - 'A'];
+            }
+        }
+        int difference = sum - prevValue;
+        updateRelevantCells(sumCellName, difference);
+        return cells[r][c - 'A'];
+    }
+
+    private void updateRelevantCells(String cellName, int difference) {
+        Queue<String> cellQueue = new LinkedList<String>();
+        Queue<Integer> differenceQueue = new LinkedList<Integer>();
+        cellQueue.offer(cellName);
+        differenceQueue.offer(difference);
+        while (!cellQueue.isEmpty()) {
+            String cell = cellQueue.poll();
+            int curDifference = differenceQueue.poll();
+            char column = cell.charAt(0);
+            int row = Integer.parseInt(cell.substring(1));
+            cells[row][column - 'A'] += curDifference;
+            Map<String, Integer> map = cellSumMap.getOrDefault(cell, new HashMap<String, Integer>());
+            Set<String> set = map.keySet();
+            for (String nextCell : set) {
+                int count = map.get(nextCell);
+                cellQueue.offer(nextCell);
+                differenceQueue.offer(curDifference * count);
+            }
+        }
+    }
+}
+
+/**
+ * Your Excel object will be instantiated and called as such:
+ * Excel obj = new Excel(H, W);
+ * obj.set(r,c,v);
+ * int param_2 = obj.get(r,c);
+ * int param_3 = obj.sum(r,c,strs);
+ */
+
+
