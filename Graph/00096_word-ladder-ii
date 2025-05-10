@@ -1,0 +1,474 @@
+https://leetcode.com/problems/word-ladder-ii/description/
+
+
+
+126. Word Ladder II
+Attempted
+Hard
+Topics
+Companies
+A transformation sequence from word beginWord to word endWord using a dictionary wordList is a sequence of words beginWord -> s1 -> s2 -> ... -> sk such that:
+
+Every adjacent pair of words differs by a single letter.
+Every si for 1 <= i <= k is in wordList. Note that beginWord does not need to be in wordList.
+sk == endWord
+Given two words, beginWord and endWord, and a dictionary wordList, return all the shortest transformation sequences from beginWord to endWord, or an empty list if no such sequence exists. Each sequence should be returned as a list of the words [beginWord, s1, s2, ..., sk].
+
+ 
+
+Example 1:
+
+Input: beginWord = "hit", endWord = "cog", wordList = ["hot","dot","dog","lot","log","cog"]
+Output: [["hit","hot","dot","dog","cog"],["hit","hot","lot","log","cog"]]
+Explanation: There are 2 shortest transformation sequences:
+"hit" -> "hot" -> "dot" -> "dog" -> "cog"
+"hit" -> "hot" -> "lot" -> "log" -> "cog"
+Example 2:
+
+Input: beginWord = "hit", endWord = "cog", wordList = ["hot","dot","dog","lot","log"]
+Output: []
+Explanation: The endWord "cog" is not in wordList, therefore there is no valid transformation sequence.
+ 
+
+Constraints:
+
+1 <= beginWord.length <= 5
+endWord.length == beginWord.length
+1 <= wordList.length <= 500
+wordList[i].length == beginWord.length
+beginWord, endWord, and wordList[i] consist of lowercase English letters.
+beginWord != endWord
+All the words in wordList are unique.
+The sum of all shortest transformation sequences does not exceed 105.
+
+
+
+# java
+
+
+// best
+class Solution {
+    private Set<String> dict;
+        private String beginWord;
+        private String endWord;
+    private Map<String, List<String>> parentsMap = new HashMap<>();
+    private List<List<String>> paths = new ArrayList<>();
+    public List<List<String>> findLadders(String beginWord, String endWord, List<String> wordList) {
+        this.dict = new HashSet(wordList);
+        dict.add(beginWord);
+        if (!dict.contains(endWord)) return paths;
+            this.beginWord = beginWord;
+            this.endWord = endWord;
+        if (!buildMap()) return paths;
+    List<String> curr = new ArrayList<>();
+        curr.add(beginWord);
+        collectAllPaths(beginWord, curr);
+        return paths;
+    }
+    private void collectAllPaths(String s, List<String> curr) {
+        if (s.equals(endWord)) {
+            paths.add(new ArrayList(curr));
+            return;
+        }
+        for (String next : parentsMap.get(s)) {
+            curr.add(next);
+            collectAllPaths(next, curr);
+            curr.remove(curr.size() - 1);
+        }
+    }
+    private boolean buildMap() {
+        Set<String> backward = new HashSet<>();
+        backward.add(endWord);
+        Set<String> visited = new HashSet<>();
+        boolean found = false;
+        while (!backward.isEmpty() && !found) {
+            Set<String> temp = new HashSet<>();
+            for (String s : backward) {
+                visited.add(s);
+                for (String nb : getNext(s)) {
+                    if (backward.contains(nb) || visited.contains(nb)) continue;
+                        if (beginWord.equals(nb)) found = true;
+                            temp.add(nb);
+                            parentsMap.putIfAbsent(nb, new ArrayList<>());
+                            parentsMap.get(nb).add(s);
+                        }
+                    }
+                backward = temp;
+            }
+        return found;
+    }
+    private List<String> getNext(String s) {
+        char[] arr = s.toCharArray();
+        List<String> nbs = new ArrayList<>();
+        for (int i = 0; i < arr.length; i++) {
+            char ch = arr[i];
+            for (char c = 'a'; c <= 'z'; c++) {
+                if (c == ch) continue;
+                    arr[i] = c;
+                    String nb = new String(arr);
+                    if (dict.contains(nb)) nbs.add(nb);
+            }
+            arr[i] = ch;
+        }
+    return nbs;
+    }
+}
+
+
+
+
+
+or
+
+
+
+
+
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Queue;
+import java.util.Set;
+
+public class Word_Ladder_II {
+
+	// iteration bfs
+	// https://leetcode.com/problems/word-ladder-ii/solution/
+    public class Solution {
+
+        List<List<String>> list = new ArrayList<List<String>>();
+
+        public List<List<String>> findLadders(String start, String end, Set<String> dict) {
+
+            if (start == null || end == null || dict == null) return list;
+
+            dict.add(end); // !!!
+
+            Queue<String> q = new LinkedList<String>();
+            int level = 1;
+            int currentLevelCount = 1;
+            int newLevelCount = 0;
+            boolean found = false;
+            int foundLevel = -1;
+
+            // from end word, to all paths
+            HashMap<String, ArrayList<ArrayList<String>>> hm = new HashMap<String, ArrayList<ArrayList<String>>>();
+
+
+            q.offer(start);
+            ArrayList<String> singlePath = new ArrayList<String>();
+            ArrayList<ArrayList<String>> allPaths = new ArrayList<ArrayList<String>>();
+
+            singlePath.add(start);
+            allPaths.add(singlePath);
+            hm.put(start, allPaths);
+
+            while (!q.isEmpty()) {
+
+                String current = q.poll();
+                currentLevelCount--; // 这里用了新旧count来标记每个level，没有用null
+
+                for (int i = 0; i < current.length(); i++) {
+                    char[] array = current.toCharArray();
+
+                    for (char c = 'a'; c <= 'z'; c++) {
+                        array[i] = c;
+                        String each = new String(array);
+                        if (each.equals(end)) {
+                            found = true;
+                            foundLevel = level;
+                        }
+
+
+                        if (dict.contains(each)) {
+                            // q.offer(each);
+                            newLevelCount++;
+
+                            ArrayList<ArrayList<String>> prevAllPaths = hm.get(current);
+
+                            if (hm.containsKey(each))
+                                allPaths = hm.get(each);
+                            else {
+                                /* @note@note:
+	                                enqueue is here. if no path ending at this one, then has to explore in future
+	                                if there is path ending at this one, meaning it's been explored already. no need to enqueue
+	                            */
+                                q.offer(each);
+                                allPaths = new ArrayList<ArrayList<String>>();
+                                hm.put(each, allPaths);
+                            }
+
+                            // @note@note: this if is the key !!! no path for new word, or new word path is one more than previous path
+                            // using this if, the"if visited" check can be removed
+                            // if (allPaths.size() == 0 || prevAllPaths.size() + 1 == allPaths.size()) {
+                            if (allPaths.size() == 0 || prevAllPaths.get(0).size() + 1 == allPaths.get(0).size()) {
+                                for (ArrayList<String> eachPath : prevAllPaths) {
+                                    ArrayList<String> newone = new ArrayList<String>(eachPath);
+                                    newone.add(each);
+                                    allPaths.add(newone);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // @note@note: also the key, to make sure only find shortest
+                if (found && foundLevel != level) {
+                    break;
+                }
+
+                // @note: must be after trying the last word of currentLevel, then update
+                if (currentLevelCount == 0) {
+                    currentLevelCount = newLevelCount;
+                    newLevelCount = 0;
+                    level++;
+
+                }
+
+            }
+
+            if (!found) {
+                return list;
+            }
+
+            for (ArrayList<String> each : hm.get(end)) {
+                list.add(each);
+            }
+
+            return list;
+
+        }
+    }
+
+
+    public class Solution_recursion {
+
+        private List<String> findPath(String fromWord, String toWord,
+                                      Set<String> seenWords) {
+
+            if (fromWord.equals(toWord)) {
+                ArrayList<String> result = new ArrayList<>();
+                result.add(toWord);
+                return result;
+            }
+
+            // Find all words that you can go to from fromWord
+            List<String> nextWords = getNextWords(fromWord, seenWords);
+            for (String word : nextWords) {
+                Set<String> newSeenWords = new HashSet<String>(seenWords);
+                newSeenWords.add(word);
+                List<String> subPath = findPath(word, toWord, newSeenWords);
+                if (subPath != null) {
+                    subPath.add(fromWord);
+                    return subPath;
+                }
+            }
+
+            // There wasn't a path
+            return null;
+
+        }
+
+        private final List<String> WORDS = Arrays.asList("head", "heal",
+            "teal", "tell", "tall", "tail");
+
+        private final List<Character> ALPHA = Arrays.asList('a', 'b',
+            'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
+            'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z');
+
+        private final HashSet<String> DICTIONARY = new HashSet<String>(
+            WORDS);
+
+        private List<String> getNextWords(String fromWord,
+                                          Set<String> seenWords) {
+            List<String> outList = new ArrayList<String>();
+            StringBuilder builder;
+            for (int i = 0; i < fromWord.length(); i++) {
+                builder = new StringBuilder(fromWord);
+                for (Character j : ALPHA) {
+                    if (j == fromWord.charAt(i)) {
+                        continue;
+                    }
+                    builder.setCharAt(i, j);
+                    String potentialWord = builder.toString();
+                    if (DICTIONARY.contains(potentialWord)
+                        && !seenWords.contains(potentialWord)) {
+                        outList.add(potentialWord);
+                    }
+                }
+            }
+            return outList;
+        }
+    }
+}
+
+//////
+
+class Solution {
+    private List<List<String>> ans;
+    private Map<String, Set<String>> prev;
+
+    public List<List<String>> findLadders(String beginWord, String endWord, List<String> wordList) {
+        ans = new ArrayList<>();
+        Set<String> words = new HashSet<>(wordList);
+        if (!words.contains(endWord)) {
+            return ans;
+        }
+        words.remove(beginWord);
+        Map<String, Integer> dist = new HashMap<>();
+        dist.put(beginWord, 0);
+        prev = new HashMap<>();
+        Queue<String> q = new ArrayDeque<>();
+        q.offer(beginWord);
+        boolean found = false;
+        int step = 0;
+        while (!q.isEmpty() && !found) {
+            ++step;
+            for (int i = q.size(); i > 0; --i) {
+                String p = q.poll();
+                char[] chars = p.toCharArray();
+                for (int j = 0; j < chars.length; ++j) {
+                    char ch = chars[j];
+                    for (char k = 'a'; k <= 'z'; ++k) {
+                        chars[j] = k;
+                        String t = new String(chars);
+                        if (dist.getOrDefault(t, 0) == step) {
+                            prev.get(t).add(p);
+                        }
+                        if (!words.contains(t)) {
+                            continue;
+                        }
+                        prev.computeIfAbsent(t, key -> new HashSet<>()).add(p);
+                        words.remove(t);
+                        q.offer(t);
+                        dist.put(t, step);
+                        if (endWord.equals(t)) {
+                            found = true;
+                        }
+                    }
+                    chars[j] = ch;
+                }
+            }
+        }
+        if (found) {
+            Deque<String> path = new ArrayDeque<>();
+            path.add(endWord);
+            dfs(path, beginWord, endWord);
+        }
+        return ans;
+    }
+
+    private void dfs(Deque<String> path, String beginWord, String cur) {
+        if (cur.equals(beginWord)) {
+            ans.add(new ArrayList<>(path));
+            return;
+        }
+        for (String precursor : prev.get(cur)) {
+            path.addFirst(precursor);
+            dfs(path, beginWord, precursor);
+            path.removeFirst();
+        }
+    }
+}
+
+
+
+or
+
+
+
+class Solution {
+  public List<List<String>> findLadders(String beginWord, String endWord, List<String> wordList) {
+    Set<String> wordSet = new HashSet<>(wordList);
+    if (!wordSet.contains(endWord))
+      return new ArrayList<>();
+
+    // {"hit": ["hot"], "hot": ["dot", "lot"], ...}
+    Map<String, List<String>> graph = new HashMap<>();
+
+    // Build the graph from the beginWord to the endWord.
+    if (!bfs(beginWord, endWord, wordSet, graph))
+      return new ArrayList<>();
+
+    List<List<String>> ans = new ArrayList<>();
+    List<String> path = new ArrayList<>(List.of(beginWord));
+    dfs(graph, beginWord, endWord, path, ans);
+    return ans;
+  }
+
+  private boolean bfs(final String beginWord, final String endWord, Set<String> wordSet,
+                      Map<String, List<String>> graph) {
+    Set<String> currentLevelWords = new HashSet<>();
+    currentLevelWords.add(beginWord);
+    boolean reachEndWord = false;
+
+    while (!currentLevelWords.isEmpty()) {
+      for (final String word : currentLevelWords)
+        wordSet.remove(word);
+      Set<String> nextLevelWords = new HashSet<>();
+      for (final String parent : currentLevelWords) {
+        graph.putIfAbsent(parent, new ArrayList<>());
+        for (final String child : getChildren(parent, wordSet)) {
+          if (wordSet.contains(child)) {
+            nextLevelWords.add(child);
+            graph.get(parent).add(child);
+          }
+          if (child.equals(endWord))
+            reachEndWord = true;
+        }
+      }
+      if (reachEndWord)
+        return true;
+      currentLevelWords = nextLevelWords;
+    }
+
+    return false;
+  }
+
+  private List<String> getChildren(final String parent, Set<String> wordSet) {
+    List<String> children = new ArrayList<>();
+    StringBuilder sb = new StringBuilder(parent);
+
+    for (int i = 0; i < sb.length(); ++i) {
+      final char cache = sb.charAt(i);
+      for (char c = 'a'; c <= 'z'; ++c) {
+        if (c == cache)
+          continue;
+        sb.setCharAt(i, c);
+        final String child = sb.toString();
+        if (wordSet.contains(child))
+          children.add(child);
+      }
+      sb.setCharAt(i, cache);
+    }
+
+    return children;
+  }
+
+  private void dfs(Map<String, List<String>> graph, final String word, final String endWord,
+                   List<String> path, List<List<String>> ans) {
+    if (word.equals(endWord)) {
+      ans.add(new ArrayList<>(path));
+      return;
+    }
+    if (!graph.containsKey(word))
+      return;
+
+    for (final String child : graph.get(word)) {
+      path.add(child);
+      dfs(graph, child, endWord, path, ans);
+      path.remove(path.size() - 1);
+    }
+  }
+}
+
+
+
+or
+
+
+
