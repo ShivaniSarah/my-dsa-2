@@ -49,6 +49,33 @@ Constraints:
 class Solution {
     public int minKBitFlips(int[] nums, int k) {
         int n = nums.length;
+        int[] d = new int[n + 1]; // difference array
+        int ans = 0, flip = 0;
+
+        for (int i = 0; i < n; ++i) {
+            flip += d[i]; // cumulative flips till i
+
+            // if (nums[i] + flip) % 2 == 0 → needs flip
+            if ((nums[i] + flip) % 2 == 0) {
+                if (i + k > n) return -1;
+                ++ans;
+                ++flip;
+                ++d[i];
+                --d[i + k];
+            }
+        }
+
+        return ans;
+    }
+}
+
+
+or
+
+
+class Solution {
+    public int minKBitFlips(int[] nums, int k) {
+        int n = nums.length;
         int[] d = new int[n + 1];
         int ans = 0, s = 0;
         for (int i = 0; i < n; ++i) {
